@@ -1,0 +1,169 @@
+<script type="text/javascript">
+    RED.nodes.registerType('ccu-connection', {
+        category: 'config',
+        defaults: {
+            name: {value: ''},
+            host: {value: '', required: true},
+
+            regaEnabled: {value: true},
+            bcrfEnabled: {value: true},
+            iprfEnabled: {value: true},
+            virtEnabled: {value: true},
+            bcwiEnabled: {value: false},
+            cuxdEnabled: {value: false},
+
+            regaPoll: {value: true},
+            regaInterval: {value: 30},
+
+            rpcPingTimeout: {value: 60},
+            rpcInitAddress: {value: '', required: true},
+            rpcServerHost: {value: '', required: true},
+            rpcBinPort: {value: '', required: true},
+            rpcXmlPort: {value: '', required: true}
+        },
+        label() {
+            return this.name || this.host;
+        },
+
+        oneditprepare() {
+            const $nodeConfigInputHost = $('#node-config-input-host');
+            const $nodeConfigInputName = $('#node-config-input-name');
+            const $nodeConfigInputRpcServerHost = $('#node-config-input-rpcServerHost');
+            const $nodeConfigInputRpcInitAddress = $('#node-config-input-rpcInitAddress');
+
+            function setInitAddress() {
+                const val = $nodeConfigInputRpcServerHost.val();
+                if (val !== '0.0.0.0' && !$nodeConfigInputRpcInitAddress.val()) {
+                    $nodeConfigInputRpcInitAddress.val(val);
+                }
+            }
+
+            $nodeConfigInputRpcServerHost.on('change', setInitAddress);
+
+            $nodeConfigInputHost.on('focus', () => $nodeConfigInputHost.autocomplete('search', ''));
+
+            $.getJSON('ccu', data => {
+                const discovered = [];
+                data.discover.forEach(ccu => {
+                    discovered.push(ccu.address + ' ' + ccu.serial);
+                });
+
+                $nodeConfigInputHost.autocomplete({
+                    source: discovered,
+                    close: () => {
+                        const name = $nodeConfigInputHost.val();
+                        const address = name.split(' ').shift();
+                        const serial = name.split(' ').pop();
+
+                        $nodeConfigInputHost.val(address);
+                        $nodeConfigInputName.val(serial);
+
+                        data.discover.forEach(ccu => {
+                            if (ccu.address === address) {
+                                $('#node-config-input-regaEnabled').prop('checked', ccu.interfaces.ReGaHSS);
+                                $('#node-config-input-bcrfEnabled').prop('checked', ccu.interfaces['BidCos-RF']);
+                                $('#node-config-input-iprfEnabled').prop('checked', ccu.interfaces['HmIP-RF']);
+                                $('#node-config-input-virtEnabled').prop('checked', ccu.interfaces.VirtualDevices);
+                                $('#node-config-input-bcwiEnabled').prop('checked', ccu.interfaces['BidCos-Wired']);
+                                $('#node-config-input-cuxdEnabled').prop('checked', ccu.interfaces.CuXD);
+                            }
+                        });
+                    },
+                    delay: 0,
+                    minLength: 0
+                });
+
+                data.listen.forEach(addr => {
+                    $nodeConfigInputRpcServerHost.append('<option>' + addr + '</option>');
+                });
+
+                $nodeConfigInputRpcServerHost.val(this.rpcServerHost || data.listen[1]);
+                if (!this.rpcServerHost) {
+                    setInitAddress();
+                }
+
+                if (!this.rpcBinPort) {
+                    $('#node-config-input-rpcBinPort').val(data.ports[0]);
+                }
+                if (!this.rpcXmlPort) {
+                    $('#node-config-input-rpcXmlPort').val(data.ports[1]);
+                }
+            });
+
+            setTimeout(() => {
+                if (!this.host) {
+                    $nodeConfigInputHost.focus();
+                }
+            }, 250);
+        }
+    });
+
+</script>
+
+<script type="text/x-red" data-template-name="ccu-connection">
+    <div class="form-row">
+        <label for="node-input-name"><i class="icon-tag"></i> CCU name</label>
+        <input type="text" id="node-config-input-name">
+    </div>
+    <div class="form-row">
+        <label for="node-input-host"><i class="icon-tag"></i> CCU address</label>
+        <input type="text" id="node-config-input-host">
+    </div>
+    <div class="form-row">
+        <label for="node-input-rpcServerHost"><i class="icon-tag"></i> listen address</label>
+        <select id="node-config-input-rpcServerHost"></select>
+    </div>
+    <div class="form-row">
+        <label for="node-input-rpcInitAddress"><i class="icon-tag"></i> init address</label>
+        <input type="text" id="node-config-input-rpcInitAddress">
+    </div>
+    <div class="form-row">
+        <label for="node-input-rpcBinPort"><i class="icon-tag"></i> binrpc listening port</label>
+        <input type="text" id="node-config-input-rpcBinPort">
+    </div>
+    <div class="form-row">
+        <label for="node-input-rpcXmlPort"><i class="icon-tag"></i> xmlrpc listening port</label>
+        <input type="text" id="node-config-input-rpcXmlPort">
+    </div>
+    <div class="form-row">
+        <label for="node-input-rfdEnabled"><i class="icon-tag"></i> interfaces</label>
+        <div style="width: 70%; display: inline-block; vertical-align: text-top;">
+            <label class="ccu-checkbox"><input type="checkbox" id="node-config-input-regaEnabled"> ReGaHSS</label><br>
+            <label class="ccu-checkbox"><input type="checkbox" id="node-config-input-bcrfEnabled"> BidCos-RF</label><br>
+            <label class="ccu-checkbox"><input type="checkbox" id="node-config-input-bcwiEnabled"> BidCos-Wired</label><br>
+            <label class="ccu-checkbox"><input type="checkbox" id="node-config-input-iprfEnabled"> HmIP-RF</label><br>
+            <label class="ccu-checkbox"><input type="checkbox" id="node-config-input-virtEnabled"> VirtualDevices</label><br>
+            <label class="ccu-checkbox"><input type="checkbox" id="node-config-input-cuxdEnabled"> CUxD</label>
+        </div>
+    </div>
+    <div class="form-row">
+        <label for="node-input-rpcPingTimeout"><i class="icon-tag"></i> rpc ping timeout</label>
+        <input type="text" id="node-config-input-rpcPingTimeout">
+    </div>
+    <div class="form-row">
+        <label for="node-input-regaPoll"><i class="icon-tag"></i> rega poll</label>
+        <div style="width: 70%; display: inline-block; vertical-align: text-top;">
+            <label class="ccu-checkbox"><input type="checkbox" id="node-config-input-regaPoll"> Enabled</label><br>
+        </div>
+    </div>
+     <div class="form-row">
+        <label for="node-input-regaInterval"><i class="icon-tag"></i> rega poll interval</label>
+        <input type="text" id="node-config-input-regaInterval">
+    </div>
+    <script type="text/x-red" data-help-name="ccu-connection">
+        <p>The <i>init address</i> normally equals the <i>listen address</i>, the address under which the host running
+        Node-Red is reachable for the CCU</p>
+        <p>For advanced users: when listening on all interfaces (address 0.0.0.0) or if Node-RED runs inside a
+        (e.g. docker) container with NAT'd network or in other more special network environments, setting <i>init
+        address</i> to something else then <i>listen address</i> is needed.</p>
+    </script>
+    <style>
+        .ccu-checkbox {
+          width: auto !important;
+        }
+        .ccu-checkbox input {
+            width: 32px;
+            margin-top: -3px;
+        }
+    </style>
+</script>

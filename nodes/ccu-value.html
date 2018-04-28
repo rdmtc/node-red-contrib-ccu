@@ -1,0 +1,174 @@
+<script type="text/javascript">
+    RED.nodes.registerType('ccu-value', {
+
+        category: 'ccu',
+        defaults: {
+            name: {value: ''},
+            iface: {value: ''},
+            channel: {value: '', required: true},
+            datapoint: {value: '', required: true},
+            mode: {value: ''},
+            start: {value: true},
+            change: {value: true},
+            cache: {value: true},
+            ccuConfig: {value: '', type: 'ccu-connection', required: true},
+            topic: {value: '${CCU}/${Interface}/${channel}/${datapoint}'}
+        },
+        inputs: 1,
+        outputs: 1,
+        icon: 'ccu.png',
+        color: '#4691BA',
+        paletteLabel: 'value',
+        align: 'right',
+        label() {
+            return this.name || 'value';
+        },
+        oneditprepare() {
+            const $nodeInputIface = $('#node-input-iface');
+            const $nodeInputMode = $('#node-input-mode');
+            const $nodeInputCcuConfig = $('#node-input-ccuConfig');
+            const $nodeInputChannel = $('#node-input-channel');
+            const $nodeInputName = $('#node-input-name');
+            const $nodeInputDatapoint = $('#node-input-datapoint');
+
+            let data;
+
+            function loadConfig() {
+                const nodeId = $nodeInputCcuConfig.val();
+                const url = 'ccu?config=' + nodeId + '&type=channels&iface=' + $nodeInputIface.val();
+                console.log('get ' + url);
+                $.getJSON(url, d => {
+                    data = d;
+                    autocompleteChannel();
+                });
+            }
+
+            $nodeInputCcuConfig.change(loadConfig);
+
+            $nodeInputChannel.autocomplete({
+                source: [],
+                close: () => {
+                    if (!$nodeInputName.val()) {
+                        const n = $nodeInputChannel.val().split(' ');
+                        n.shift();
+                        $nodeInputName.val(n.join(' '));
+                    }
+                    autocompleteDatapoint();
+                },
+                delay: 0,
+                minLength: 0
+            });
+
+            $nodeInputDatapoint.autocomplete({
+                source: [],
+                delay: 0,
+                minLength: 0
+            });
+
+            $nodeInputChannel.on('blur', autocompleteDatapoint);
+
+            function autocompleteChannel() {
+                if (!data) {
+                    return;
+                }
+                const arr = [];
+                Object.keys(data).forEach(addr => {
+                    if (addr.match(/:\d+$/)) {
+                        if (data[addr].name) {
+                            addr += ' ' + data[addr].name;
+                        }
+                        arr.push(addr);
+                    }
+                });
+                $nodeInputChannel.autocomplete('option', 'source', arr);
+
+                if (!data[$nodeInputChannel.val().split(' ')[0]]) {
+                    $nodeInputChannel.val('');
+                    $nodeInputDatapoint.val('');
+                }
+            }
+
+            function autocompleteDatapoint() {
+                const c = data[$nodeInputChannel.val().split(' ')[0]];
+                if (c) {
+                    $nodeInputDatapoint.autocomplete('option', 'source', c.datapoints);
+                    if (c.datapoints.indexOf($nodeInputDatapoint.val()) === -1) {
+                        $nodeInputDatapoint.val('').autocomplete('search');
+                    }
+                }
+            }
+
+            $nodeInputIface.val(this.iface);
+
+            $nodeInputIface.change(() => {
+                if ($nodeInputIface.val() === 'BidCos-RF') {
+                    $nodeInputMode.removeAttr('disabled');
+                } else {
+                    $nodeInputMode.val('').attr('disabled', true);
+                }
+                loadConfig();
+            });
+        }
+    });
+</script>
+
+<script type="text/x-red" data-template-name="ccu-value">
+    <div class="form-row">
+        <label for="node-input-ccuConfig"><i class="icon-globe"></i> CCU</label>
+        <input type="text" id="node-input-ccuConfig">
+    </div>
+     <div class="form-row">
+        <label for="node-input-topic"><i class="icon-tasks"></i> Topic</label>
+        <input type="text" id="node-input-topic">
+    </div>
+    <div class="form-row">
+        <label for="node-input-iface"><i class="fa fa-empire"></i> Interface</label>
+        <select id="node-input-iface">
+            <option>BidCos-RF</option>
+            <option>BidCos-Wired</option>
+            <option>HmIP-RF</option>
+            <option>VirtualDevices</option>
+            <option>CUxD</option>
+       </select>
+    </div>
+     <div class="form-row">
+        <label for="node-input-channel"><i class="icon-tags"></i> channel</label>
+        <input type="text" id="node-input-channel">
+    </div>
+     <div class="form-row">
+        <label for="node-input-datapoint"><i class="icon-tag"></i> datapoint</label>
+        <input type="text" id="node-input-datapoint">
+    </div>
+
+
+     <div class="form-row">
+        <label for="node-input-mode"><i class="fa fa-empire"></i> set Mode</label>
+        <select id="node-input-mode">
+            <option value=''>default</option>
+            <option>BURST</option>
+            <option>WAKEUP</option>
+       </select>
+    </div>
+        <div class="form-row">
+        <label for="node-input-change"><i class="fa fa-hand-point-right"></i></label>
+        <label style="width: 70%"><input style="width:auto" type="checkbox" id="node-input-change"> emit changes only</label>
+    </div>
+     </div>
+        <div class="form-row">
+        <label for="node-input-cache" ><i class="fa fa-arrow-alt-circle-right"></i></label>
+        <label style="width: 70%"><input style="width:auto" type="checkbox" id="node-input-cache"> emit once on start</label>
+    </div>
+     <div class="form-row">
+        <label for="node-input-name"><i class="icon-bookmark"></i> Name</label>
+        <input type="text" id="node-input-name">
+    </div>
+
+</script>
+
+<script type="text/x-red" data-help-name="ccu-value" lang="de-DE">
+    <p>Setzen und lesen von Kanal-Datenpunkten.</p>
+</script>
+
+<script type="text/x-red" data-help-name="ccu-value" lang="en-US">
+    <p>Set and read channel datapoints.</p>
+</script>

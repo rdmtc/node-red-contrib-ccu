@@ -1,0 +1,333 @@
+<script type="text/javascript">
+    RED.nodes.registerType('ccu-rpc-event', {
+
+        category: 'ccu',
+        defaults: {
+            name: {value: ''},
+            iface: {value: ''},
+            ccuConfig: {value: '', type: 'ccu-connection', required: true},
+            rooms: {value: ''},
+            roomsRx: {value: 'str'},
+            functions: {value: ''},
+            functionsRx: {value: 'str'},
+            device: {value: ''},
+            deviceRx: {value: 'str'},
+            deviceName: {value: ''},
+            deviceNameRx: {value: 'str'},
+            deviceType: {value: ''},
+            deviceTypeRx: {value: 'str'},
+            channel: {value: ''},
+            channelRx: {value: 'str'},
+            channelName: {value: ''},
+            channelNameRx: {value: 'str'},
+            channelType: {value: ''},
+            channelTypeRx: {value: 'str'},
+            datapoint: {value: ''},
+            datapointRx: {value: 'str'},
+            change: {value: false},
+            cache: {value: false},
+            topic: {value: '${CCU}/${Interface}/${channelName}/${datapoint}'}
+        },
+        inputs: 0,
+        outputs: 1,
+        icon: 'ccu.png',
+        color: '#4691BA',
+        paletteLabel: 'rpc event',
+        label() {
+            return this.name || ('rpc event');
+        },
+        oneditprepare() {
+            const that = this;
+            const $nodeInputCcuConfig = $('#node-input-ccuConfig');
+
+            let data;
+
+            function loadConfig() {
+                const nodeId = $nodeInputCcuConfig.val();
+                const url = 'ccu?config=' + nodeId;
+                console.log('get ' + url);
+                $.getJSON(url, d => {
+                    data = d;
+                    autocompleteRoomsFunctions();
+                    autocompleteDevices();
+                });
+            }
+
+            $nodeInputCcuConfig.change(loadConfig);
+
+            $('#node-input-iface').change(() => {
+                autocompleteDevices();
+            });
+
+            $('#node-input-rooms').autocomplete({
+                source: [],
+                close: () => {
+
+                },
+                delay: 0,
+                minLength: 0
+            });
+
+            $('#node-input-functions').autocomplete({
+                source: [],
+                close: () => {
+
+                },
+                delay: 0,
+                minLength: 0
+            });
+
+            $('#node-input-device').autocomplete({
+                source: [],
+                close: () => {
+
+                },
+                delay: 0,
+                minLength: 0
+            });
+
+            $('#node-input-deviceName').autocomplete({
+                source: [],
+                close: () => {
+
+                },
+                delay: 0,
+                minLength: 0
+            });
+
+            $('#node-input-deviceType').autocomplete({
+                source: [],
+                close: () => {
+
+                },
+                delay: 0,
+                minLength: 0
+            });
+            $('#node-input-channel').autocomplete({
+                source: [],
+                close: () => {
+
+                },
+                delay: 0,
+                minLength: 0
+            });
+            $('#node-input-channelName').autocomplete({
+                source: [],
+                close: () => {
+
+                },
+                delay: 0,
+                minLength: 0
+            });
+            $('#node-input-channelType').autocomplete({
+                source: [],
+                close: () => {
+
+                },
+                delay: 0,
+                minLength: 0
+            });
+            $('#node-input-datapoint').autocomplete({
+                source: [],
+                close: () => {
+
+                },
+                delay: 0,
+                minLength: 0
+            });
+
+            $('.filter').each(function () {
+                const id = $(this).prop('id');
+                const $type = $('#' + id + 'Rx');
+                const name = id.split('-').pop() + 'Rx';
+                $type.val(that[name]);
+                const $this = $(this);
+                $this.typedInput({
+                    typeField: $type,
+                    types: ['str', 're']
+                })
+                    .typedInput('width', '70%')
+                    .on('change', (type, value) => {
+                        if (value === 're') {
+                            $this.autocomplete('disable');
+                        } else {
+                            $this.autocomplete('enable');
+                        }
+                    });
+            });
+
+            function autocompleteRoomsFunctions() {
+                if (!data) {
+                    return;
+                }
+                $('#node-input-rooms').autocomplete('option', 'source', data.rooms);
+                $('#node-input-functions').autocomplete('option', 'source', data.functions);
+            }
+
+            function paramsetName(device, paramset) {
+                if (device) {
+                    return (device.PARENT_TYPE ? device.PARENT_TYPE + '/' : '') + device.VERSION + '/' + device.TYPE + '/' + paramset;
+                }
+            }
+
+            function autocompleteDevices() {
+                if (!data) {
+                    return;
+                }
+                const iface = $('#node-input-iface').val();
+                const lists = {
+                    device: [],
+                    deviceName: [],
+                    deviceType: [],
+                    channel: [],
+                    channelName: [],
+                    channelType: [],
+                    datapoint: []
+                };
+
+                function composeLists(iface) {
+                    if (!data.metadata.devices[iface]) {
+                        return;
+                    }
+
+                    Object.keys(data.metadata.devices[iface]).forEach(device => {
+                        if (device.match(/:\d+$/)) {
+                            lists.channel.push(device);
+                            lists.channelName.push(data.channelNames[device]);
+                            if (!lists.channelType.includes(data.metadata.devices[iface][device].TYPE)) {
+                                lists.channelType.push(data.metadata.devices[iface][device].TYPE);
+                            }
+
+                            const psName = paramsetName(data.metadata.devices[iface][device], 'VALUES');
+                            if (data.paramsetDescriptions[psName]) {
+                                Object.keys(data.paramsetDescriptions[psName]).forEach(datapoint => {
+                                    if (!lists.datapoint.includes(datapoint)) {
+                                        lists.datapoint.push(datapoint);
+                                    }
+                                });
+                            }
+                        } else {
+                            lists.device.push(device);
+                            lists.deviceName.push(data.channelNames[device]);
+                            if (!lists.deviceType.includes(data.metadata.devices[iface][device].TYPE)) {
+                                lists.deviceType.push(data.metadata.devices[iface][device].TYPE);
+                            }
+                        }
+                    });
+                }
+
+                if (iface) {
+                    composeLists(iface);
+                } else {
+                    Object.keys(data.metadata.devices).forEach(iface => {
+                        composeLists(iface);
+                    });
+                }
+
+                $('#node-input-device').autocomplete('option', 'source', lists.device);
+                $('#node-input-deviceName').autocomplete('option', 'source', lists.deviceName);
+                $('#node-input-deviceType').autocomplete('option', 'source', lists.deviceType);
+                $('#node-input-channel').autocomplete('option', 'source', lists.channel);
+                $('#node-input-channelName').autocomplete('option', 'source', lists.channelName);
+                $('#node-input-channelType').autocomplete('option', 'source', lists.channelType);
+                $('#node-input-datapoint').autocomplete('option', 'source', lists.datapoint);
+            }
+        }
+    });
+</script>
+
+<script type="text/x-red" data-template-name="ccu-rpc-event">
+    <div class="form-row">
+        <label for="node-input-ccuConfig"><i class="icon-globe"></i> CCU</label>
+        <input type="text" id="node-input-ccuConfig">
+    </div>
+    <div class="form-row">
+        <label for="node-input-topic"><i class="icon-tasks"></i> Topic</label>
+        <input type="text" id="node-input-topic">
+    </div>
+    <div class="form-row">
+        <label for="node-input-iface"><i class="fa fa-empire"></i> Interface</label>
+        <select id="node-input-iface">
+            <option value="">*</option>
+            <option>BidCos-RF</option>
+            <option>BidCos-Wired</option>
+            <option>HmIP-RF</option>
+            <option>VirtualDevices</option>
+            <option>CUxD</option>
+       </select>
+    </div>
+    <div class="form-row">
+        <label for="node-input-rooms"><i class="icon-bookmark"></i> room</label>
+        <input type="text" class="filter" id="node-input-rooms">
+        <input type="hidden" id="node-input-roomsRx">
+    </div>
+    <div class="form-row">
+        <label for="node-input-functions"><i class="icon-bookmark"></i> function</label>
+        <input type="text" class="filter" id="node-input-functions">
+        <input type="hidden" id="node-input-functionsRx">
+    </div>
+    <div class="form-row">
+        <label for="node-input-device"><i class="icon-bookmark"></i> device</label>
+        <input type="text" class="filter" id="node-input-device">
+        <input type="hidden" id="node-input-deviceRx">
+    </div>
+    <div class="form-row">
+        <label for="node-input-deviceName"><i class="icon-bookmark"></i> deviceName</label>
+        <input type="text" class="filter" id="node-input-deviceName">
+        <input type="hidden" id="node-input-deviceNameRx">
+    </div>
+    <div class="form-row">
+        <label for="node-input-deviceType"><i class="icon-bookmark"></i> deviceType</label>
+        <input type="text" class="filter" id="node-input-deviceType">
+        <input type="hidden" id="node-input-deviceTypeRx">
+    </div>
+    <div class="form-row">
+        <label for="node-input-channel"><i class="icon-bookmark"></i> channel</label>
+        <input type="text" class="filter" id="node-input-channel">
+        <input type="hidden" id="node-input-channelRx">
+    </div>
+    <div class="form-row">
+        <label for="node-input-channelName"><i class="icon-bookmark"></i> channelName</label>
+        <input type="text" class="filter" id="node-input-channelName">
+        <input type="hidden" id="node-input-channelNameRx">
+    </div>
+    <div class="form-row">
+        <label for="node-input-channelType"><i class="icon-bookmark"></i> channelType</label>
+        <input type="text" class="filter" id="node-input-channelType">
+        <input type="hidden" id="node-input-channelTypeRx">
+    </div>
+    <div class="form-row">
+        <label for="node-input-datapoint"><i class="icon-tag"></i> datapoint</label>
+        <input type="text" class="filter" id="node-input-datapoint">
+        <input type="hidden" id="node-input-datapointRx">
+    </div>
+    <div class="form-row">
+        <label for="node-input-change"><i class="icon-bookmark"></i> </label>
+        <div style="width: 70%; display: inline-block; vertical-align: text-top;">
+            <label class="ccu-checkbox"><input type="checkbox" id="node-input-change"> <span data-i18n="ccu-rpc-event.change"></span></label><br>
+            <label class="ccu-checkbox"><input type="checkbox" id="node-input-cache"> <span data-i18n="ccu-rpc-event.cache"</label><br>
+        </div>
+    </div>
+    <div class="form-row">
+        <label for="node-input-name"><i class="icon-bookmark"></i> Name</label>
+        <input type="text" id="node-input-name">
+    </div>
+
+    <style>
+        .ccu-checkbox {
+          width: 100% !important;
+        }
+        .ccu-checkbox input {
+            width: 32px;
+            margin-top: -3px;
+        }
+    </style>
+</script>
+
+<script type="text/x-red" data-help-name="ccu-rpc-event" lang="de-DE">
+    <p>Gibt RPC Events aus.</p>
+</script>
+
+<script type="text/x-red" data-help-name="ccu-rpc-event" lang="en-US">
+    <p>Outputs RPC events.</p>
+</script>

@@ -1,0 +1,115 @@
+<script type="text/javascript">
+    RED.nodes.registerType('ccu-rpc', {
+
+        category: 'ccu',
+        defaults: {
+            name: {value: ''},
+            ccuConfig: {value: '', type: 'ccu-connection', required: true},
+            iface: {value: 'BidCos-RF'},
+            method: {value: ''},
+            params: {value: '[]', validate: params => {
+                try {
+                    return $.trim(params) === '' || Array.isArray(JSON.parse(params));
+                } catch (err) {
+                    return false;
+                }
+            }},
+            topic: {value: '${CCU}/${Interface}/${Method}'}
+        },
+        inputs: 1,
+        outputs: 1,
+        icon: 'ccu.png',
+        color: '#4691BA',
+        paletteLabel: 'rpc',
+        align: 'right',
+        label() {
+            return this.name || this.method || 'rpc';
+        },
+        oneditprepare() {
+            $('#node-input-method').autocomplete({
+                source: [],
+                close: () => {
+
+                },
+                delay: 0,
+                minLength: 0
+            });
+            $('#node-input-iface').change(() => {
+                autocompleteMethods();
+            });
+
+            function autocompleteMethods() {
+                const iface = $('#node-input-iface').val();
+                let methods;
+                switch (iface) {
+                    case 'BidCos-RF':
+                        // TODO remove hardcoded methods...
+                        methods = ['abortDeleteDevice', 'activateLinkParamset', 'addDevice', 'addLink', 'addVirtualDeviceInstance', 'changeKey', 'clearConfigCache', 'deleteDevice', 'deleteVolatileMetadata', 'determineParameter', 'exit', 'getAllMetadata', 'getDeviceDescription', 'getInstallMode', 'getKeyMismatchDevice', 'getLinkInfo', 'getLinkPeers', 'getLinks', 'getMetadata', 'getParamset', 'getParamsetDescription', 'getParamsetId', 'getServiceMessages', 'getValue', 'getVersion', 'getVolatileMetadata', 'hasVolatileMetadata', 'init', 'listBidcosInterfaces', 'listDevices', 'listReplaceableDevices', 'listTeams', 'logLevel', 'ping', 'putParamset', 'refreshDeployedDeviceFirmwareList', 'removeLink', 'replaceDevice', 'reportValueUsage', 'restoreConfigToDevice', 'rssiInfo', 'setBidcosInterface', 'setInstallMode', 'setInterfaceClock', 'setLinkInfo', 'setRFLGWInfoLED', 'setTeam', 'setTempKey', 'setValue', 'setVolatileMetadata', 'system.listMethods', 'system.methodHelp', 'updateFirmware', 'system.multicall'];
+                        break;
+                    case 'BidCos-Wired':
+                        methods = ['addLink', 'clearConfigCache', 'deleteDevice', 'getDeviceDescription', 'getLGWStatus', 'getLinkInfo', 'getLinkPeers', 'getLinks', 'getParamset', 'getParamsetDescription', 'getParamsetId', 'getValue', 'init', 'listDevices', 'listReplaceableDevices', 'logLevel', 'ping', 'putParamset', 'removeLink', 'replaceDevice', 'reportValueUsage', 'searchDevices', 'setLinkInfo', 'setValue', 'system.listMethods', 'system.methodHelp', 'updateFirmware', 'system.multicall'];
+                        break;
+                    case 'VirtualDevices':
+                        methods = ['init', 'getParamsetDescription', 'getLinks', 'getDeviceDescription', 'getParamsetId', 'getParamset', 'putParamset', 'system.listMethods', 'listDevices', 'getValue', 'setValue', 'listReplaceableDevices', 'deleteDevice'];
+                        break;
+                    case 'ReGaHSS':
+                        methods = ['deleteDevices', 'event', 'listDevices', 'newDevices', 'replaceDevice', 'reportValueUsage', 'setReadyConfig', 'system.listMethods', 'system.methodHelp', 'updateDevice', 'system.multicall'];
+                        break;
+                    case 'HmIP-RF':
+                        // https://github.com/eq-3/occu/issues/53
+                        methods = ['system.methodHelp', 'getLinks', 'ping', 'getParamset', 'getDeviceDescription', 'listDevices', 'setInstallModeWithWhitelist', 'getParamsetDescription', 'getServiceMessages', 'installFirmware', 'getVersion', 'setInstallMode', 'init', 'system.multicall', 'removeLink', 'deleteDevice', 'putParamset', 'reportValueUsage', 'refreshDeployedDeviceFirmwareList', 'setLinkInfo', 'getParamsetId', 'getValue', 'setValue', 'system.listMethods', 'listBidcosInterfaces', 'addLink', 'getLinkInfo', 'getInstallMode'];
+                        break;
+                    case 'CUxD':
+                        methods = ['system.listMethods', 'system.multicall', 'init', 'listDevices', 'deleteDevice', 'getDeviceDescription', 'getParamsetDescription', 'getParamset', 'putParamset', 'getValue', 'setValue'];
+                        break;
+                    default:
+                        methods = [];
+                }
+                $('#node-input-method').autocomplete('option', 'source', methods);
+            }
+            autocompleteMethods();
+        }
+    });
+</script>
+
+<script type="text/x-red" data-template-name="ccu-rpc">
+    <div class="form-row">
+        <label for="node-input-ccuConfig"><i class="icon-globe"></i> CCU</label>
+        <input type="text" id="node-input-ccuConfig">
+    </div>
+    <div class="form-row">
+        <label for="node-input-topic"><i class="icon-tasks"></i> Topic</label>
+        <input type="text" id="node-input-topic">
+    </div>
+    <div class="form-row">
+        <label for="node-input-iface"><i class="fa fa-empire"></i> Interface</label>
+        <select id="node-input-iface">
+            <option>BidCos-RF</option>
+            <option>BidCos-Wired</option>
+            <option>HmIP-RF</option>
+            <option>VirtualDevices</option>
+            <option>CUxD</option>
+            <option>ReGaHSS</option>
+       </select>
+    </div>
+    <div class="form-row">
+        <label for="node-input-method"><i class="icon-tag"></i> Method</label>
+        <input type="text" id="node-input-method">
+    </div>
+    <div class="form-row">
+        <label for="node-input-params"><i class="icon-envelope"></i> Params</label>
+        <input type="text" id="node-input-params">
+    </div>
+    <div class="form-row">
+        <label for="node-input-name"><i class="icon-bookmark"></i> Name</label>
+        <input type="text" id="node-input-name">
+    </div>
+</script>
+
+<script type="text/x-red" data-help-name="ccu-rpc" lang="de-DE">
+    <p>Führt eine RPC Methode aus und gibt das Ergebnis zurück.</p>
+</script>
+
+<script type="text/x-red" data-help-name="ccu-rpc" lang="en-US">
+    <p>Executes a RPC method and outputs the return value.</p>
+</script>

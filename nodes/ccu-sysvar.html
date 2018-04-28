@@ -1,0 +1,78 @@
+<script type="text/javascript">
+    RED.nodes.registerType('ccu-sysvar', {
+
+        category: 'ccu',
+        defaults: {
+            name: {value: ''},
+            ccuConfig: {value: '', type: 'ccu-connection', required: true},
+            topic: {value: 'ReGaHSS/${Name}'}
+        },
+        inputs: 1,
+        outputs: 1,
+        icon: 'ccu.png',
+        color: '#8BB9D2',
+        paletteLabel: 'sysvar',
+        align: 'right',
+        label() {
+            return this.name || 'sysvar';
+        },
+        oneditprepare() {
+            const cname = this.name;
+            function getConf(nodeId) {
+                $('#select-input-name').html('').hide();
+                $('#node-input-name').val('').show();
+
+                if (nodeId && nodeId !== '_ADD_') {
+                    $.getJSON('ccu?config=' + nodeId, data => {
+                        if (data && data.sysvar) {
+                            Object.keys(data.sysvar).forEach(name => {
+                                $('#select-input-name').append('<option value="' + name + '"' + (name === cname ? ' selected' : '') + '>' + name + '</option>');
+                            });
+                            $('#node-input-name').hide();
+                            $('#select-input-name').show();
+                        }
+                    });
+                }
+            }
+
+            getConf(this.ccuConfig);
+
+            $('#node-input-ccuConfig').change(() => {
+                getConf($('#node-input-ccuConfig').val());
+            });
+        },
+        oneditsave() {
+            if ($('#select-input-name').is(':visible')) {
+                $('#node-input-name').val($('#select-input-name').val());
+            }
+        }
+    });
+
+</script>
+
+<script type="text/x-red" data-template-name="ccu-sysvar">
+    <div class="form-row">
+        <label for="node-input-ccuConfig"><i class="icon-globe"></i> CCU</label>
+        <input type="text" id="node-input-ccuConfig">
+    </div>
+    <div class="form-row">
+        <label for="node-input-topic"><i class="icon-tasks"></i> Topic</label>
+        <input type="text" id="node-input-topic">
+    </div>
+    <div class="form-row">
+        <label for="node-input-name"><i class="icon-bookmark"></i> Name</label>
+        <input type="text" id="node-input-name">
+        <select id="select-input-name" style="display:none">
+        </select>
+    </div>
+
+
+</script>
+
+<script type="text/x-red" data-help-name="ccu-sysvar" lang="de-DE">
+    <p>Setzen und lesen von ReGaHSS Systemvariablen.</p>
+</script>
+
+<script type="text/x-red" data-help-name="ccu-sysvar" lang="en-US">
+    <p>Set and read ReGaHSS system variables.</p>
+</script>

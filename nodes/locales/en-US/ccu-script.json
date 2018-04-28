@@ -1,0 +1,5 @@
+{
+  "ccu-script": {
+    "tip": "Tip: Leave Script blank if you want to deliver it via msg.payload."
+  }
+}

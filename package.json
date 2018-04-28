@@ -1,0 +1,60 @@
+{
+  "name": "node-red-contrib-ccu",
+  "version": "0.1.0",
+  "description": "Node-RED Nodes for the Homematic CCU",
+  "keywords": [
+    "node-red",
+    "homematic",
+    "ccu",
+    "bidcos",
+    "cuxd",
+    "smart home automation",
+    "eq-3"
+  ],
+  "main": "none",
+  "scripts": {
+    "test": "xo",
+    "lintfix": "xo --fix"
+  },
+  "author": "Sebastian Raff <hobbyquaker@gmail.com>",
+  "license": "MIT",
+  "dependencies": {
+    "binrpc": "^3.1.2",
+    "hm-discover": "^1.1.0",
+    "homematic-rega": "^1.1.0",
+    "homematic-xmlrpc": "^1.0.2",
+    "nextport": "^1.0.0"
+  },
+  "node-red": {
+    "nodes": {
+      "ccu-connection": "nodes/ccu-connection.js",
+      "ccu-value": "nodes/ccu-value.js",
+      "ccu-rpc-event": "nodes/ccu-rpc-event.js",
+      "ccu-submit": "nodes/ccu-submit.js",
+      "ccu-rpc": "nodes/ccu-rpc.js",
+      "ccu-sysvar": "nodes/ccu-sysvar.js",
+      "ccu-program": "nodes/ccu-program.js",
+      "ccu-script": "nodes/ccu-script.js",
+      "ccu-poll": "nodes/ccu-poll.js"
+    }
+  },
+  "devDependencies": {
+    "eslint-plugin-html": "^4.0.2",
+    "xo": "^0.20.3"
+  },
+  "xo": {
+    "space": 4,
+    "plugin": "html",
+    "global": [
+      "$",
+      "RED"
+    ],
+    "extensions": [
+      "js",
+      "html"
+    ],
+    "rules": {
+      "no-template-curly-in-string": "warn"
+    }
+  }
+}

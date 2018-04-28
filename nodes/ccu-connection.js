@@ -1,0 +1,1216 @@
+const os = require('os');
+const path = require('path');
+const fs = require('fs');
+
+const nextport = require('nextport');
+const hmDiscover = require('hm-discover');
+const Rega = require('homematic-rega');
+const xmlrpc = require('homematic-xmlrpc');
+const binrpc = require('binrpc');
+
+module.exports = function (RED) {
+    const ccu = {network: {listen: [], ports: []}};
+
+    function findport(start) {
+        return new Promise((resolve, reject) => {
+            nextport(start, port => {
+                if (port) {
+                    ccu.network.ports.push(port);
+                    resolve();
+                } else {
+                    reject();
+                }
+            });
+        });
+    }
+
+    hmDiscover(res => {
+        ccu.network.discover = res;
+    });
+
+    const networkInterfaces = os.networkInterfaces();
+    Object.keys(networkInterfaces).forEach(name => {
+        networkInterfaces[name].forEach(addr => {
+            if (addr.family === 'IPv4') {
+                ccu.network.listen.push(addr.address);
+            }
+        });
+    });
+    ccu.network.listen.push('0.0.0.0');
+
+    RED.httpAdmin.get('/ccu', (req, res) => {
+        if (req.query.iface && req.query.type === 'channels' && req.query.config && req.query.config !== '_ADD_') {
+            const config = RED.nodes.getNode(req.query.config);
+            const obj = {};
+            Object.keys(config.metadata.devices[req.query.iface]).forEach(addr => {
+                if (addr.match(/:\d+$/)) {
+                    obj[addr] = {
+                        name: config.channelNames[addr],
+                        datapoints: Object.keys(config.paramsetDescriptions[config.paramsetName(config.metadata.devices[req.query.iface][addr], 'VALUES')])
+                    };
+                }
+            });
+
+            res.status(200).send(JSON.stringify(obj));
+        } else if (req.query.config && req.query.config !== '_ADD_') {
+            const config = RED.nodes.getNode(req.query.config);
+            res.status(200).send(JSON.stringify(ccu[config.host]));
+        } else {
+            ccu.network.ports = [];
+            const start = 2040 + Math.floor(Math.random() * 50);
+            findport(start).then(() => findport(ccu.network.ports[0] + 1)).then(() => {
+                res.status(200).send(JSON.stringify(ccu.network));
+            });
+        }
+    });
+
+    function now() {
+        return (new Date()).getTime();
+    }
+
+    class CcuConnectionNode {
+        constructor(config) {
+            RED.nodes.createNode(this, config);
+
+            this.name = config.name;
+            this.host = config.host;
+
+            this.logger.debug('ccu-connection', config.host);
+
+            this.globalContext = this.context().global;
+
+            this.rpcServerHost = config.rpcServerHost;
+            this.rpcInitAddress = config.rpcInitAddress;
+            this.rpcBinPort = parseInt(config.rpcBinPort, 10);
+            this.rpcXmlPort = parseInt(config.rpcXmlPort, 10);
+            this.rpcPingTimeout = parseInt(config.rpcPingTimeout, 10) || 60;
+            this.rpcPingTimer = {};
+            this.ifaceStatus = {};
+
+            this.regaEnabled = config.regaEnabled;
+            this.regaInterval = parseInt(config.regaInterval, 10);
+
+            this.clients = {};
+            this.servers = {};
+
+            this.paramsetQueue = [];
+            this.paramsetFile = path.join(RED.settings.userDir, 'ccu_paramsets.json');
+            this.loadParamsets();
+
+            this.callbacks = [];
+            this.sysvarCallbacks = [];
+            this.programCallbacks = [];
+
+            this.channelNames = {};
+            this.regaChannels = [];
+            this.channelRooms = {};
+            this.channelFunctions = {};
+
+            this.sysvar = {};
+            this.program = {};
+
+            this.values = {};
+
+            this.lastEvent = {};
+
+            this.metadataFile = path.join(RED.settings.userDir, 'ccu_' + this.host + '.json');
+            this.loadMetadata();
+
+            this.globalContext.set('ccu-' + this.host, {
+                values: this.values,
+                sysvar: this.sysvar,
+                program: this.program
+            });
+
+            ccu[this.host] = {
+                sysvar: this.sysvar,
+                program: this.program,
+                channelNames: this.channelNames,
+                metadata: this.metadata,
+                paramsetDescriptions: this.paramsetDescriptions
+            };
+
+            this.rega = new Rega({host: this.host});
+            if (config.regaEnabled) {
+                this.getRegaData()
+                    .then(() => {
+                        this.regaPoll();
+                        this.initIfaces(config);
+                    });
+            } else {
+                this.initIfaces(config);
+            }
+
+            this.on('close', this.destructor);
+        }
+
+        get logger() {
+            return {
+                trace: (...args) => {
+                    this.trace(args.join(' ').substr(0, 300));
+                },
+                debug: (...args) => {
+                    this.debug(args.join(' ').substr(0, 300));
+                },
+                info: (...args) => {
+                    this.log(args.join(' ').substr(0, 300));
+                },
+                warn: (...args) => {
+                    this.warn(args.join(' ').substr(0, 300));
+                },
+                error: (...args) => {
+                    this.error(args.join(' ').substr(0, 300));
+                }
+            };
+        }
+
+        get ifaceTypes() {
+            return {
+                ReGaHSS: {
+                    conf: 'rega',
+                    rpc: binrpc,
+                    port: 1999,
+                    protocol: 'binrpc',
+                    init: false,
+                    ping: false
+                },
+                'BidCos-RF': {
+                    conf: 'bcrf',
+                    rpc: binrpc,
+                    port: 2001,
+                    protocol: 'binrpc',
+                    init: true,
+                    ping: true
+                },
+                'BidCos-Wired': {
+                    conf: 'bcwi',
+                    rpc: binrpc,
+                    port: 2000,
+                    protocol: 'binrpc',
+                    init: true,
+                    ping: true
+                },
+                'HmIP-RF': {
+                    conf: 'iprf',
+                    rpc: xmlrpc,
+                    port: 2010,
+                    protocol: 'http',
+                    init: true,
+                    ping: true, // Todo https://github.com/eq-3/occu/issues/42 - should be fixed, but isn't
+                    pingTimeout: 600 // Overwrites ccu-connection config
+                },
+                VirtualDevices: {
+                    conf: 'virt',
+                    rpc: xmlrpc,
+                    port: 9292,
+                    path: '/groups',
+                    protocol: 'http',
+                    init: true,
+                    ping: false // Todo ?
+                },
+                CUxD: {
+                    conf: 'cuxd',
+                    rpc: binrpc,
+                    port: 8701,
+                    protocol: 'binrpc',
+                    init: true,
+                    ping: false
+                }
+            };
+        }
+
+        setIfaceStatus(iface, connected) {
+            this.ifaceStatus[iface] = connected;
+        }
+
+        saveMetadata() {
+            this.logger.debug('saveMetadata', this.metadataFile);
+            return new Promise(resolve => {
+                fs.writeFileSync(this.metadataFile, JSON.stringify(this.metadata));
+                resolve();
+            });
+        }
+
+        loadMetadata() {
+            return new Promise(resolve => {
+                try {
+                    this.metadata = JSON.parse(fs.readFileSync(this.metadataFile));
+                    this.logger.info('metadata loaded from', this.metadataFile);
+                    resolve();
+                } catch (err) {
+                    this.logger.info('metadata new empty');
+                    this.metadata = {
+                        devices: {},
+                        types: {}
+                    };
+                    resolve();
+                }
+            });
+        }
+
+        saveParamsets() {
+            this.logger.debug('saveParamsets', this.paramsetFile, (this.paramsetDescriptions ? Object.keys(this.paramsetDescriptions).length : 0));
+            return new Promise(resolve => {
+                fs.writeFileSync(this.paramsetFile, JSON.stringify(this.paramsetDescriptions));
+                resolve();
+            });
+        }
+
+        loadParamsets() {
+            return new Promise(resolve => {
+                try {
+                    this.paramsetDescriptions = JSON.parse(fs.readFileSync(this.paramsetFile));
+                    this.logger.info('paramsets loaded from', this.paramsetFile);
+                    resolve();
+                } catch (err) {
+                    this.logger.info('paramsets new empty');
+                    this.paramsetDescriptions = {};
+                    resolve();
+                }
+            });
+        }
+
+        destructor(done) {
+            this.logger.debug('ccu-connection destructor');
+
+            this.logger.debug('clear regaPollTimeout');
+            clearTimeout(this.regaPollTimeout);
+
+            Object.keys(this.rpcPingTimer).forEach(iface => {
+                this.logger.debug('clear rpcPingTimer', iface);
+                clearTimeout(this.rpcPingTimer[iface]);
+            });
+
+            this.rpcClose()
+                .then(() => {
+                    this.logger.debug('rpc close done');
+                    done();
+                }).catch(err => {
+                    this.logger.error(err);
+                    done();
+                });
+        }
+
+        getEntry(data, key, val) {
+            if (!data) {
+                return {};
+            }
+            for (let i = 0; i < data.length; i++) {
+                if (data[i][key] === val) {
+                    return data[i];
+                }
+            }
+        }
+
+        getRegaData() {
+            return this.getRegaChannels()
+                .then(() => this.getRegaRooms())
+                .then(() => this.getRegaFunctions())
+                .then(() => this.getRegaValues())
+                .catch(this.logger.error);
+        }
+
+        getRegaValues() {
+            return new Promise((resolve, reject) => {
+                this.logger.debug('rega getValues');
+                this.rega.getValues((err, res) => {
+                    if (err) {
+                        reject(err);
+                    } else {
+                        const d = new Date();
+                        res.forEach(dp => {
+                            const ts = (new Date(dp.ts + ' UTC+' + (d.getTimezoneOffset() / -60))).getTime();
+                            const [iface, channel, datapoint] = dp.name.split('.');
+                            const msg = this.createMessage(iface, channel, datapoint, dp.value, {cache: true, ts, lc: ts});
+                            this.callCallbacks(msg);
+                        });
+                        resolve();
+                    }
+                });
+            });
+        }
+
+        getRegaChannels() {
+            return new Promise((resolve, reject) => {
+                this.logger.debug('rega getChannels');
+                this.rega.getChannels((err, res) => {
+                    if (err) {
+                        reject(err);
+                    } else {
+                        res.forEach(ch => {
+                            this.regaChannels.push(ch);
+                            this.channelNames[ch.address] = ch.name;
+                        });
+                        resolve();
+                    }
+                });
+            });
+        }
+
+        getRegaRooms() {
+            return new Promise((resolve, reject) => {
+                this.logger.debug('rega getRooms');
+                this.rega.getRooms((err, res) => {
+                    if (err) {
+                        reject(err);
+                    } else {
+                        ccu[this.host].rooms = [];
+                        res.forEach(room => {
+                            ccu[this.host].rooms.push(room.name);
+
+                            room.channels.forEach(chId => {
+                                const regaChannel = this.getEntry(this.regaChannels, 'id', chId);
+                                const address = regaChannel && regaChannel.address;
+                                if (address) {
+                                    if (this.channelRooms[address]) {
+                                        this.channelRooms[address].push(room.name);
+                                    } else {
+                                        this.channelRooms[address] = [room.name];
+                                    }
+                                }
+                            });
+                        });
+                        resolve();
+                    }
+                });
+            });
+        }
+
+        getRegaFunctions() {
+            return new Promise((resolve, reject) => {
+                this.logger.debug('rega getFunctions');
+                this.rega.getFunctions((err, res) => {
+                    if (err) {
+                        reject(err);
+                    } else {
+                        ccu[this.host].functions = [];
+                        res.forEach(func => {
+                            ccu[this.host].functions.push(func.name);
+                            func.channels.forEach(chId => {
+                                const regaChannel = this.getEntry(this.regaChannels, 'id', chId);
+                                const address = regaChannel && regaChannel.address;
+                                if (address) {
+                                    if (this.channelFunctions[address]) {
+                                        this.channelFunctions[address].push(func.name);
+                                    } else {
+                                        this.channelFunctions[address] = [func.name];
+                                    }
+                                }
+                            });
+                        });
+                        resolve();
+                    }
+                });
+            });
+        }
+
+        programActive(name, active) {
+            return new Promise((resolve, reject) => {
+                const program = this.program[name];
+                if (program) {
+                    const script = `dom.GetObject(${program.id}).Active(${active});`;
+                    this.logger.debug('rega programActive', name, script);
+                    this.rega.exec(script + '\n', err => {
+                        if (err) {
+                            reject(err);
+                        } else {
+                            Object.assign(program, {
+                                active
+                            });
+                            resolve(program);
+                        }
+                    });
+                } else {
+                    reject(new Error('programActive ' + name + ' not found'));
+                }
+            });
+        }
+
+        programExecute(name) {
+            return new Promise((resolve, reject) => {
+                const program = this.program[name];
+                if (program) {
+                    const d = new Date();
+                    const script = `dom.GetObject(${program.id}).ProgramExecute();`;
+                    this.logger.debug('rega programExecute', name, script);
+                    this.rega.exec(script + `\nvar lastExecTime = dom.GetObject(${program.id}).ProgramLastExecuteTime();\n`, (err, res, objects) => {
+                        if (err) {
+                            reject(err);
+                        } else {
+                            program.ts = (new Date(objects.lastExecTime + ' UTC+' + (d.getTimezoneOffset() / -60))).getTime();
+                            resolve(program);
+                        }
+                    });
+                } else {
+                    reject(new Error('programExecute ' + name + ' not found'));
+                }
+            });
+        }
+
+        setVariable(name, value) {
+            return new Promise((resolve, reject) => {
+                const sysvar = this.sysvar[name];
+                if (sysvar) {
+                    let newValue;
+                    switch (sysvar.valueType) {
+                        case 'boolean':
+                            if (typeof value === 'string') {
+                                if (sysvar.enum.indexOf(value) !== -1) {
+                                    value = sysvar.enum.indexOf(value);
+                                }
+                            }
+                            value = Boolean(value);
+                            newValue = value;
+                            break;
+                        case 'string':
+                            newValue = value;
+                            value = '"' + value + '"';
+                            break;
+                        default:
+                            if (typeof value === 'string') {
+                                if (sysvar.enum.indexOf(value) !== -1) {
+                                    value = sysvar.enum.indexOf(value);
+                                }
+                            }
+                            value = parseFloat(value) || 0;
+                            newValue = value;
+                            break;
+                    }
+                    const ts = now();
+                    const script = `dom.GetObject(${sysvar.id}).State(${value});`;
+                    this.logger.debug('rega setVariable', name, script);
+                    this.rega.exec(script + '\n', err => {
+                        if (err) {
+                            reject(err);
+                        } else {
+                            const valueEnum = sysvar.enum && sysvar.enum[Number(newValue)];
+                            Object.assign(sysvar, {
+                                ts,
+                                lc: ts,
+                                value: newValue,
+                                payload: newValue,
+                                valueEnum
+                            });
+
+                            resolve(sysvar);
+                        }
+                    });
+                } else {
+                    reject(new Error('setVariable ' + name + ' not found'));
+                }
+            });
+        }
+
+        regaPoll() {
+            this.logger.trace('regaPoll');
+            if (this.regaPollPending) {
+                this.logger.error('rega poll already pending');
+            } else {
+                this.regaPollPending = true;
+                clearTimeout(this.regaPollTimeout);
+                this.getRegaVariables()
+                    .then(() => this.getRegaPrograms())
+                    .catch(err => this.logger.error(err))
+                    .then(() => {
+                        if (this.regaInterval) {
+                            this.logger.trace('rega next poll in', this.regaInterval, 'seconds');
+                            this.regaPollTimeout = setTimeout(() => {
+                                this.regaPoll();
+                            }, this.regaInterval * 1000);
+                        }
+                        this.regaPollPending = false;
+                    });
+            }
+        }
+
+        getRegaVariables() {
+            return new Promise((resolve, reject) => {
+                this.logger.trace('rega getVariables');
+                this.rega.getVariables((err, res) => {
+                    if (err) {
+                        reject(err);
+                    } else {
+                        const d = new Date();
+                        res.forEach(sysvar => {
+                            if (!this.sysvar[sysvar.name] || this.sysvar[sysvar.name].value !== sysvar.val) {
+                                this.sysvar[sysvar.name] = {
+                                    ccu: this.host,
+                                    iface: 'ReGaHSS',
+                                    type: 'SYSVAR',
+                                    name: sysvar.name,
+                                    payload: sysvar.val,
+                                    value: sysvar.val,
+                                    valueType: sysvar.type,
+                                    valueEnum: sysvar.enum[Number(sysvar.val)],
+                                    ts: d.getTime(),
+                                    lc: (new Date(sysvar.ts + ' UTC+' + (d.getTimezoneOffset() / -60))).getTime(),
+                                    enum: sysvar.enum,
+                                    id: sysvar.id
+                                };
+                                this.sysvarCallbacks.forEach(item => {
+                                    const {filter, callback} = item;
+                                    if (filter.name === sysvar.name) {
+                                        callback(this.sysvar[sysvar.name]);
+                                    }
+                                });
+                            } else {
+                                this.sysvar[sysvar.name].ts = d.getTime();
+                            }
+                        });
+                        resolve();
+                    }
+                });
+            });
+        }
+
+        getRegaPrograms() {
+            return new Promise((resolve, reject) => {
+                this.logger.trace('rega getPrograms');
+                this.rega.getPrograms((err, res) => {
+                    if (err) {
+                        reject(err);
+                    } else {
+                        const d = new Date();
+                        res.forEach(prg => {
+                            prg.type = 'PROGRAM';
+                            prg.ts = (new Date(prg.ts + ' UTC+' + (d.getTimezoneOffset() / -60))).getTime();
+                            if (!this.program[prg.name] || this.program[prg.name].active !== prg.active || this.program[prg.name].ts !== prg.ts) {
+                                this.program[prg.name] = prg;
+                                this.programCallbacks.forEach(item => {
+                                    const {filter, callback} = item;
+                                    if (filter.name === prg.name) {
+                                        callback(this.program[prg.name]);
+                                    }
+                                });
+                            }
+                        });
+                        resolve();
+                    }
+                });
+            });
+        }
+
+        initIfaces(config) {
+            Object.keys(this.ifaceTypes).forEach(iface => {
+                const enabled = config[this.ifaceTypes[iface].conf + 'Enabled'];
+                if (enabled) {
+                    this.createClient(iface)
+                        .then(() => {
+                            if (this.ifaceTypes[iface].init) {
+                                return this.rpcInit(iface);
+                            }
+                        })
+                        .catch(() => {});
+                }
+            });
+        }
+
+        createClient(iface) {
+            return new Promise(resolve => {
+                const {rpc, port, path, protocol} = this.ifaceTypes[iface];
+                const clientOptions = {};
+                if (path) {
+                    clientOptions.url = protocol + '://' + this.host + ':' + port + '/' + path;
+                } else {
+                    clientOptions.host = this.host;
+                    clientOptions.port = port;
+                }
+                this.logger.debug('rpc.createClient', iface, JSON.stringify(clientOptions));
+                this.clients[iface] = rpc.createClient(clientOptions);
+                resolve(iface);
+            });
+        }
+
+        rpcInit(iface) {
+            return new Promise((resolve, reject) => {
+                const initUrl = this.rpcServer(iface);
+                this.methodCall(iface, 'init', [initUrl, 'nr_' + iface])
+                    .then(() => {
+                        this.lastEvent[iface] = now();
+                        this.setIfaceStatus(iface, true);
+                        if (this.ifaceTypes[iface].ping) {
+                            rpcCheckInit(iface);
+                        }
+                        resolve(iface);
+                    }).catch(err => reject(err));
+            });
+        }
+
+        rpcCheckInit(iface) {
+            clearTimeout(this.rpcPingTimer[iface]);
+            const pingTimeout = this.ifaceTypes[iface].pingTimeout || this.rpcPingTimeout;
+            const elapsed = Math.round((now() - this.lastEvent[iface]) / 1000);
+            this.logger.debug('rpcCheckInit', iface, elapsed, pingTimeout);
+            if (elapsed > pingTimeout) {
+                this.setIfaceStatus(iface, false);
+                this.logger.error('ping timeout', iface, elapsed);
+                this.rpcInit(iface);
+                return;
+            }
+            if (elapsed >= (pingTimeout / 2)) {
+                this.logger.trace('ping', iface, elapsed);
+                this.methodCall(iface, 'ping', ['nr']);
+            }
+            this.rpcPingTimer[iface] = setTimeout(() => {
+                this.rpcCheckInit(iface);
+            }, pingTimeout * 250);
+        }
+
+        rpcClose() {
+            this.logger.debug('rpcClose');
+            const calls = [];
+            Object.keys(this.clients).forEach(iface => {
+                if (this.ifaceTypes[iface].init) {
+                    calls.push(this.methodCall(iface, 'init', [this.initUrl(iface), '']));
+                }
+            });
+
+            calls.push(new Promise((resolve, reject) => {
+                this.logger.debug('binrpc server closing');
+                let timeout;
+                if (this.servers.binrpc && this.servers.binrpc.server) {
+                    timeout = setTimeout(() => {
+                        reject(new Error('binrpc server close timeout'));
+                    }, 1000);
+                    this.servers.binrpc.server.close(() => {
+                        clearTimeout(timeout);
+                        this.logger.info('binrpc server closed');
+                        resolve();
+                    });
+                } else {
+                    clearTimeout(timeout);
+                    resolve();
+                }
+            }));
+
+            calls.push(new Promise((resolve, reject) => {
+                let timeout;
+                if (this.servers.http && this.servers.http.close) {
+                    timeout = setTimeout(() => {
+                        delete this.servers.http;
+                        reject(new Error('xmlrpc server close timeout'));
+                    }, 1000);
+                    this.logger.debug('xmlrpc server closing');
+                    this.servers.http.close(() => {
+                        clearTimeout(timeout);
+                        this.logger.info('xmlrpc server closed');
+                        resolve();
+                    });
+                } else {
+                    clearTimeout(timeout);
+                    resolve();
+                }
+            }));
+
+            return Promise.all(calls);
+        }
+
+        initUrl(iface) {
+            const {protocol} = this.ifaceTypes[iface];
+            const port = (protocol === 'binrpc' ? this.rpcBinPort : this.rpcXmlPort);
+            return protocol + '://' + (this.rpcInitAddress || this.rpcServerHost) + ':' + port;
+        }
+
+        rpcServer(iface) {
+            const url = this.initUrl(iface);
+            const {rpc, protocol} = this.ifaceTypes[iface];
+            const port = (protocol === 'binrpc' ? this.rpcBinPort : this.rpcXmlPort);
+            if (!this.servers[protocol]) {
+                this.logger.info('rpc.createServer', url);
+                this.servers[protocol] = rpc.createServer({host: this.rpcServerHost, port});
+                Object.keys(this.rpcMethods).forEach(method => {
+                    this.servers[protocol].on(method, (err, params, callback) => {
+                        if (err) {
+                            this.logger.error('rpc <', iface, method, err);
+                        }
+                        this.logger.debug('rpc <', iface, method, JSON.stringify(params));
+                        this.rpcMethods[method](err, params, callback);
+                    });
+                });
+                this.servers[protocol].on('NotFound', (method, params) => {
+                    this.logger.error('rpc <', protocol, 'method', method, 'not found:', JSON.stringify(params));
+                });
+            }
+            return url;
+        }
+
+        paramsetName(device, paramset) {
+            if (device) {
+                return (device.PARENT_TYPE ? device.PARENT_TYPE + '/' : '') + device.VERSION + '/' + device.TYPE + '/' + paramset;
+            }
+        }
+
+        paramsetQueuePush(iface, device) {
+            device.PARAMSETS.forEach(paramset => {
+                const name = this.paramsetName(device, paramset);
+                if (!this.paramsetDescriptions[name]) {
+                    this.paramsetQueue.push({
+                        iface,
+                        name,
+                        address: device.ADDRESS,
+                        paramset
+                    });
+                }
+            });
+            clearTimeout(this.getParamsetTimeout);
+            this.getParamsetTimeout = setTimeout(() => {
+                this.paramsetQueueShift();
+            }, 1000);
+        }
+
+        paramsetQueueShift() {
+            if (!this.paramsetPending) {
+                this.paramsetPending = true;
+            }
+
+            const item = this.paramsetQueue.shift();
+            if (item) {
+                const {iface, name, address, paramset} = item;
+
+                if (this.paramsetDescriptions[name]) {
+                    this.logger.trace('paramset', name, 'already known');
+                    this.paramsetPending = false;
+                    clearTimeout(this.getParamsetTimeout);
+                    setImmediate(() => this.paramsetQueueShift());
+                } else {
+                    this.methodCall(iface, 'getParamsetDescription', [address, paramset])
+                        .then(res => {
+                            this.logger.trace('paramsetDescription', name);
+                            this.newParamsetDescription = true;
+                            this.paramsetDescriptions[name] = res;
+                        })
+                        .catch()
+                        .then(() => {
+                            this.paramsetPending = false;
+                            clearTimeout(this.getParamsetTimeout);
+                            this.getParamsetTimeout = setTimeout(() => {
+                                this.paramsetQueueShift();
+                            }, 1000);
+                        });
+                }
+            } else {
+                this.paramsetPending = false;
+                if (this.newParamsetDescription) {
+                    this.newParamsetDescription = false;
+                    this.saveParamsets();
+                }
+            }
+        }
+
+        getParamsetDescription(iface, device, paramset, param) {
+            const name = this.paramsetName(device, paramset);
+            if (this.paramsetDescriptions[name]) {
+                if (param) {
+                    return this.paramsetDescriptions[name][param];
+                }
+                return this.paramsetDescriptions[name];
+            }
+            this.paramsetQueuePush(iface, device);
+            return {};
+        }
+
+        newDevice(iface, device) {
+            this.logger.debug('newDevice', iface, device.ADDRESS);
+            if (!this.metadata.devices[iface]) {
+                this.metadata.devices[iface] = {};
+            }
+            if (!this.metadata.types[iface]) {
+                this.metadata.types[iface] = {};
+            }
+            this.metadata.devices[iface][device.ADDRESS] = device;
+
+            if (!device.TYPE) {
+                throw new Error('device type undefined: ' + JSON.stringify(device));
+            }
+
+            if (this.metadata.types[iface][device.TYPE] && this.metadata.types[iface][device.TYPE].indexOf(device.ADDRESS) === -1) {
+                this.metadata.types[iface][device.TYPE].push(device.ADDRESS);
+            } else {
+                this.metadata.types[iface][device.TYPE] = [device.ADDRESS];
+            }
+            this.paramsetQueuePush(iface, device);
+        }
+
+        deleteDevice(iface, device) {
+            this.logger.debug('deleteDevice', iface, device);
+            delete this.metadata.devices[iface][device];
+        }
+
+        listDevices(iface) {
+            const result = [];
+            if (this.metadata.devices[iface]) {
+                Object.keys(this.metadata.devices[iface]).forEach(addr => {
+                    this.paramsetQueuePush(iface, this.metadata.devices[iface][addr]);
+                    result.push(this.listDevicesAnswer(iface, this.metadata.devices[iface][addr]));
+                });
+            }
+            return result;
+        }
+
+        listDevicesAnswer(iface, device) {
+            switch (iface) {
+                /*
+                Case 'hmip':
+                    return device; // Todo https://github.com/eq-3/occu/issues/45
+                    break;
+                */
+                default:
+                    return {ADDRESS: device.ADDRESS, VERSION: device.VERSION};
+            }
+        }
+
+        get rpcMethods() {
+            return {
+                'system.listMethods': (_, params, callback) => {
+                    const [idInit] = params;
+                    const iface = idInit.replace(/^nr_/, '');
+                    const res = Object.keys(this.rpcMethods);
+                    this.logger.debug('    >', iface, 'system.listMethods', JSON.stringify(res));
+                    callback(null, res);
+                },
+                setReadyConfig: (_, params, callback) => {
+                    callback(null, '');
+                },
+                newDevices: (_, params, callback) => {
+                    const [idInit, devices] = params;
+                    const iface = idInit.replace(/^nr_/, '');
+
+                    devices.forEach(device => {
+                        this.newDevice(iface, device);
+                    });
+
+                    this.logger.debug('    >', iface, 'newDevices ""');
+                    callback(null, '');
+
+                    this.saveMetadata();
+                },
+                deleteDevices: (_, params, callback) => {
+                    const [idInit, devices] = params;
+                    const iface = idInit.replace(/^nr_/, '');
+
+                    devices.forEach(device => {
+                        this.deleteDevice(iface, device);
+                    });
+
+                    this.logger.debug('    >', iface, 'deleteDevices ""');
+                    callback(null, '');
+
+                    this.saveMetadata();
+                },
+                listDevices: (_, params, callback) => {
+                    const [idInit] = params;
+                    const iface = idInit.replace(/^nr_/, '');
+                    const res = this.listDevices(iface) || [];
+                    this.logger.debug('    >', iface, 'listDevices', JSON.stringify(res));
+                    callback(null, res);
+                },
+                // TODO implement updateDevice
+                // TODO implement replaceDevice
+                event: (_, params, callback) => {
+                    const [idInit] = params;
+                    const iface = idInit.replace(/^nr_/, '');
+                    this.logger.debug('    >', iface, 'event ""');
+                    this.publishEvent(params);
+                    callback(null, '');
+                },
+                'system.multicall': (_, params, callback) => {
+                    const result = [];
+                    let iface;
+
+                    const queue = [];
+                    let working;
+                    let direction;
+                    params[0].forEach(call => {
+                        if (call.methodName === 'event') {
+                            queue.push(call);
+                            const [idInit, , datapoint, value] = call.params;
+                            if (datapoint === 'WORKING' && value) {
+                                working = true;
+                            }
+                            if (datapoint === 'DIRECTION') {
+                                direction = value;
+                            }
+                            iface = idInit.replace(/^nr_/, '');
+                            result.push('');
+                        } else if (this.rpcMethods[call.methodName]) {
+                            this.rpcMethods[call.methodName](call.params, res => result.push(res));
+                        }
+                    });
+                    queue.forEach(call => {
+                        this.publishEvent(call.params, working, direction);
+                    });
+                    this.logger.debug('    >', iface, 'system.multicall', JSON.stringify(result));
+                    callback(null, '');
+                }
+            };
+        }
+
+        subscribeSysvar(name, callback) {
+            const filter = {name};
+            if (typeof callback !== 'function') {
+                this.logger.error('subscribeSysvar called without callback');
+                return;
+            }
+            this.logger.trace('subscribeSysvar', JSON.stringify(filter));
+            this.sysvarCallbacks.push({filter, callback});
+        }
+
+        subscribeProgram(name, callback) {
+            const filter = {name};
+            if (typeof callback !== 'function') {
+                this.logger.error('subscribeProgram called without callback');
+                return;
+            }
+            this.logger.trace('subscribeProgram', JSON.stringify(filter));
+            this.programCallbacks.push({filter, callback});
+        }
+
+        subscribe(filter, callback) {
+            filter = filter || {};
+            if (typeof callback !== 'function') {
+                this.logger.error('subscribe called without callback');
+                return;
+            }
+            this.logger.trace('subscribe', JSON.stringify(filter));
+            this.callbacks.push({filter, callback});
+        }
+
+        topicReplace(topic, msg) {
+            if (!topic || typeof msg !== 'object') {
+                return topic;
+            }
+            const msgLower = {};
+            Object.keys(msg).forEach(k => {
+                msgLower[k.toLowerCase()] = msg[k];
+            });
+
+            const match = topic.match(/\${[^}]+}/g);
+            match && match.forEach(v => {
+                const key = v.substr(2, v.length - 3);
+                const rx = new RegExp('\\${' + key + '}', 'g');
+                let rkey = key.toLowerCase();
+                if (rkey === 'interface') {
+                    rkey = 'iface';
+                }
+                topic = topic.replace(rx, msgLower[rkey] || '');
+            });
+
+            return topic;
+        }
+
+        createMessage(iface, channel, datapoint, payload, additions) {
+            const datapointName = iface + '.' + channel + '.' + datapoint;
+            if (!this.values[datapointName]) {
+                this.values[datapointName] = {};
+            }
+
+            const device = this.metadata.devices[iface] && this.metadata.devices[iface][channel] && this.metadata.devices[iface][channel].PARENT;
+            const ts = now();
+            let change = false;
+
+            let description = {};
+            if (this.metadata.devices[iface] && this.metadata.devices[iface][channel]) {
+                description = this.getParamsetDescription(iface, this.metadata.devices[iface][channel], 'VALUES', datapoint) || {};
+            }
+
+            if (description.TYPE === 'ACTION' || this.values[datapointName].payload !== payload) {
+                change = true;
+            }
+
+            const msg = Object.assign({
+                topic: '',
+                payload,
+                ccu: this.host,
+                iface,
+                device,
+                deviceName: this.channelNames[device],
+                deviceType: this.metadata.devices[iface] && this.metadata.devices[iface][device] && this.metadata.devices[iface][device].TYPE,
+                channel,
+                channelName: this.channelNames[channel],
+                channelType: this.metadata.devices[iface] && this.metadata.devices[iface][channel] && this.metadata.devices[iface][channel].TYPE,
+                channelIndex: channel && parseInt(channel.split(':')[1], 10),
+                datapoint,
+                datapointName,
+                datapointType: description.TYPE,
+                datapointMin: description.MIN,
+                datapointMax: description.MAX,
+                datapointEnum: description.ENUM,
+                datapointDefault: description.DEFAULT,
+                datapointControl: description.CONTROL,
+                value: payload,
+                valueEnum: description.ENUM ? description.ENUM[Number(payload)] : undefined,
+                rooms: this.channelRooms[channel],
+                functions: this.channelFunctions[channel],
+                ts,
+                lc: change ? ts : this.values[datapointName].lc,
+                change
+            }, additions);
+
+            this.values[datapointName] = msg;
+            return msg;
+        }
+
+        publishEvent(params, working, direction) {
+            const [idInit, channel, datapoint, payload] = params;
+            const iface = idInit.replace(/^nr_/, '');
+
+            this.lastEvent[iface] = now();
+            this.setIfaceStatus(iface, true);
+
+            if (channel === 'CENTRAL' && datapoint === 'PONG') {
+                return;
+            }
+
+            this.logger.debug('publishEvent', JSON.stringify(params));
+
+            const msg = this.createMessage(iface, channel, datapoint, payload, {cache: false, working, direction});
+
+            this.callCallbacks(msg);
+        }
+
+        callCallbacks(msg) {
+            this.logger.trace('callCallbacks', this.callbacks.length, JSON.stringify(msg));
+            this.callbacks.forEach(subscription => {
+                const {filter, callback} = subscription;
+
+                let match = true;
+                if (filter) {
+                    this.logger.trace('filter', JSON.stringify(filter));
+                    Object.keys(filter).forEach(attr => {
+                        if (filter[attr] === '') {
+                            return;
+                        }
+                        if (attr === 'cache') {
+                            if (!filter.cache && msg.cache) {
+                                match = false;
+                            }
+                        } else if (attr === 'change') {
+                            if (filter.change && !msg.change) {
+                                match = false;
+                            }
+                        } else if (typeof msg[attr] === 'object') {
+                            if (filter[attr] instanceof RegExp) {
+                                match = false;
+                                msg[attr].forEach(item => {
+                                    if (filter[attr].test(item)) {
+                                        match = true;
+                                    }
+                                });
+                            } else if (msg[attr].indexOf(filter[attr]) === -1) {
+                                match = false;
+                            }
+                        } else if ((filter[attr] instanceof RegExp) && !filter[attr].test(msg[attr])) {
+                            match = false;
+                        } else if ((typeof filter[attr] === 'string') && (filter[attr] !== msg[attr])) {
+                            match = false;
+                        }
+                    });
+                }
+                this.logger.trace('match', match);
+                if (match) {
+                    callback(msg);
+                }
+            });
+        }
+
+        methodCall(iface, method, params) {
+            return new Promise((resolve, reject) => {
+                if (this.clients[iface]) {
+                    this.logger.debug('rpc >', iface, method, JSON.stringify(params));
+                    this.clients[iface].methodCall(method, params, (err, res) => {
+                        if (err) {
+                            this.logger.error('    <', iface, method, err);
+                            reject(err);
+                        } else if (typeof res.faultCode !== 'undefined') {
+                            this.logger.debug('    <', iface, method, JSON.stringify(res));
+                            reject(new Error(res.faultString));
+                        } else {
+                            this.logger.debug('    <', iface, method, JSON.stringify(res));
+                            resolve(res);
+                        }
+                    });
+                } else {
+                    reject(new Error('unknown interface ' + iface + ' ' + Object.keys(this.clients)));
+                }
+            });
+        }
+
+        setValue(iface, address, datapoint, value, burst) {
+            value = this.paramCast(iface, address, 'VALUES', datapoint, value);
+            const params = [address, datapoint, value];
+            if (iface === 'BidCos-RF' && burst) {
+                params.push(burst);
+            }
+
+            this.methodCall(iface, 'setValue', params).catch(err => {
+                this.logger.error('rpc >', iface, 'setValue', JSON.stringify(params), '<', err);
+            });
+        }
+
+        paramCast(iface, address, psName, datapoint, value) {
+            const device = this.metadata.devices[iface] && this.metadata.devices[iface][address];
+            const psKey = this.paramsetName(device, psName);
+            const paramset = this.paramsetDescriptions[psKey] && this.paramsetDescriptions[psKey][datapoint];
+            if (paramset) {
+                switch (paramset.TYPE) {
+                    case 'ACTION':
+                    // eslint-disable-line no-fallthrough
+                    case 'BOOL':
+                        if (value === 'false') {
+                            value = false;
+                        } else if (!isNaN(value)) { // Make sure that the string "0" gets casted to boolean false
+                            value = Number(value);
+                        }
+                        value = Boolean(value);
+                        break;
+                    case 'FLOAT':
+                        value = parseFloat(value) || 0;
+                        if (typeof paramset.MIN !== 'undefined' && value < paramset.MIN) {
+                            value = paramset.MIN;
+                        } else if (typeof paramset.MAX !== 'undefined' && value > paramset.MAX) {
+                            value = paramset.MAX;
+                        }
+                        value = {explicitDouble: value};
+                        break;
+                    case 'ENUM':
+                        if (typeof value === 'string') {
+                            if (paramset.ENUM && (paramset.ENUM.indexOf(value) !== -1)) {
+                                value = paramset.ENUM.indexOf(value);
+                            }
+                        }
+                    // eslint-disable-line no-fallthrough
+                    case 'INTEGER':
+                        value = parseInt(value, 10);
+                        if (typeof paramset.MIN !== 'undefined' && value < paramset.MIN) {
+                            value = paramset.MIN;
+                        } else if (typeof paramset.MAX !== 'undefined' && value > paramset.MAX) {
+                            value = paramset.MAX;
+                        }
+                        break;
+                    case 'STRING':
+                        value = String(value);
+                        break;
+                    default:
+                }
+            }
+            console.log(value);
+            return value;
+        }
+
+        script(script) {
+            return new Promise((resolve, reject) => {
+                this.rega.exec(script, (err, payload, objects) => {
+                    if (err) {
+                        reject(err);
+                    } else {
+                        resolve({payload, objects});
+                    }
+                });
+            });
+        }
+    }
+
+    RED.nodes.registerType('ccu-connection', CcuConnectionNode, {
+
+    });
+};

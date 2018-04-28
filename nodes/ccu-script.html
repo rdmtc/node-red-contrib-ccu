@@ -1,0 +1,51 @@
+<script type="text/javascript">
+    RED.nodes.registerType('ccu-script', {
+
+        category: 'ccu',
+        defaults: {
+            name: {value: ''},
+            script: {value: ''},
+            ccuConfig: {value: '', type: 'ccu-connection', required: true},
+            topic: {value: '${CCU}/${Interface}/'}
+        },
+        inputs: 1,
+        outputs: 1,
+        icon: 'ccu.png',
+        align: 'right',
+        color: '#8BB9D2',
+        paletteLabel: 'script',
+        label() {
+            return this.name || 'script';
+        }
+    });
+</script>
+
+<script type="text/x-red" data-template-name="ccu-script">
+    <div class="form-row">
+        <label for="node-input-ccuConfig"><i class="icon-globe"></i> CCU</label>
+        <input type="text" id="node-input-ccuConfig">
+    </div>
+    <div class="form-row">
+        <label for="node-input-topic"><i class="icon-tasks"></i> Topic</label>
+        <input type="text" id="node-input-topic">
+    </div>
+     <div class="form-row">
+        <label for="node-input-script"><i class="icon-file"></i> Script</label>
+        <textarea style="width:70%; height: 200px" id="node-input-script"></textarea>
+    </div>
+    <div class="form-row">
+        <label for="node-input-name"><i class="icon-bookmark"></i> Name</label>
+        <input type="text" id="node-input-name">
+    </div>
+
+    <div class="form-tips"><span data-i18n="ccu-script.tip"></span></div>
+
+</script>
+
+<script type="text/x-red" data-help-name="ccu-script" lang="de-DE">
+    <p>Führt ein ReGaHSS Script auf der CCU aus und gibt die Rückgabe aus.</p>
+</script>
+
+<script type="text/x-red" data-help-name="ccu-script" lang="en-US">
+    <p>Executes a ReGaHSS Script on the CCU and returns the output.</p>
+</script>
