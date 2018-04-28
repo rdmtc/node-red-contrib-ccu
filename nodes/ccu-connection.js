@@ -258,14 +258,22 @@ module.exports = function (RED) {
 
         loadParamsets() {
             return new Promise(resolve => {
-                try {
-                    this.paramsetDescriptions = JSON.parse(fs.readFileSync(this.paramsetFile));
-                    this.logger.info('paramsets loaded from', this.paramsetFile);
+                let file;
+                if (fs.existsSync(this.paramsetFile)) {
+                    load(this.paramsetFile);
                     resolve();
-                } catch (err) {
-                    this.logger.info('paramsets new empty');
-                    this.paramsetDescriptions = {};
-                    resolve();
+                } else {
+                    load(path.join(__dirname, '..', 'paramsets.json'));
+                    this.saveParamsets.then(resolve);
+                }
+                function load(file) {
+                    try {
+                        this.paramsetDescriptions = JSON.parse(fs.readFileSync(file));
+                        this.logger.info('paramsets loaded from', file);
+                    } catch (err) {
+                        this.logger.info('paramsets new empty');
+                        this.paramsetDescriptions = {};
+                    }
                 }
             });
         }
