@@ -517,8 +517,9 @@ module.exports = function (RED) {
                 this.regaPollPending = true;
                 clearTimeout(this.regaPollTimeout);
                 this.getRegaVariables()
+                    .catch(err => this.logger.error('rega getVariables', err))
                     .then(() => this.getRegaPrograms())
-                    .catch(err => this.logger.error(err))
+                    .catch(err => this.logger.error('rega getPrograms', err))
                     .then(() => {
                         if (this.regaInterval) {
                             this.logger.trace('rega next poll in', this.regaInterval, 'seconds');
@@ -533,7 +534,7 @@ module.exports = function (RED) {
 
         getRegaVariables() {
             return new Promise((resolve, reject) => {
-                this.logger.trace('rega getVariables');
+                this.logger.debug('rega getVariables');
                 this.rega.getVariables((err, res) => {
                     if (err) {
                         reject(err);
