@@ -8,6 +8,8 @@
 
 > Node-RED Nodes for the Homematic CCU
 
+__Work in Progress__ Not yet finished, possibly many Bugs, documentation incomplete, ...
+
 With these Nodes you can connect Homematic and [Node-RED](https://nodered.org/). 
 [Homematic](https://github.com/hobbyquaker/awesome-homematic) is a series of smart home automation hardware from the 
 manufacturer [eQ-3](http://www.eq-3.de/), popular especially in Germany.
