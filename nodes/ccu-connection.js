@@ -274,7 +274,6 @@ module.exports = function (RED) {
                     load(path.join(__dirname, '..', 'paramsets.json'));
                     this.saveParamsets().then(resolve);
                 }
-
             });
         }
 
@@ -638,7 +637,7 @@ module.exports = function (RED) {
                         this.lastEvent[iface] = now();
                         this.setIfaceStatus(iface, true);
                         if (this.ifaceTypes[iface].ping) {
-                            rpcCheckInit(iface);
+                            this.rpcCheckInit(iface);
                         }
                         resolve(iface);
                     }).catch(err => reject(err));
@@ -994,15 +993,17 @@ module.exports = function (RED) {
             });
 
             const match = topic.match(/\${[^}]+}/g);
-            match && match.forEach(v => {
-                const key = v.substr(2, v.length - 3);
-                const rx = new RegExp('\\${' + key + '}', 'g');
-                let rkey = key.toLowerCase();
-                if (rkey === 'interface') {
-                    rkey = 'iface';
-                }
-                topic = topic.replace(rx, msgLower[rkey] || '');
-            });
+            if (match) {
+                match.forEach(v => {
+                    const key = v.substr(2, v.length - 3);
+                    const rx = new RegExp('\\${' + key + '}', 'g');
+                    let rkey = key.toLowerCase();
+                    if (rkey === 'interface') {
+                        rkey = 'iface';
+                    }
+                    topic = topic.replace(rx, msgLower[rkey] || '');
+                });
+            }
 
             return topic;
         }
@@ -1130,7 +1131,7 @@ module.exports = function (RED) {
                         if (err) {
                             this.logger.error('    <', iface, method, err);
                             reject(err);
-                        } else if (typeof res.faultCode !== 'undefined') {
+                        } else if (res && res.faultCode) {
                             this.logger.debug('    <', iface, method, JSON.stringify(res));
                             reject(new Error(res.faultString));
                         } else {

@@ -33,7 +33,7 @@ module.exports = function (RED) {
                 return res.slice(0, 12).join(',');
             }
 
-            this.on('input', msg => {
+            this.on('input', () => {
                 console.log(config);
                 let payload;
                 switch (config.channelType) {
@@ -70,6 +70,8 @@ module.exports = function (RED) {
 
                         payload += ',0x03';
                         break;
+                    default:
+                        console.error('channelType', config.channelType, 'unknown');
                 }
                 console.log(payload);
                 this.ccu.setValue(config.iface, config.channel, 'SUBMIT', payload);
