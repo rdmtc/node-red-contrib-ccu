@@ -19,7 +19,6 @@ module.exports = function (RED) {
                         return;
                     }
                 } else if (!params) {
-                    console.log('\n.....', params, '\n');
                     params = [];
                 }
 

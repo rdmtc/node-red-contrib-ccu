@@ -33,6 +33,11 @@
 
 <script type="text/x-red" data-help-name="ccu-poll" lang="de-DE">
     <p>Führt einen sofortigen Poll von ReGaHSS Systemvariablen durch.</p>
+    <p>Dieser Node ist dazu vorgesehen die Änderung von Systemvariablen mit möglichst geringer Verzögerung zu empfangen.
+      Hierzu kann man ein Programm auf der CCU anlegen dass bei Änderung von Variablen einen virtuellen Taster betätigt.
+      In Node-RED wird dann ein <i>RPC</i> Node so konfiguriert dass er diese "Tastenbetätigungen" empfängt und über den
+      <i>Poll</i> Node eine Aktualisierung der Variablenwerte auslöst.
+    </p>
 </script>
 
 <script type="text/x-red" data-help-name="ccu-poll" lang="en-US">
