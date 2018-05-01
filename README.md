@@ -14,8 +14,8 @@ With these Nodes you can connect Homematic and [Node-RED](https://nodered.org/).
 [Homematic](https://github.com/hobbyquaker/awesome-homematic) is a series of smart home automation hardware from the 
 manufacturer [eQ-3](http://www.eq-3.de/), popular especially in Germany.
 
-The Nodes are using both RPC and ReGaHSS remote script, HmIP as well as "classic" BidCos and also the CUxD. It's 
-possible to connect to multiple CCUs.
+The Nodes are using both RPC and ReGaHSS remote script, can be used with HmIP as well as with "classic" BidCos and 
+also the CUxD. It's possible to connect to multiple CCUs.
 
 Some example flows can be found in the [wiki](wiki) (German language).
 
