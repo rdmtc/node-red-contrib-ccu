@@ -65,12 +65,43 @@
         <select id="select-input-name" style="display:none">
         </select>
     </div>
-
-
 </script>
 
 <script type="text/x-red" data-help-name="ccu-sysvar" lang="de-DE">
     <p>Setzen und lesen von ReGaHSS Systemvariablen.</p>
+    <h3>Inputs</h3>
+    <dl class="message-properties">
+        <dt>payload
+            <span class="property-type">*</span>
+        </dt>
+        <dd>
+            Der Wert der der Systemvariablen zugewiesen werden soll.
+        </dd>
+    </dl>
+    <h3>Outputs</h3>
+     <ol class="node-ports">
+         <li>Output
+
+               <code>msg</code> Beispiel:<br>
+               <code>
+{
+	"ccu": "localhost",
+	"iface": "ReGaHSS",
+	"type": "SYSVAR",
+	"name": "Anwesenheit",
+	"payload": false,
+	"value": false,
+	"valueType": "boolean",
+	"valueEnum": "nicht anwesend",
+	"ts": 1525197999611,
+	"lc": 1525197999611,
+	"enum": ["nicht anwesend", "anwesend"],
+	"id": 950,
+	"topic": "ReGaHSS/Anwesenheit"
+}
+               </code>
+         </li>
+     </ol>
 </script>
 
 <script type="text/x-red" data-help-name="ccu-sysvar" lang="en-US">
