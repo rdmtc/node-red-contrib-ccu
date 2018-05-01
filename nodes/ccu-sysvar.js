@@ -20,8 +20,8 @@ module.exports = function (RED) {
         }
 
         _input(msg) {
-            const name = this.name || msg.name || msg.topic;
-            const value = msg.value || msg.payload;
+            const name = this.name;
+            const value = msg.payload;
             this.ccu.setVariable(name, value)
                 .then(msg => {
                     msg.topic = this.ccu.topicReplace(this.topic, msg);
