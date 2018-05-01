@@ -25,6 +25,7 @@
                 if (nodeId && nodeId !== '_ADD_') {
                     $.getJSON('ccu?config=' + nodeId, data => {
                         if (data && data.sysvar) {
+                            $('#select-input-name').html('');
                             Object.keys(data.sysvar).forEach(name => {
                                 $('#select-input-name').append('<option value="' + name + '"' + (name === cname ? ' selected' : '') + '>' + name + '</option>');
                             });
