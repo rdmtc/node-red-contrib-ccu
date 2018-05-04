@@ -14,13 +14,12 @@ With these Nodes you can connect Homematic and [Node-RED](https://nodered.org/).
 [Homematic](https://github.com/hobbyquaker/awesome-homematic) is a series of smart home automation hardware from the 
 manufacturer [eQ-3](http://www.eq-3.de/), popular especially in Germany.
 
-The Nodes are using both RPC and ReGaHSS remote script, can be used with HmIP as well as with "classic" BidCos and 
-also the CUxD. It's possible to connect to multiple CCUs.
-
-Some example flows can be found in the [wiki](wiki) (German language).
+For the communication with the CCU both RPC and ReGaHSS remote script are used. It's possible to connect to multiple CCUs from one Node-RED instance.
 
 These nodes are included in [ccu-addon-node-red](https://github.com/hobbyquaker/ccu-addon-node-red) which installs 
-Node-RED as addon on a Homematic CCU3 or RaspberryMatic.
+Node-RED as an addon on a Homematic CCU3 or RaspberryMatic.
+
+Some example flows can be found in the [ccu-addon-node-red wiki](https://github.com/hobbyquaker/ccu-addon-node-red/wiki/Flows) (German language).
 
 
 ## License
