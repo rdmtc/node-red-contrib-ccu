@@ -39,22 +39,37 @@ module.exports = function (RED) {
     ccu.network.listen.push('0.0.0.0');
 
     RED.httpAdmin.get('/ccu', (req, res) => {
-        if (req.query.iface && req.query.type === 'channels' && req.query.config && req.query.config !== '_ADD_') {
+        if (req.query.config && req.query.config !== '_ADD_') {
             const config = RED.nodes.getNode(req.query.config);
-            const obj = {};
-            Object.keys(config.metadata.devices[req.query.iface]).forEach(addr => {
-                if (addr.match(/:\d+$/)) {
-                    obj[addr] = {
-                        name: config.channelNames[addr],
-                        datapoints: Object.keys(config.paramsetDescriptions[config.paramsetName(config.metadata.devices[req.query.iface][addr], 'VALUES')])
-                    };
-                }
-            });
+            switch (req.query.type) {
+                case 'channels':
+                    const obj = {};
+                    Object.keys(config.metadata.devices[req.query.iface]).forEach(addr => {
+                        if (addr.match(/:\d+$/)) {
+                            obj[addr] = {
+                                name: config.channelNames[addr],
+                                datapoints: Object.keys(config.paramsetDescriptions[config.paramsetName(config.metadata.devices[req.query.iface][addr], 'VALUES')])
+                            };
+                        }
+                    });
+                    res.status(200).send(JSON.stringify(obj));
+                    break;
 
-            res.status(200).send(JSON.stringify(obj));
-        } else if (req.query.config && req.query.config !== '_ADD_') {
-            const config = RED.nodes.getNode(req.query.config);
-            res.status(200).send(JSON.stringify(ccu[config.host]));
+                case 'sysvar':
+                    res.status(200).send(JSON.stringify(config.sysvar));
+                    break;
+
+                case 'program':
+                    res.status(200).send(JSON.stringify(config.program));
+                    break;
+
+                case 'submit':
+                    break;
+
+                default:
+                    res.status(200).send(JSON.stringify(ccu[config.host]));
+            }
+
         } else {
             ccu.network.ports = [];
             const start = 2040 + Math.floor(Math.random() * 50);
@@ -62,6 +77,7 @@ module.exports = function (RED) {
                 res.status(200).send(JSON.stringify(ccu.network));
             });
         }
+
     });
 
     function now() {

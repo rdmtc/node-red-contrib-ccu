@@ -23,14 +23,17 @@
                 $('#node-input-name').val('').show();
 
                 if (nodeId && nodeId !== '_ADD_') {
-                    $.getJSON('ccu?config=' + nodeId, data => {
-                        if (data && data.sysvar) {
-                            $('#select-input-name').html('');
-                            Object.keys(data.sysvar).forEach(name => {
+                    $.getJSON('ccu?type=sysvar&config=' + nodeId, data => {
+                        $('#select-input-name').html('');
+                        if (data) {
+                            Object.keys(data).forEach(name => {
                                 $('#select-input-name').append('<option value="' + name + '"' + (name === cname ? ' selected' : '') + '>' + name + '</option>');
                             });
                             $('#node-input-name').hide();
                             $('#select-input-name').show();
+                        } else {
+                            $('#select-input-name').hide();
+                            $('#node-input-name').show();
                         }
                     });
                 }
