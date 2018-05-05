@@ -379,7 +379,6 @@ module.exports = function (RED) {
                     if (err) {
                         reject(err);
                     } else {
-                        console.log('\n\n', res.length, '\n\n')
                         res.forEach(ch => {
                             this.regaChannels.push(ch);
                             this.channelNames[ch.address] = ch.name;
@@ -1266,7 +1265,6 @@ module.exports = function (RED) {
                     default:
                 }
             }
-            console.log(value);
             return value;
         }
 
