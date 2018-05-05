@@ -379,6 +379,7 @@ module.exports = function (RED) {
                     if (err) {
                         reject(err);
                     } else {
+                        console.log('\n\n', res.length, '\n\n')
                         res.forEach(ch => {
                             this.regaChannels.push(ch);
                             this.channelNames[ch.address] = ch.name;
@@ -396,10 +397,7 @@ module.exports = function (RED) {
                     if (err) {
                         reject(err);
                     } else {
-                        ccu[this.host].rooms = [];
                         res.forEach(room => {
-                            ccu[this.host].rooms.push(room.name);
-
                             room.channels.forEach(chId => {
                                 const regaChannel = this.getEntry(this.regaChannels, 'id', chId);
                                 const address = regaChannel && regaChannel.address;
@@ -425,9 +423,7 @@ module.exports = function (RED) {
                     if (err) {
                         reject(err);
                     } else {
-                        ccu[this.host].functions = [];
                         res.forEach(func => {
-                            ccu[this.host].functions.push(func.name);
                             func.channels.forEach(chId => {
                                 const regaChannel = this.getEntry(this.regaChannels, 'id', chId);
                                 const address = regaChannel && regaChannel.address;
