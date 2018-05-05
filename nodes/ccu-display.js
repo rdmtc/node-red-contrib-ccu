@@ -9,22 +9,6 @@ module.exports = function (RED) {
                 return;
             }
 
-            const $nodeInputCcuConfig = $('#node-input-ccu-config');
-
-            let data;
-
-            function loadConfig() {
-                const nodeId = $nodeInputCcuConfig.val();
-                const url = 'ccu?config=' + nodeId;
-                console.log('get ' + url);
-                $.getJSON(url, d => {
-                    data = d;
-                    console.log(data);
-                });
-            }
-
-            $nodeInputCcuConfig.change(loadConfig);
-
             function convertString(str) {
                 if (!str) {
                     str = ' ';
@@ -50,16 +34,12 @@ module.exports = function (RED) {
             }
 
             this.on('input', () => {
-                console.log(config);
                 let payload;
                 switch (config.channelType) {
-                    case 'SIGNAL_CHIME':
-                        payload = config.chime;
-                        break;
-                    case 'SIGNAL_LED':
+                    case 'HM-Dis-WM55':
                         payload = config.led;
                         break;
-                    case 'KEY':
+                    case 'HM-Dis-EP-WM55':
                         payload = '0x02,0x0A';
 
                         payload += ',0x12,' + convertString(config.line1);
@@ -80,6 +60,12 @@ module.exports = function (RED) {
                         }
                         payload += ',0x0A';
 
+                        if (config.sound) {
+                            payload += ',0x14,' + config.sound + ',0x1C';
+                        }
+
+                        payload += ',' + config.repeat + ',0x1D,' + config.pause + ',0x16';
+
                         if (config.signal) {
                             payload += ',' + config.signal;
                         }
@@ -89,7 +75,6 @@ module.exports = function (RED) {
                     default:
                         console.error('channelType', config.channelType, 'unknown');
                 }
-                console.log(payload);
                 this.ccu.setValue(config.iface, config.channel, 'SUBMIT', payload);
             });
         }

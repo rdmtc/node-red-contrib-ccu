@@ -14,7 +14,10 @@
             icon3: {value: ''},
             signal: {value: ''},
             channelType: {value: ''},
-            led: {value: ''},
+            led: {value: '0xF0'},
+            repeat: {value: '0xD0'},
+            pause: {value: '0xE0'},
+            sound: {value: '0xC0'},
             ccuConfig: {value: '', type: 'ccu-connection', required: true}
         },
         inputs: 1,
@@ -27,6 +30,7 @@
             return this.name || 'display';
         },
         oneditprepare() {
+            const $nodeInputName = $('#node-input-name');
             const $nodeInputChannel = $('#node-input-channel');
             const $nodeInputChannelType = $('#node-input-channelType');
             const $nodeInputCcuConfig = $('#node-input-ccuConfig');
@@ -49,13 +53,13 @@
             $nodeInputChannel.autocomplete({
                 source: [],
                 close: () => {
+                    const n = $nodeInputChannel.val().split(' ');
+                    const channel = n.shift();
+                    $nodeInputChannel.val(channel);
+                    $nodeInputChannelType.val(data[channel].type).trigger('change');
                     if (!$nodeInputName.val()) {
-                        const n = $nodeInputChannel.val().split(' ');
-                        const channel = n.shift();
                         $nodeInputName.val(n.join(' '));
-                        $nodeInputChannelType.val(data[channel].type);
                     }
-                    autocompleteDatapoint();
                 },
                 delay: 0,
                 minLength: 0
@@ -74,7 +78,6 @@
                         arr.push(addr);
                     }
                 });
-                console.log('autocomplete', arr);
                 $nodeInputChannel.autocomplete('option', 'source', arr);
 
                 if (!data[$nodeInputChannel.val().split(' ')[0]]) {
@@ -89,96 +92,12 @@
                 }
             });
 
-            $('#node-input-chime-container').css('min-height', '300px').css('min-width', '450px').editableList({
-                sortable: true,
-                removable: true,
-                addItem: (container, i, data) => {
-                    if ($('#node-input-chime-container').editableList('length') > 10) {
-                        container.remove();
-                    } else {
-                        $('<input type="number" class="number mp3" min="0" max="255" style="width: 80px;" value="' + data.cmd + '"/>').appendTo(container);
-                    }
-                }
-            });
-
-            $('#node-input-led-container').css('min-height', '300px').css('min-width', '450px').editableList({
-                sortable: true,
-                removable: true,
-                addItem: (container, i, data) => {
-                    if ($('#node-input-led-container').editableList('length') > 10) {
-                        $('#node-input-led-container').editableList('removeItem', {data});
-                        return false;
-                    }
-
-                    const select = $('<select class="number led" value="' + data.cmd + '"/>').appendTo(container);
-                    Object.keys(ccuSignalColors).forEach(name => {
-                        $('<option value="' + ccuSignalColors[name] + '"' + (ccuSignalColors[name] === parseInt(data.cmd, 10) ? ' selected' : '') +
-                            '>' + name + '</option>').appendTo(select);
-                    });
-                }
-            });
-
-            $('#node-input-key-container').css('min-height', '300px').css('min-width', '450px').editableList({});
-
-            if (this.channelType === 'SIGNAL_CHIME') {
-                const [volume, repeat, length, ...commands] = this.chime.split(',');
-                $('#node-input-volume').val(Math.round(volume * 100));
-                $('#node-input-repeat').val(repeat);
-                $('#node-input-length').val(length);
-
-                commands.forEach(cmd => {
-                    $('#node-input-chime-container').editableList('addItem', {cmd});
-                });
-                console.log(volume, repeat, length, commands);
-            } else if (this.channelType === 'SIGNAL_LED') {
-                const [, repeat, length, ...commands] = this.led.split(',');
-                $('#node-input-repeat').val(repeat);
-                $('#node-input-length').val(length);
-                commands.forEach(cmd => {
-                    $('#node-input-led-container').editableList('addItem', {cmd});
-                });
-            } else if (this.channelType === 'KEY') {
-                // TODO ...
-                console.error('channelType KEY not yet implemented');
-            } else {
-                console.error('unknown channelType', this.chanellType);
-            }
-
             $('.SUBMIT').hide();
-            $('.SUBMIT' + $nodeInputChannelType.val()).show();
+            $('.SUBMIT.' + $nodeInputChannelType.val()).show();
             $nodeInputChannelType.change(() => {
                 $('.SUBMIT').hide();
-                $('.SUBMIT' + $nodeInputChannelType.val()).show();
+                $('.SUBMIT.' + $nodeInputChannelType.val()).show();
             });
-        },
-        oneditsave() {
-            const $nodeInputChannelType = $('#node-input-channelType');
-            switch ($nodeInputChannelType.val()) {
-                case 'SIGNAL_CHIME': {
-                    const chime = [$('#node-input-volume').val() / 100, $('#node-input-repeat').val(), '10800'];
-                    $('#node-input-chime-container').editableList('items').each(function () {
-                        chime.push($(this).find('input.number.mp3').val());
-                    });
-                    this.chime = chime.join(',');
-                    break;
-                }
-                case 'SIGNAL_LED': {
-                    const led = ['1', $('#node-input-repeat').val(), '10800'];
-                    $('#node-input-led-container').editableList('items').each(function () {
-                        led.push($(this).find('select').val());
-                    });
-                    this.led = led.join(',');
-                    break;
-                }
-                case 'KEY':
-                    break;
-
-                default:
-            }
-
-            this.icon1 = $('#node-input-icon1').val();
-            this.icon2 = $('#node-input-icon2').val();
-            this.icon3 = $('#node-input-icon3').val();
         }
     });
 </script>
@@ -205,19 +124,18 @@
     <div class="form-row">
         <label for="node-input-channelType"><i class="icon-tags"></i> Typ</label>
         <select id="node-input-channelType">
-            <option value=""></option>
-            <option value="DIS">HM-Dis-WM55</option>
-            <option value="DIS-EP">HM-Dis-EP-WM55</option>
+            <option value="HM-Dis-WM55">HM-Dis-WM55</option>
+            <option value="HM-Dis-EP-WM55">HM-Dis-EP-WM55</option>
         </select>
     </div>
 
 
 
-    <div class="form-row SUBMIT DIS DIS-EP">
+    <div class="form-row SUBMIT HM-Dis-WM55 HM-Dis-EP-WM55">
         <label for="node-input-line1"><i class="icon-envelope"></i> Zeile 1</label>
         <input type="text" id="node-input-line1">
     </div>
-    <div class="form-row SUBMIT DIS DIS-EP">
+    <div class="form-row SUBMIT HM-Dis-WM55 HM-Dis-EP-WM55">
         <label for="node-input-icon1"><i class="icon-envelope"></i> Icon 1</label>
         <select id="node-input-icon1">
             <option value=""></option>
@@ -232,11 +150,11 @@
             <option value="0x88">Servicemeldung</option>
         </select>
     </div>
-    <div class="form-row SUBMIT DIS DIS-EP">
+    <div class="form-row SUBMIT HM-Dis-WM55 HM-Dis-EP-WM55">
         <label for="node-input-line2"><i class="icon-envelope"></i> Zeile 2</label>
         <input type="text" id="node-input-line2">
     </div>
-    <div class="form-row SUBMIT DIS DIS-EP">
+    <div class="form-row SUBMIT HM-Dis-WM55 HM-Dis-EP-WM55">
         <label for="node-input-icon2"><i class="icon-envelope"></i> Icon 2</label>
         <select id="node-input-icon2">
             <option value=""></option>
@@ -251,11 +169,11 @@
             <option value="0x88">Servicemeldung</option>
         </select>
     </div>
-    <div class="form-row SUBMIT DIS DIS-EP">
+    <div class="form-row SUBMIT HM-Dis-WM55 HM-Dis-EP-WM55">
         <label for="node-input-line3"><i class="icon-envelope"></i> Zeile 3</label>
         <input type="text" id="node-input-line3">
     </div>
-    <div class="form-row SUBMIT DIS DIS-EP">
+    <div class="form-row SUBMIT HM-Dis-WM55 HM-Dis-EP-WM55">
         <label for="node-input-icon3"><i class="icon-envelope"></i> Icon 3</label>
         <select id="node-input-icon3">
             <option value=""></option>
@@ -270,11 +188,11 @@
             <option value="0x88">Servicemeldung</option>
         </select>
     </div>
-    <div class="form-row SUBMIT DIS">
+    <div class="form-row SUBMIT HM-Dis-WM55">
         <label for="node-input-line4"><i class="icon-envelope"></i> Zeile 4</label>
         <input type="text" id="node-input-line4">
     </div>
-    <div class="form-row SUBMIT DIS">
+    <div class="form-row SUBMIT HM-Dis-WM55">
         <label for="node-input-icon4"><i class="icon-envelope"></i> Icon 4</label>
         <select id="node-input-icon4">
             <option value=""></option>
@@ -289,11 +207,11 @@
             <option value="0x88">Servicemeldung</option>
         </select>
     </div>
-    <div class="form-row SUBMIT DIS">
+    <div class="form-row SUBMIT HM-Dis-WM55">
         <label for="node-input-line5"><i class="icon-envelope"></i> Zeile 5</label>
         <input type="text" id="node-input-line5">
     </div>
-    <div class="form-row SUBMIT DIS">
+    <div class="form-row SUBMIT HM-Dis-WM55">
         <label for="node-input-icon5"><i class="icon-envelope"></i> Icon 5</label>
         <select id="node-input-icon5">
             <option value=""></option>
@@ -308,13 +226,68 @@
             <option value="0x88">Servicemeldung</option>
         </select>
     </div>
-    <div class="form-row SUBMIT DIS-EP">
+
+    <div class="form-row SUBMIT HM-Dis-EP-WM55">
         <label for="node-input-signal"><i class="icon-envelope"></i> LED</label>
         <select id="node-input-signal">
             <option value="0xF0">Aus</option>
             <option value="0xF1">Rot</option>
             <option value="0xF2">Grün</option>
             <option value="0xF3">Orange</option>
+        </select>
+    </div>
+    <div class="form-row SUBMIT HM-Dis-EP-WM55">
+        <label for="node-input-sound"><i class="icon-envelope"></i> Ton</label>
+        <select id="node-input-sound">
+            <option value="0xC0">Aus</option>
+            <option value="0xC1">Lang Lang</option>
+            <option value="0xC2">Lang Kurz</option>
+            <option value="0xC3">Lang Kurz Kurz</option>
+            <option value="0xC4">Kurz</option>
+            <option value="0xC5">Kurz Kurz</option>
+            <option value="0xC6">Lang</option>
+        </select>
+    </div>
+    <div class="form-row SUBMIT HM-Dis-EP-WM55">
+        <label for="node-input-repeat"><i class="icon-bookmark"></i> Wiederholungen</label>
+        <select id="node-input-repeat">
+            <option value="0xD0">1</option>
+            <option value="0xD1">2</option>
+            <option value="0xD2">3</option>
+            <option value="0xD3">4</option>
+            <option value="0xD4">5</option>
+            <option value="0xD5">6</option>
+            <option value="0xD6">7</option>
+            <option value="0xD7">8</option>
+            <option value="0xD8">9</option>
+            <option value="0xD9">10</option>
+            <option value="0xDA">11</option>
+            <option value="0xDB">12</option>
+            <option value="0xDC">13</option>
+            <option value="0xDD">14</option>
+            <option value="0xDE">15</option>
+            <option value="0xDF">Unendlich</option>
+        </select>
+    </div>
+    <div class="form-row SUBMIT HM-Dis-EP-WM55">
+        <label for="node-input-pause"><i class="icon-bookmark"></i> Pause</label>
+        <select id="node-input-pause">
+            <option value="0xE0">10 Sekunden</option>
+            <option value="0xE1">20 Sekunden</option>
+            <option value="0xE2">30 Sekunden</option>
+            <option value="0xE3">40 Sekunden</option>
+            <option value="0xE4">50 Sekunden</option>
+            <option value="0xE5">60 Sekunden</option>
+            <option value="0xE6">70 Sekunden</option>
+            <option value="0xE7">80 Sekunden</option>
+            <option value="0xE8">90 Sekunden</option>
+            <option value="0xE9">100 Sekunden</option>
+            <option value="0xEA">110 Sekunden</option>
+            <option value="0xEB">120 Sekunden</option>
+            <option value="0xEC">130 Sekunden</option>
+            <option value="0xED">140 Sekunden</option>
+            <option value="0xEE">150 Sekunden</option>
+            <option value="0xEF">160 Sekunden</option>
         </select>
     </div>
     <div class="form-row">
