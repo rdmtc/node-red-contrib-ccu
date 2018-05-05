@@ -1,0 +1,271 @@
+<script type="text/javascript">
+    const ccuSignalColors = {
+        Pause: 2,
+        Rot: 17,
+        'Rot lang': 18,
+        Grün: 33,
+        'Grün lang': 34,
+        Orange: 49,
+        'Orange lang': 50,
+        Blau: 65,
+        'Blau lang': 66,
+        Violett: 81,
+        'Violett lang': 82,
+        Cyan: 97,
+        'Cyan lang': 98,
+        Weiss: 113,
+        'Weiss lang': 114
+    };
+
+    RED.nodes.registerType('ccu-signal', {
+
+        category: 'ccu',
+        defaults: {
+            name: {value: ''},
+            iface: {value: 'BidCos-RF', required: true},
+            channel: {value: '', required: true},
+            chime: {value: ''},
+            length: {value: 10800},
+            repeat: {value: 1},
+            volume: {value: 100},
+            line1: {value: ''},
+            icon1: {value: ''},
+            line2: {value: ''},
+            icon2: {value: ''},
+            line3: {value: ''},
+            icon3: {value: ''},
+            signal: {value: ''},
+            channelType: {value: ''},
+            led: {value: ''},
+            ccuConfig: {value: '', type: 'ccu-connection', required: true}
+        },
+        inputs: 1,
+        outputs: 0,
+        icon: 'ccu.png',
+        color: '#4691BA',
+        paletteLabel: 'submit',
+        align: 'right',
+        label() {
+            return this.name || 'submit';
+        },
+        oneditprepare() {
+            const $nodeInputChannel = $('#node-input-channel');
+            const $nodeInputChannelType = $('#node-input-channelType');
+            const $nodeInputCcuConfig = $('#node-input-ccuConfig')
+
+            let data;
+            let iface = this.iface;
+
+            function loadConfig() {
+                const nodeId = $nodeInputCcuConfig.val();
+                if (nodeId && nodeId !== '__ADD__') {
+                    $.getJSON('ccu?type=signal&config=' + nodeId + '&iface=' + iface, d => {
+                        data = d;
+                        autoCompleteChannel();
+                    });
+                }
+
+            }
+
+            $nodeInputCcuConfig.change(loadConfig);
+
+            $nodeInputChannel.autocomplete({
+                source: [],
+                close: () => {
+                    if (!$nodeInputName.val()) {
+                        const n = $nodeInputChannel.val().split(' ');
+                        const channel = n.shift();
+                        $nodeInputName.val(n.join(' '));
+                        $nodeInputChannelType.val(data[channel].type);
+                    }
+                    autocompleteDatapoint();
+                },
+                delay: 0,
+                minLength: 0
+            });
+
+            function autoCompleteChannel() {
+                if (!data) {
+                    return;
+                }
+                const arr = [];
+                Object.keys(data).forEach(addr => {
+                    if (addr.match(/:\d+$/)) {
+                        if (data[addr].name) {
+                            addr += ' ' + data[addr].name;
+                        }
+                        arr.push(addr);
+                    }
+                });
+                console.log('autocomplete', arr);
+                $nodeInputChannel.autocomplete('option', 'source', arr);
+
+                if (!data[$nodeInputChannel.val().split(' ')[0]]) {
+                    $nodeInputChannel.val('');
+                }
+            }
+
+            $nodeInputChannel.change(() => {
+                const channel = $nodeInputChannel.val();
+                if (data && data[channel]) {
+                    $nodeInputChannelType.val(data[channel]);
+                }
+            });
+
+
+            $('#node-input-chime-container').css('min-height', '300px').css('min-width', '450px').editableList({
+                sortable: true,
+                removable: true,
+                addItem: (container, i, data) => {
+                    if ($('#node-input-chime-container').editableList('length') > 10) {
+                        container.remove();
+                    } else {
+                        $('<input type="number" class="number mp3" min="0" max="255" style="width: 80px;" value="' + data.cmd + '"/>').appendTo(container);
+                    }
+                }
+            });
+
+            $('#node-input-led-container').css('min-height', '300px').css('min-width', '450px').editableList({
+                sortable: true,
+                removable: true,
+                addItem: (container, i, data) => {
+                    if ($('#node-input-led-container').editableList('length') > 10) {
+                        $('#node-input-led-container').editableList('removeItem', {data});
+                        return false;
+                    }
+
+                    const select = $('<select class="number led" value="' + data.cmd + '"/>').appendTo(container);
+                    Object.keys(ccuSignalColors).forEach(name => {
+                        $('<option value="' + ccuSignalColors[name] + '"' + (ccuSignalColors[name] === parseInt(data.cmd, 10) ? ' selected' : '') +
+                            '>' + name + '</option>').appendTo(select);
+                    });
+                }
+            });
+
+            $('#node-input-key-container').css('min-height', '300px').css('min-width', '450px').editableList({});
+
+            if (this.channelType === 'SIGNAL_CHIME') {
+                const [volume, repeat, length, ...commands] = this.chime.split(',');
+                $('#node-input-volume').val(Math.round(volume * 100));
+                $('#node-input-repeat').val(repeat);
+                $('#node-input-length').val(length);
+
+                commands.forEach(cmd => {
+                    $('#node-input-chime-container').editableList('addItem', {cmd});
+                });
+                console.log(volume, repeat, length, commands);
+            } else if (this.channelType === 'SIGNAL_LED') {
+                const [, repeat, length, ...commands] = this.led.split(',');
+                $('#node-input-repeat').val(repeat);
+                $('#node-input-length').val(length);
+                commands.forEach(cmd => {
+                    $('#node-input-led-container').editableList('addItem', {cmd});
+                });
+            } else if (this.channelType === 'KEY') {
+                // TODO ...
+                console.error('channelType KEY not yet implemented');
+            } else {
+                console.error('unknown channelType', this.chanellType);
+            }
+
+            $('.SUBMIT').hide();
+            $('.SUBMIT' + $nodeInputChannelType.val()).show();
+            $nodeInputChannelType.change(() => {
+                $('.SUBMIT').hide();
+                $('.SUBMIT' + $nodeInputChannelType.val()).show();
+            });
+        },
+        oneditsave() {
+            const $nodeInputChannelType = $('#node-input-channelType');
+            switch ($nodeInputChannelType.val()) {
+                case 'SIGNAL_CHIME': {
+                    const chime = [$('#node-input-volume').val() / 100, $('#node-input-repeat').val(), '10800'];
+                    $('#node-input-chime-container').editableList('items').each(function () {
+                        chime.push($(this).find('input.number.mp3').val());
+                    });
+                    this.chime = chime.join(',');
+                    break;
+                }
+                case 'SIGNAL_LED': {
+                    const led = ['1', $('#node-input-repeat').val(), '10800'];
+                    $('#node-input-led-container').editableList('items').each(function () {
+                        led.push($(this).find('select').val());
+                    });
+                    this.led = led.join(',');
+                    break;
+                }
+                case 'KEY':
+                    break;
+
+                default:
+            }
+
+            this.icon1 = $('#node-input-icon1').val();
+            this.icon2 = $('#node-input-icon2').val();
+            this.icon3 = $('#node-input-icon3').val();
+        }
+    });
+</script>
+
+<script type="text/x-red" data-template-name="ccu-signal">
+    <div class="form-row">
+        <label for="node-input-ccuConfig"><i class="icon-globe"></i> CCU</label>
+        <input type="text" id="node-input-ccuConfig">
+    </div>
+     <div class="form-row">
+        <label for="node-input-topic"><i class="icon-tasks"></i> Topic</label>
+        <input type="text" id="node-input-topic">
+    </div>
+    <div class="form-row">
+        <label for="node-input-iface"><i class="fa fa-empire"></i> Interface</label>
+        <select id="node-input-iface">
+            <option selected>BidCos-RF</option>
+            <!--<option>BidCos-Wired</option>-->
+            <!--<option>HmIP-RF</option>-->
+            <!--<option>VirtualDevices</option>-->
+            <!--<option>CUxD</option>-->
+       </select>
+    </div>
+    <div class="form-row">
+        <label for="node-input-channel"><i class="icon-tags"></i> Kanal</label>
+        <input type="text" id="node-input-channel">
+    </div>
+    <div class="form-row">
+        <label for="node-input-channelType"><i class="icon-tags"></i> Typ</label>
+        <select id="node-input-channelType">
+            <option value=""></option>
+            <option value="SIGNAL_CHIME">Funk Gong MP3</option>
+            <option value="SIGNAL_LED">Funk Gong LED</option>
+        </select>
+    </div>
+
+    <div class="form-row SUBMIT SIGNAL_CHIME">
+        <label for="node-input-volume"><i class="fa fa-volume-up"></i> Lautstärke</label>
+        <input type="number" id="node-input-volume" min="0" max="100">
+    </div>
+
+    <div class="form-row SUBMIT SIGNAL_CHIME SIGNAL_LED">
+        <label for="node-input-repeat"><i class="icon-repeat"></i> Wiederholungen</label>
+        <input type="number" min="0" max="255" id="node-input-repeat">
+    </div>
+
+    <div class="form-row SUBMIT SIGNAL_CHIME">
+        <label for="node-input-chime"><i class="icon-envelope"></i> Kommandos</label>
+        <ol id="node-input-chime-container"></ol>
+    </div>
+
+    <div class="form-row SUBMIT SIGNAL_LED">
+        <label for="node-input-led"><i class="icon-envelope"></i> Kommandos</label>
+        <ol id="node-input-led-container"></ol>
+    </div>
+
+
+</script>
+
+<script type="text/x-red" data-help-name="ccu-signal" lang="de-DE">
+    <p>Senden von Texten, LED- und Tonsignalen an Displaytaster und Funk-Gongs.</p>
+</script>
+
+<script type="text/x-red" data-help-name="ccu-signal" lang="en-US">
+    <p>Send texts, LED- and sound-ignals.</p>
+</script>

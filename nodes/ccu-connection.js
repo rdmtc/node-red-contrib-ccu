@@ -41,20 +41,22 @@ module.exports = function (RED) {
     RED.httpAdmin.get('/ccu', (req, res) => {
         if (req.query.config && req.query.config !== '_ADD_') {
             const config = RED.nodes.getNode(req.query.config);
+            const obj = {};
+
             switch (req.query.type) {
-                case 'channels':
-                    const obj = {};
-                    Object.keys(config.metadata.devices[req.query.iface]).forEach(addr => {
+                case 'channels': {
+                    const devices = config.metadata.devices[req.query.iface];
+                    Object.keys(devices).forEach(addr => {
                         if (addr.match(/:\d+$/)) {
                             obj[addr] = {
                                 name: config.channelNames[addr],
-                                datapoints: Object.keys(config.paramsetDescriptions[config.paramsetName(config.metadata.devices[req.query.iface][addr], 'VALUES')])
+                                datapoints: Object.keys(config.paramsetDescriptions[config.paramsetName(devices[addr], 'VALUES')])
                             };
                         }
                     });
                     res.status(200).send(JSON.stringify(obj));
                     break;
-
+                }
                 case 'sysvar':
                     res.status(200).send(JSON.stringify(config.sysvar));
                     break;
@@ -63,11 +65,38 @@ module.exports = function (RED) {
                     res.status(200).send(JSON.stringify(config.program));
                     break;
 
-                case 'submit':
+                case 'signal': {
+                    const devices = config.metadata.devices[req.query.iface];
+                    Object.keys(devices).forEach(addr => {
+                        if (['SIGNAL_CHIME', 'SIGNAL_LED'].includes(devices[addr].TYPE)) {
+                            obj[addr] = {
+                                name: config.channelNames[addr],
+                                type: devices[addr].TYPE
+                            };
+                        }
+                    });
+                    res.status(200).send(JSON.stringify(obj));
                     break;
-
+                }
+                case 'display': {
+                    const devices = config.metadata.devices[req.query.iface];
+                    Object.keys(devices).forEach(addr => {
+                        if (addr.match(/:3$/) && devices[addr].PARENT_TYPE.match(/HM-Dis(-EP)?-WM55/)) {
+                            obj[addr] = {
+                                name: config.channelNames[addr],
+                                type: devices[addr].PARENT_TYPE
+                            };
+                        }
+                    });
+                    res.status(200).send(JSON.stringify(obj));
+                    break;
+                }
                 default:
-                    res.status(200).send(JSON.stringify(ccu[config.host]));
+                    res.status(200).send(JSON.stringify({
+                        channelNames: config.channelNames,
+                        metadata: config.metadata,
+                        paramsetDescriptions: config.paramsetDescriptions
+                    }));
             }
 
         } else {
@@ -137,14 +166,6 @@ module.exports = function (RED) {
                 sysvar: this.sysvar,
                 program: this.program
             });
-
-            ccu[this.host] = {
-                sysvar: this.sysvar,
-                program: this.program,
-                channelNames: this.channelNames,
-                metadata: this.metadata,
-                paramsetDescriptions: this.paramsetDescriptions
-            };
 
             this.rega = new Rega({host: this.host});
             if (config.regaEnabled) {

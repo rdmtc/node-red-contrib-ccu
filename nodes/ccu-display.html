@@ -1,23 +1,6 @@
 <script type="text/javascript">
-    const ccuSignalColors = {
-        Pause: 2,
-        Rot: 17,
-        'Rot lang': 18,
-        Grün: 33,
-        'Grün lang': 34,
-        Orange: 49,
-        'Orange lang': 50,
-        Blau: 65,
-        'Blau lang': 66,
-        Violett: 81,
-        'Violett lang': 82,
-        Cyan: 97,
-        'Cyan lang': 98,
-        Weiss: 113,
-        'Weiss lang': 114
-    };
 
-    RED.nodes.registerType('ccu-submit', {
+    RED.nodes.registerType('ccu-display', {
 
         category: 'ccu',
         defaults: {
@@ -49,13 +32,69 @@
             return this.name || 'submit';
         },
         oneditprepare() {
-            const $nodeChannelType = $('#node-input-channelType');
-            const nodeId = $('#node-input-ccuConfig').val();
+            const $nodeInputChannel = $('#node-input-channel');
+            const $nodeInputChannelType = $('#node-input-channelType');
+            const $nodeInputCcuConfig = $('#node-input-ccuConfig')
 
-            console.log('get /ccu');
-            $.getJSON('ccu?config=' + nodeId, data => {
-                console.log(data);
+            let data;
+            let iface = this.iface;
+
+            function loadConfig() {
+                const nodeId = $nodeInputCcuConfig.val();
+                if (nodeId && nodeId !== '__ADD__') {
+                    $.getJSON('ccu?type=display&config=' + nodeId + '&iface=' + iface, d => {
+                        data = d;
+                        autoCompleteChannel();
+                    });
+                }
+
+            }
+
+            $nodeInputCcuConfig.change(loadConfig);
+
+            $nodeInputChannel.autocomplete({
+                source: [],
+                close: () => {
+                    if (!$nodeInputName.val()) {
+                        const n = $nodeInputChannel.val().split(' ');
+                        const channel = n.shift();
+                        $nodeInputName.val(n.join(' '));
+                        $nodeInputChannelType.val(data[channel].type);
+                    }
+                    autocompleteDatapoint();
+                },
+                delay: 0,
+                minLength: 0
             });
+
+            function autoCompleteChannel() {
+                if (!data) {
+                    return;
+                }
+                const arr = [];
+                Object.keys(data).forEach(addr => {
+                    if (addr.match(/:\d+$/)) {
+                        if (data[addr].name) {
+                            addr += ' ' + data[addr].name;
+                        }
+                        arr.push(addr);
+                    }
+                });
+                console.log('autocomplete', arr);
+                $nodeInputChannel.autocomplete('option', 'source', arr);
+
+                if (!data[$nodeInputChannel.val().split(' ')[0]]) {
+                    $nodeInputChannel.val('');
+                }
+            }
+
+            $nodeInputChannel.change(() => {
+                const channel = $nodeInputChannel.val();
+                if (data && data[channel]) {
+                    $nodeInputChannelType.val(data[channel]);
+                }
+            });
+
 
             $('#node-input-chime-container').css('min-height', '300px').css('min-width', '450px').editableList({
                 sortable: true,
@@ -113,15 +152,15 @@
             }
 
             $('.SUBMIT').hide();
-            $('.SUBMIT.' + $nodeChannelType.val()).show();
-            $nodeChannelType.change(() => {
+            $('.SUBMIT' + $nodeInputChannelType.val()).show();
+            $nodeInputChannelType.change(() => {
                 $('.SUBMIT').hide();
-                $('.SUBMIT.' + $nodeChannelType.val()).show();
+                $('.SUBMIT' + $nodeInputChannelType.val()).show();
             });
         },
         oneditsave() {
-            const $nodeChannelType = $('#node-input-channelType');
-            switch ($nodeChannelType.val()) {
+            const $nodeInputChannelType = $('#node-input-channelType');
+            switch ($nodeInputChannelType.val()) {
                 case 'SIGNAL_CHIME': {
                     const chime = [$('#node-input-volume').val() / 100, $('#node-input-repeat').val(), '10800'];
                     $('#node-input-chime-container').editableList('items').each(function () {
@@ -151,7 +190,7 @@
     });
 </script>
 
-<script type="text/x-red" data-template-name="ccu-submit">
+<script type="text/x-red" data-template-name="ccu-display">
     <div class="form-row">
         <label for="node-input-ccuConfig"><i class="icon-globe"></i> CCU</label>
         <input type="text" id="node-input-ccuConfig">
@@ -163,7 +202,7 @@
     <div class="form-row">
         <label for="node-input-iface"><i class="fa fa-empire"></i> Interface</label>
         <select id="node-input-iface">
-            <option>BidCos-RF</option>
+            <option selected>BidCos-RF</option>
             <!--<option>BidCos-Wired</option>-->
             <!--<option>HmIP-RF</option>-->
             <!--<option>VirtualDevices</option>-->
@@ -178,37 +217,18 @@
         <label for="node-input-channelType"><i class="icon-tags"></i> Typ</label>
         <select id="node-input-channelType">
             <option value=""></option>
-            <option value="SIGNAL_CHIME">Funk Gong MP3</option>
-            <option value="SIGNAL_LED">Funk Gong LED</option>
-            <option value="KEY">Displaytaster</option>
+            <option value="DIS">HM-Dis-WM55</option>
+            <option value="DIS-EP">HM-Dis-EP-WM55</option>
         </select>
     </div>
 
-    <div class="form-row SUBMIT SIGNAL_CHIME">
-        <label for="node-input-volume"><i class="fa fa-volume-up"></i> Lautstärke</label>
-        <input type="number" id="node-input-volume" min="0" max="100">
-    </div>
 
-    <div class="form-row SUBMIT SIGNAL_CHIME SIGNAL_LED">
-        <label for="node-input-repeat"><i class="icon-repeat"></i> Wiederholungen</label>
-        <input type="number" min="0" max="255" id="node-input-repeat">
-    </div>
 
-    <div class="form-row SUBMIT SIGNAL_CHIME">
-        <label for="node-input-chime"><i class="icon-envelope"></i> Kommandos</label>
-        <ol id="node-input-chime-container"></ol>
-    </div>
-
-    <div class="form-row SUBMIT SIGNAL_LED">
-        <label for="node-input-led"><i class="icon-envelope"></i> Kommandos</label>
-        <ol id="node-input-led-container"></ol>
-    </div>
-
-    <div class="form-row SUBMIT KEY">
+    <div class="form-row SUBMIT DIS DIS-EP">
         <label for="node-input-line1"><i class="icon-envelope"></i> Zeile 1</label>
         <input type="text" id="node-input-line1">
     </div>
-    <div class="form-row SUBMIT KEY">
+    <div class="form-row SUBMIT DIS DIS-EP">
         <label for="node-input-icon1"><i class="icon-envelope"></i> Icon 1</label>
         <select id="node-input-icon1">
             <option value=""></option>
@@ -223,11 +243,11 @@
             <option value="0x88">Servicemeldung</option>
         </select>
     </div>
-    <div class="form-row SUBMIT KEY">
+    <div class="form-row SUBMIT DIS DIS-EP">
         <label for="node-input-line2"><i class="icon-envelope"></i> Zeile 2</label>
         <input type="text" id="node-input-line2">
     </div>
-    <div class="form-row SUBMIT KEY">
+    <div class="form-row SUBMIT DIS DIS-EP">
         <label for="node-input-icon2"><i class="icon-envelope"></i> Icon 2</label>
         <select id="node-input-icon2">
             <option value=""></option>
@@ -242,11 +262,11 @@
             <option value="0x88">Servicemeldung</option>
         </select>
     </div>
-    <div class="form-row SUBMIT KEY">
+    <div class="form-row SUBMIT DIS DIS-EP">
         <label for="node-input-line3"><i class="icon-envelope"></i> Zeile 3</label>
         <input type="text" id="node-input-line3">
     </div>
-    <div class="form-row SUBMIT KEY">
+    <div class="form-row SUBMIT DIS DIS-EP">
         <label for="node-input-icon3"><i class="icon-envelope"></i> Icon 3</label>
         <select id="node-input-icon3">
             <option value=""></option>
@@ -261,7 +281,45 @@
             <option value="0x88">Servicemeldung</option>
         </select>
     </div>
-    <div class="form-row SUBMIT KEY">
+    <div class="form-row SUBMIT DIS">
+        <label for="node-input-line4"><i class="icon-envelope"></i> Zeile 4</label>
+        <input type="text" id="node-input-line4">
+    </div>
+    <div class="form-row SUBMIT DIS">
+        <label for="node-input-icon4"><i class="icon-envelope"></i> Icon 4</label>
+        <select id="node-input-icon4">
+            <option value=""></option>
+            <option value="0x80">Aus</option>
+            <option value="0x81">Ein</option>
+            <option value="0x82">Offen</option>
+            <option value="0x83">Geschlossen</option>
+            <option value="0x84">Fehler</option>
+            <option value="0x85">Ok</option>
+            <option value="0x86">Information</option>
+            <option value="0x87">Neue Nachricht</option>
+            <option value="0x88">Servicemeldung</option>
+        </select>
+    </div>
+    <div class="form-row SUBMIT DIS">
+        <label for="node-input-line5"><i class="icon-envelope"></i> Zeile 5</label>
+        <input type="text" id="node-input-line5">
+    </div>
+    <div class="form-row SUBMIT DIS">
+        <label for="node-input-icon5"><i class="icon-envelope"></i> Icon 5</label>
+        <select id="node-input-icon5">
+            <option value=""></option>
+            <option value="0x80">Aus</option>
+            <option value="0x81">Ein</option>
+            <option value="0x82">Offen</option>
+            <option value="0x83">Geschlossen</option>
+            <option value="0x84">Fehler</option>
+            <option value="0x85">Ok</option>
+            <option value="0x86">Information</option>
+            <option value="0x87">Neue Nachricht</option>
+            <option value="0x88">Servicemeldung</option>
+        </select>
+    </div>
+    <div class="form-row SUBMIT DIS-EP">
         <label for="node-input-signal"><i class="icon-envelope"></i> LED</label>
         <select id="node-input-signal">
             <option value="0xF0">Aus</option>
@@ -278,10 +336,10 @@
 
 </script>
 
-<script type="text/x-red" data-help-name="ccu-submit" lang="de-DE">
-    <p>Vereinfachtes senden von Texten, LED- und Ton-Signalen an Displaytaster und Funk-Gongs.</p>
+<script type="text/x-red" data-help-name="ccu-display" lang="de-DE">
+    <p>Senden von LED- und Tonsignalen.</p>
 </script>
 
-<script type="text/x-red" data-help-name="ccu-submit" lang="en-US">
-    <p>Simplified sending of texts, LED- and Sound-Signals.</p>
+<script type="text/x-red" data-help-name="ccu-display" lang="en-US">
+    <p>Send LED- and sound-signals.</p>
 </script>

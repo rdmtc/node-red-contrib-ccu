@@ -1,5 +1,5 @@
 module.exports = function (RED) {
-    class CcuSubmit {
+    class CcuDisplay {
         constructor(config) {
             RED.nodes.createNode(this, config);
 
@@ -8,6 +8,24 @@ module.exports = function (RED) {
             if (!this.ccu) {
                 return;
             }
+
+            const $nodeInputCcuConfig = $('#node-input-ccu-config');
+
+            let data;
+
+            function loadConfig() {
+                const nodeId = $nodeInputCcuConfig.val();
+                const url = 'ccu?config=' + nodeId;
+                console.log('get ' + url);
+                $.getJSON(url, d => {
+                    data = d;
+                    console.log(data);
+                });
+            }
+
+            $nodeInputCcuConfig.change(loadConfig);
+
+
 
             function convertString(str) {
                 if (!str) {
@@ -79,5 +97,5 @@ module.exports = function (RED) {
         }
     }
 
-    RED.nodes.registerType('ccu-submit', CcuSubmit);
+    RED.nodes.registerType('ccu-display', CcuDisplay);
 };
