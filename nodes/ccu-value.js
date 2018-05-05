@@ -18,8 +18,10 @@ module.exports = function (RED) {
             };
 
             this.ccu.subscribe(filter, msg => {
-                msg.topic = this.ccu.topicReplace(config.topic, msg);
-                this.send(msg);
+                if (!msg.working || !config.working) {
+                    msg.topic = this.ccu.topicReplace(config.topic, msg);
+                    this.send(msg);
+                }
             });
 
             this.on('input', msg => {

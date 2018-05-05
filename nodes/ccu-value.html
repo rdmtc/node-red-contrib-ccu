@@ -11,6 +11,7 @@
             start: {value: true},
             change: {value: true},
             cache: {value: true},
+            working: {value: false},
             ccuConfig: {value: '', type: 'ccu-connection', required: true},
             topic: {value: '${CCU}/${Interface}/${channel}/${datapoint}'}
         },
@@ -131,17 +132,17 @@
             <option>CUxD</option>
        </select>
     </div>
-     <div class="form-row">
+    <div class="form-row">
         <label for="node-input-channel"><i class="icon-tags"></i> channel</label>
         <input type="text" id="node-input-channel">
     </div>
-     <div class="form-row">
+    <div class="form-row">
         <label for="node-input-datapoint"><i class="icon-tag"></i> datapoint</label>
         <input type="text" id="node-input-datapoint">
     </div>
 
 
-     <div class="form-row">
+    <div class="form-row">
         <label for="node-input-mode"><i class="fa fa-empire"></i> set Mode</label>
         <select id="node-input-mode">
             <option value=''>default</option>
@@ -149,19 +150,31 @@
             <option>WAKEUP</option>
        </select>
     </div>
-        <div class="form-row">
-        <label for="node-input-change"><i class="fa fa-hand-point-right"></i></label>
-        <label style="width: 70%"><input style="width:auto" type="checkbox" id="node-input-change"> emit changes only</label>
+
+    <div class="form-row">
+     <label for="node-input-change"><i class="icon-bookmark"></i> </label>
+        <div style="width: 70%; display: inline-block; vertical-align: text-top;">
+            <label class="ccu-checkbox"><input type="checkbox" id="node-input-change"> Nur geänderte Werte ausgeben</label><br>
+            <label class="ccu-checkbox"><input type="checkbox" id="node-input-working"> Während WORKING keine Werte ausgeben</label>
+            <label class="ccu-checkbox"><input type="checkbox" id="node-input-cache"> Beim Start letzten bekannten Wert ausgeben</label><br>
+        </div>
+
     </div>
-     </div>
-        <div class="form-row">
-        <label for="node-input-cache" ><i class="fa fa-arrow-alt-circle-right"></i></label>
-        <label style="width: 70%"><input style="width:auto" type="checkbox" id="node-input-cache"> emit once on start</label>
-    </div>
-     <div class="form-row">
+
+    <div class="form-row">
         <label for="node-input-name"><i class="icon-bookmark"></i> Name</label>
         <input type="text" id="node-input-name">
     </div>
+
+    <style>
+        .ccu-checkbox {
+          width: 100% !important;
+        }
+        .ccu-checkbox input {
+            width: 32px;
+            margin-top: -3px;
+        }
+    </style>
 
 </script>
 

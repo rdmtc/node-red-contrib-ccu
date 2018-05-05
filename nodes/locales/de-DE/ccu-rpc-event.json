@@ -2,6 +2,6 @@
   "ccu-rpc-event": {
     "tip": "Tipp: ",
     "change": "Nur geänderte Werte ausgeben",
-    "cache": "Beim Start von der Logikschicht zwischengespeicherten Wert ausgeben"
+    "cache": "Beim Start letzten bekannten Wert ausgeben"
   }
 }

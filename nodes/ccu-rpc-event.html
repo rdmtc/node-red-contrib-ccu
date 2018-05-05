@@ -25,6 +25,7 @@
             datapoint: {value: ''},
             datapointRx: {value: 'str'},
             change: {value: false},
+            working: {value: false},
             cache: {value: false},
             topic: {value: '${CCU}/${Interface}/${channelName}/${datapoint}'}
         },
@@ -304,8 +305,9 @@
     <div class="form-row">
         <label for="node-input-change"><i class="icon-bookmark"></i> </label>
         <div style="width: 70%; display: inline-block; vertical-align: text-top;">
-            <label class="ccu-checkbox"><input type="checkbox" id="node-input-change"> <span data-i18n="ccu-rpc-event.change"></span></label><br>
-            <label class="ccu-checkbox"><input type="checkbox" id="node-input-cache"> <span data-i18n="ccu-rpc-event.cache"</label><br>
+            <label class="ccu-checkbox"><input type="checkbox" id="node-input-change"> Nur geänderte Werte ausgeben</label><br>
+            <label class="ccu-checkbox"><input type="checkbox" id="node-input-working"> Während WORKING keine Werte ausgeben</label>
+            <label class="ccu-checkbox"><input type="checkbox" id="node-input-cache"> Beim Start letzten bekannten Wert ausgeben</label><br>
         </div>
     </div>
     <div class="form-row">
