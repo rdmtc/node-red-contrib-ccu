@@ -25,7 +25,7 @@
             iface: {value: 'BidCos-RF', required: true},
             channel: {value: '', required: true},
             chime: {value: ''},
-            length: {value: 10800},
+            length: {value: 108000},
             repeat: {value: 1},
             volume: {value: 100},
             line1: {value: ''},
@@ -43,18 +43,19 @@
         outputs: 0,
         icon: 'ccu.png',
         color: '#4691BA',
-        paletteLabel: 'submit',
+        paletteLabel: 'signal',
         align: 'right',
         label() {
-            return this.name || 'submit';
+            return this.name || 'signal';
         },
         oneditprepare() {
             const $nodeInputChannel = $('#node-input-channel');
             const $nodeInputChannelType = $('#node-input-channelType');
-            const $nodeInputCcuConfig = $('#node-input-ccuConfig')
+            const $nodeInputCcuConfig = $('#node-input-ccuConfig');
+            const $nodeInputName = $('#node-input-name');
 
             let data;
-            let iface = this.iface;
+            const iface = this.iface;
 
             function loadConfig() {
                 const nodeId = $nodeInputCcuConfig.val();
@@ -64,21 +65,25 @@
                         autoCompleteChannel();
                     });
                 }
-
             }
 
             $nodeInputCcuConfig.change(loadConfig);
 
+            $nodeInputChannelType.change(() => {
+                $('.SUBMIT').hide();
+                $('.SUBMIT.' + $nodeInputChannelType.val()).show();
+            });
+
             $nodeInputChannel.autocomplete({
                 source: [],
                 close: () => {
+                    const n = $nodeInputChannel.val().split(' ');
+                    const channel = n.shift();
+                    $nodeInputChannel.val(channel);
+                    $nodeInputChannelType.val(data[channel].type).trigger('change');
                     if (!$nodeInputName.val()) {
-                        const n = $nodeInputChannel.val().split(' ');
-                        const channel = n.shift();
                         $nodeInputName.val(n.join(' '));
-                        $nodeInputChannelType.val(data[channel].type);
                     }
-                    autocompleteDatapoint();
                 },
                 delay: 0,
                 minLength: 0
@@ -97,7 +102,6 @@
                         arr.push(addr);
                     }
                 });
-                console.log('autocomplete', arr);
                 $nodeInputChannel.autocomplete('option', 'source', arr);
 
                 if (!data[$nodeInputChannel.val().split(' ')[0]]) {
@@ -111,7 +115,6 @@
                     $nodeInputChannelType.val(data[channel]);
                 }
             });
-
 
             $('#node-input-chime-container').css('min-height', '300px').css('min-width', '450px').editableList({
                 sortable: true,
@@ -153,7 +156,6 @@
                 commands.forEach(cmd => {
                     $('#node-input-chime-container').editableList('addItem', {cmd});
                 });
-                console.log(volume, repeat, length, commands);
             } else if (this.channelType === 'SIGNAL_LED') {
                 const [, repeat, length, ...commands] = this.led.split(',');
                 $('#node-input-repeat').val(repeat);
@@ -165,15 +167,11 @@
                 // TODO ...
                 console.error('channelType KEY not yet implemented');
             } else {
-                console.error('unknown channelType', this.chanellType);
+                console.error('unknown channelType', this.channelType);
             }
 
             $('.SUBMIT').hide();
-            $('.SUBMIT' + $nodeInputChannelType.val()).show();
-            $nodeInputChannelType.change(() => {
-                $('.SUBMIT').hide();
-                $('.SUBMIT' + $nodeInputChannelType.val()).show();
-            });
+            $('.SUBMIT.' + $nodeInputChannelType.val()).show();
         },
         oneditsave() {
             const $nodeInputChannelType = $('#node-input-channelType');
@@ -187,7 +185,7 @@
                     break;
                 }
                 case 'SIGNAL_LED': {
-                    const led = ['1', $('#node-input-repeat').val(), '10800'];
+                    const led = ['1', $('#node-input-repeat').val(), '108000'];
                     $('#node-input-led-container').editableList('items').each(function () {
                         led.push($(this).find('select').val());
                     });
@@ -212,10 +210,6 @@
         <label for="node-input-ccuConfig"><i class="icon-globe"></i> CCU</label>
         <input type="text" id="node-input-ccuConfig">
     </div>
-     <div class="form-row">
-        <label for="node-input-topic"><i class="icon-tasks"></i> Topic</label>
-        <input type="text" id="node-input-topic">
-    </div>
     <div class="form-row">
         <label for="node-input-iface"><i class="fa fa-empire"></i> Interface</label>
         <select id="node-input-iface">
@@ -233,9 +227,8 @@
     <div class="form-row">
         <label for="node-input-channelType"><i class="icon-tags"></i> Typ</label>
         <select id="node-input-channelType">
-            <option value=""></option>
-            <option value="SIGNAL_CHIME">Funk Gong MP3</option>
-            <option value="SIGNAL_LED">Funk Gong LED</option>
+            <option value="SIGNAL_CHIME">SIGNAL_CHIME</option>
+            <option value="SIGNAL_LED">SIGNAL_LED</option>
         </select>
     </div>
 
@@ -257,6 +250,10 @@
     <div class="form-row SUBMIT SIGNAL_LED">
         <label for="node-input-led"><i class="icon-envelope"></i> Kommandos</label>
         <ol id="node-input-led-container"></ol>
+    </div>
+    <div class="form-row">
+        <label for="node-input-name"><i class="icon-globe"></i> Name</label>
+        <input type="text" id="node-input-name">
     </div>
 
 
