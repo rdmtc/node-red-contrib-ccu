@@ -1,5 +1,4 @@
 <script type="text/javascript">
-
     RED.nodes.registerType('ccu-display', {
 
         category: 'ccu',
@@ -7,10 +6,6 @@
             name: {value: ''},
             iface: {value: 'BidCos-RF', required: true},
             channel: {value: '', required: true},
-            chime: {value: ''},
-            length: {value: 10800},
-            repeat: {value: 1},
-            volume: {value: 100},
             line1: {value: ''},
             icon1: {value: ''},
             line2: {value: ''},
@@ -26,18 +21,18 @@
         outputs: 0,
         icon: 'ccu.png',
         color: '#4691BA',
-        paletteLabel: 'submit',
+        paletteLabel: 'display',
         align: 'right',
         label() {
-            return this.name || 'submit';
+            return this.name || 'display';
         },
         oneditprepare() {
             const $nodeInputChannel = $('#node-input-channel');
             const $nodeInputChannelType = $('#node-input-channelType');
-            const $nodeInputCcuConfig = $('#node-input-ccuConfig')
+            const $nodeInputCcuConfig = $('#node-input-ccuConfig');
 
             let data;
-            let iface = this.iface;
+            const iface = this.iface;
 
             function loadConfig() {
                 const nodeId = $nodeInputCcuConfig.val();
@@ -47,7 +42,6 @@
                         autoCompleteChannel();
                     });
                 }
-
             }
 
             $nodeInputCcuConfig.change(loadConfig);
@@ -94,7 +88,6 @@
                     $nodeInputChannelType.val(data[channel]);
                 }
             });
-
 
             $('#node-input-chime-container').css('min-height', '300px').css('min-width', '450px').editableList({
                 sortable: true,
@@ -194,10 +187,6 @@
     <div class="form-row">
         <label for="node-input-ccuConfig"><i class="icon-globe"></i> CCU</label>
         <input type="text" id="node-input-ccuConfig">
-    </div>
-     <div class="form-row">
-        <label for="node-input-topic"><i class="icon-tasks"></i> Topic</label>
-        <input type="text" id="node-input-topic">
     </div>
     <div class="form-row">
         <label for="node-input-iface"><i class="fa fa-empire"></i> Interface</label>
@@ -337,9 +326,9 @@
 </script>
 
 <script type="text/x-red" data-help-name="ccu-display" lang="de-DE">
-    <p>Senden von LED- und Tonsignalen.</p>
+    <p>Texte an Displays senden.</p>
 </script>
 
 <script type="text/x-red" data-help-name="ccu-display" lang="en-US">
-    <p>Send LED- and sound-signals.</p>
+    <p>Send texts to displays.</p>
 </script>

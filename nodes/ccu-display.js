@@ -25,8 +25,6 @@ module.exports = function (RED) {
 
             $nodeInputCcuConfig.change(loadConfig);
 
-
-
             function convertString(str) {
                 if (!str) {
                     str = ' ';
