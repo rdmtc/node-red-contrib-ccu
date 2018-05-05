@@ -81,7 +81,7 @@ module.exports = function (RED) {
                 case 'display': {
                     const devices = config.metadata.devices[req.query.iface];
                     Object.keys(devices).forEach(addr => {
-                        if (addr.match(/:3$/) && devices[addr].PARENT_TYPE.match(/HM-Dis(-EP)?-WM55/)) {
+                        if (addr.endsWitch(':3') && devices[addr].PARENT_TYPE.match(/HM-Dis(-EP)?-WM55/)) {
                             obj[addr] = {
                                 name: config.channelNames[addr],
                                 type: devices[addr].PARENT_TYPE
@@ -98,7 +98,6 @@ module.exports = function (RED) {
                         paramsetDescriptions: config.paramsetDescriptions
                     }));
             }
-
         } else {
             ccu.network.ports = [];
             const start = 2040 + Math.floor(Math.random() * 50);
@@ -106,7 +105,6 @@ module.exports = function (RED) {
                 res.status(200).send(JSON.stringify(ccu.network));
             });
         }
-
     });
 
     function now() {
