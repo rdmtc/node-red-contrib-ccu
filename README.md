@@ -21,6 +21,9 @@ Node-RED as an addon on a Homematic CCU3 or RaspberryMatic.
 
 Some example flows can be found in the [ccu-addon-node-red wiki](https://github.com/hobbyquaker/ccu-addon-node-red/wiki/Flows) (German language).
 
+For bug reports, feature requests, feedback, ... use the [
+issue tracker of ccu-addon-node-red](https://github.com/hobbyquaker/ccu-addon-node-red/issues) 
+
 
 ## License
 
