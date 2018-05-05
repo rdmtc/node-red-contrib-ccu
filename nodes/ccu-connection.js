@@ -673,11 +673,43 @@ module.exports = function (RED) {
                     .then(() => {
                         this.lastEvent[iface] = now();
                         this.setIfaceStatus(iface, true);
+                        if (iface === 'CUxD') {
+                            this.getCuxdDevices();
+                        }
                         if (this.ifaceTypes[iface].ping) {
                             this.rpcCheckInit(iface);
                         }
                         resolve(iface);
                     }).catch(err => reject(err));
+            });
+        }
+
+        getCuxdDevices() {
+            const iface = 'CUxD';
+            this.methodCall(iface, 'listDevices', []).then(devices => {
+                if (!this.metadata.devices[iface]) {
+                    this.metadata.devices[iface] = {};
+                }
+                const knownDevices = [];
+                let change = false;
+                devices.forEach(device => {
+                    knownDevices.push(device.ADDRESS);
+                    if (!this.metadata.devices[iface][device.ADDRESS]) {
+                        this.newDevice(iface, device);
+                        change = true;
+                    }
+                });
+
+                Object.keys(this.metadata.devices[iface]).forEach(addr => {
+                    if (!knownDevices.includes(addr)) {
+                        this.deleteDevice(iface, addr);
+                        change = true;
+                    }
+                });
+
+                if (change) {
+                    this.saveMetadata();
+                }
             });
         }
 
