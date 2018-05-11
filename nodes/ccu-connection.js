@@ -811,21 +811,23 @@ module.exports = function (RED) {
         }
 
         paramsetQueuePush(iface, device) {
-            device.PARAMSETS.forEach(paramset => {
-                const name = this.paramsetName(device, paramset);
-                if (!this.paramsetDescriptions[name]) {
-                    this.paramsetQueue.push({
-                        iface,
-                        name,
-                        address: device.ADDRESS,
-                        paramset
-                    });
-                }
-            });
-            clearTimeout(this.getParamsetTimeout);
-            this.getParamsetTimeout = setTimeout(() => {
-                this.paramsetQueueShift();
-            }, 1000);
+            if (device.PARAMSETS) {
+                device.PARAMSETS.forEach(paramset => {
+                    const name = this.paramsetName(device, paramset);
+                    if (!this.paramsetDescriptions[name]) {
+                        this.paramsetQueue.push({
+                            iface,
+                            name,
+                            address: device.ADDRESS,
+                            paramset
+                        });
+                    }
+                });
+                clearTimeout(this.getParamsetTimeout);
+                this.getParamsetTimeout = setTimeout(() => {
+                    this.paramsetQueueShift();
+                }, 1000);
+            }
         }
 
         paramsetQueueShift() {
