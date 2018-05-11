@@ -25,6 +25,10 @@ module.exports = function (RED) {
             });
 
             this.on('input', msg => {
+                if (config.rampEnabled) {
+
+                }
+
                 this.ccu.setValue(config.iface, config.channel.split(' ')[0], config.datapoint, msg.payload, config.burst);
             });
 
