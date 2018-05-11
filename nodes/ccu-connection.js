@@ -1214,7 +1214,7 @@ module.exports = function (RED) {
                 params.push(burst);
             }
 
-            this.methodCall(iface, 'setValue', params).catch(err => {
+            return this.methodCall(iface, 'setValue', params).catch(err => {
                 this.logger.error('rpc >', iface, 'setValue', JSON.stringify(params), '<', err);
             });
         }
