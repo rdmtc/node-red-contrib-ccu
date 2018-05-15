@@ -1,7 +1,7 @@
 # node-red-contrib-ccu
 
 [![NPM version](https://badge.fury.io/js/node-red-contrib-ccu.svg)](http://badge.fury.io/js/node-red-contrib-ccu)
-[![Dependency Status](https://img.shields.io/gemnasium/hobbyquaker/node-red-contrib-ccu.svg?maxAge=2592000)](https://gemnasium.com/github.com/hobbyquaker/node-red-contrib-ccu)
+[![Dependencies Status](https://david-dm.org/hobbyquaker/node-red-contrib-ccu/status.svg)](https://david-dm.org/hobbyquaker/node-red-contrib-ccu)
 [![Build Status](https://travis-ci.org/hobbyquaker/node-red-contrib-ccu.svg?branch=master)](https://travis-ci.org/hobbyquaker/node-red-contrib-ccu)
 [![XO code style](https://img.shields.io/badge/code_style-XO-5ed9c7.svg)](https://github.com/sindresorhus/xo)
 [![License][mit-badge]][mit-url]
