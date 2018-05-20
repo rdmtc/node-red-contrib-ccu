@@ -1266,6 +1266,11 @@ module.exports = function (RED) {
                         break;
                     default:
                 }
+            } else {
+                this.logger.warn('no description for', device, datapoint);
+                if (typeof value === 'number') {
+                    value = String(value);
+                }
             }
             return value;
         }
