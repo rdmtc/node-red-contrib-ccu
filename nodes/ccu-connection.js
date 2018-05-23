@@ -146,7 +146,8 @@ module.exports = function (RED) {
             this.sysvarCallbacks = {};
             this.idSysvarCallback = 0;
 
-            this.programCallbacks = [];
+            this.programCallbacks = {};
+            this.idProgramCallback = 0;
 
             this.channelNames = {};
             this.regaChannels = [];
@@ -618,8 +619,8 @@ module.exports = function (RED) {
                             prg.ts = (new Date(prg.ts + ' UTC+' + (d.getTimezoneOffset() / -60))).getTime();
                             if (!this.program[prg.name] || this.program[prg.name].active !== prg.active || this.program[prg.name].ts !== prg.ts) {
                                 this.program[prg.name] = prg;
-                                this.programCallbacks.forEach(item => {
-                                    const {filter, callback} = item;
+                                Object.keys(this.programCallbacks).forEach(key => {
+                                    const {filter, callback} = this.programCallbacks[key];
                                     if (filter.name === prg.name) {
                                         callback(this.program[prg.name]);
                                     }
@@ -1026,7 +1027,7 @@ module.exports = function (RED) {
                 const id = this.idSysvarCallback;
                 this.idSysvarCallback += 1;
                 const filter = {name};
-                this.logger.trace('subscribeSysvar', JSON.stringify(filter));
+                this.logger.debug('subscribeSysvar', JSON.stringify(filter));
                 this.sysvarCallbacks[this.idSysvarCallback] = {filter, callback};
                 return id;
             } else {
@@ -1047,13 +1048,28 @@ module.exports = function (RED) {
         }
 
         subscribeProgram(name, callback) {
-            const filter = {name};
-            if (typeof callback !== 'function') {
+            if (typeof callback === 'function') {
+                const id = this.idProgramCallback;
+                this.idProgramCallback += 1;
+                const filter = {name};
+                this.logger.debug('subscribeProgram', JSON.stringify(filter));
+                this.programCallbacks[id] = {filter, callback};
+                return id;
+            } else {
                 this.logger.error('subscribeProgram called without callback');
-                return;
+                return null;
             }
-            this.logger.trace('subscribeProgram', JSON.stringify(filter));
-            this.programCallbacks.push({filter, callback});
+        }
+
+        unsubscribeProgram(id) {
+            if (this.programCallbacks[id]){
+                this.logger.debug('unsubscribeProgram', id);
+                delete this.programCallbacks[id];
+                return true;
+            } else {
+                this.logger.error('unsubscribeProgram called for unknown callback', id);
+                return false;
+            }
         }
 
         subscribe(filter, callback) {
