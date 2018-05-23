@@ -17,7 +17,7 @@ module.exports = function (RED) {
                 datapoint: config.datapoint
             };
 
-            this.ccu.subscribe(filter, msg => {
+            this.idSubscription = this.ccu.subscribe(filter, msg => {
                 if (!msg.working || !config.working) {
                     msg.topic = this.ccu.topicReplace(config.topic, msg);
                     this.send(msg);
@@ -33,6 +33,7 @@ module.exports = function (RED) {
 
         _destructor(done) {
             this.log('ccu-value close');
+            this.ccu.unsubscribe(this.idSubscription);
             done();
         }
     }
