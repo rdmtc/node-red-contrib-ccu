@@ -142,7 +142,10 @@ module.exports = function (RED) {
 
             this.callbacks = {};
             this.idCallback = 0;
-            this.sysvarCallbacks = [];
+
+            this.sysvarCallbacks = {};
+            this.idSysvarCallback = 0;
+
             this.programCallbacks = [];
 
             this.channelNames = {};
@@ -586,8 +589,8 @@ module.exports = function (RED) {
                                     enum: sysvar.enum,
                                     id: sysvar.id
                                 };
-                                this.sysvarCallbacks.forEach(item => {
-                                    const {filter, callback} = item;
+                                Object.keys(this.sysvarCallbacks).forEach(key => {
+                                    const {filter, callback} = this.sysvarCallbacks[key];
                                     if (filter.name === sysvar.name) {
                                         callback(this.sysvar[sysvar.name]);
                                     }
@@ -1019,13 +1022,28 @@ module.exports = function (RED) {
         }
 
         subscribeSysvar(name, callback) {
-            const filter = {name};
-            if (typeof callback !== 'function') {
+            if (typeof callback === 'function') {
+                const id = this.idSysvarCallback;
+                this.idSysvarCallback += 1;
+                const filter = {name};
+                this.logger.trace('subscribeSysvar', JSON.stringify(filter));
+                this.sysvarCallbacks[this.idSysvarCallback] = {filter, callback};
+                return id;
+            } else {
                 this.logger.error('subscribeSysvar called without callback');
-                return;
+                return null;
             }
-            this.logger.trace('subscribeSysvar', JSON.stringify(filter));
-            this.sysvarCallbacks.push({filter, callback});
+        }
+
+        unsubscribeSysvar(id) {
+            if (this.sysvarCallbacks[id]){
+                this.logger.debug('unsubscribeSysvar', id);
+                delete this.sysvarCallbacks[id];
+                return true;
+            } else {
+                this.logger.error('unsubscribeSysvar called for unknown callback', id);
+                return false;
+            }
         }
 
         subscribeProgram(name, callback) {
@@ -1058,10 +1076,9 @@ module.exports = function (RED) {
                 delete this.callbacks[id];
                 return true;
             } else {
-                this.logger.error('unsubscribe called for unknown subscription', id);
+                this.logger.error('unsubscribe called for unknown callback', id);
                 return false;
             }
-
         }
 
         topicReplace(topic, msg) {
