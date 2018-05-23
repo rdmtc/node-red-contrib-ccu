@@ -42,8 +42,8 @@ module.exports = function (RED) {
                 }
             });
             this.on('close', this._destructor);
-
         }
+
         _destructor(done) {
             this.log('ccu-rpc-event close');
             this.ccu.unsubscribe(this.idSubscription);

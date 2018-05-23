@@ -1030,21 +1030,19 @@ module.exports = function (RED) {
                 this.logger.debug('subscribeSysvar', JSON.stringify(filter));
                 this.sysvarCallbacks[this.idSysvarCallback] = {filter, callback};
                 return id;
-            } else {
-                this.logger.error('subscribeSysvar called without callback');
-                return null;
             }
+            this.logger.error('subscribeSysvar called without callback');
+            return null;
         }
 
         unsubscribeSysvar(id) {
-            if (this.sysvarCallbacks[id]){
+            if (this.sysvarCallbacks[id]) {
                 this.logger.debug('unsubscribeSysvar', id);
                 delete this.sysvarCallbacks[id];
                 return true;
-            } else {
-                this.logger.error('unsubscribeSysvar called for unknown callback', id);
-                return false;
             }
+            this.logger.error('unsubscribeSysvar called for unknown callback', id);
+            return false;
         }
 
         subscribeProgram(name, callback) {
@@ -1055,21 +1053,19 @@ module.exports = function (RED) {
                 this.logger.debug('subscribeProgram', JSON.stringify(filter));
                 this.programCallbacks[id] = {filter, callback};
                 return id;
-            } else {
-                this.logger.error('subscribeProgram called without callback');
-                return null;
             }
+            this.logger.error('subscribeProgram called without callback');
+            return null;
         }
 
         unsubscribeProgram(id) {
-            if (this.programCallbacks[id]){
+            if (this.programCallbacks[id]) {
                 this.logger.debug('unsubscribeProgram', id);
                 delete this.programCallbacks[id];
                 return true;
-            } else {
-                this.logger.error('unsubscribeProgram called for unknown callback', id);
-                return false;
             }
+            this.logger.error('unsubscribeProgram called for unknown callback', id);
+            return false;
         }
 
         subscribe(filter, callback) {
@@ -1080,21 +1076,19 @@ module.exports = function (RED) {
                 this.logger.debug('subscribe', JSON.stringify(filter));
                 this.callbacks[id] = {filter, callback};
                 return id;
-            } else {
-                this.logger.error('subscribe called without callback');
-                return null;
             }
+            this.logger.error('subscribe called without callback');
+            return null;
         }
 
         unsubscribe(id) {
-            if (this.callbacks[id]){
+            if (this.callbacks[id]) {
                 this.logger.debug('unsubscribe', id);
                 delete this.callbacks[id];
                 return true;
-            } else {
-                this.logger.error('unsubscribe called for unknown callback', id);
-                return false;
             }
+            this.logger.error('unsubscribe called for unknown callback', id);
+            return false;
         }
 
         topicReplace(topic, msg) {
