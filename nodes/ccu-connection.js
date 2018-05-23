@@ -140,7 +140,8 @@ module.exports = function (RED) {
             this.paramsetFile = path.join(RED.settings.userDir, 'ccu_paramsets.json');
             this.loadParamsets();
 
-            this.callbacks = [];
+            this.callbacks = {};
+            this.idCallback = 0;
             this.sysvarCallbacks = [];
             this.programCallbacks = [];
 
@@ -1038,13 +1039,29 @@ module.exports = function (RED) {
         }
 
         subscribe(filter, callback) {
-            filter = filter || {};
-            if (typeof callback !== 'function') {
+            if (typeof callback === 'function') {
+                const id = this.idCallback;
+                this.idCallback += 1;
+                filter = filter || {};
+                this.logger.debug('subscribe', JSON.stringify(filter));
+                this.callbacks[id] = {filter, callback};
+                return id;
+            } else {
                 this.logger.error('subscribe called without callback');
-                return;
+                return null;
             }
-            this.logger.trace('subscribe', JSON.stringify(filter));
-            this.callbacks.push({filter, callback});
+        }
+
+        unsubscribe(id) {
+            if (this.callbacks[id]){
+                this.logger.debug('unsubscribe', id);
+                delete this.callbacks[id];
+                return true;
+            } else {
+                this.logger.error('unsubscribe called for unknown subscription', id);
+                return false;
+            }
+
         }
 
         topicReplace(topic, msg) {
@@ -1144,8 +1161,8 @@ module.exports = function (RED) {
 
         callCallbacks(msg) {
             this.logger.trace('callCallbacks', this.callbacks.length, JSON.stringify(msg));
-            this.callbacks.forEach(subscription => {
-                const {filter, callback} = subscription;
+            Object.keys(this.callbacks).forEach(key => {
+                const {filter, callback} = this.callbacks[key];
 
                 let match = true;
                 if (filter) {
