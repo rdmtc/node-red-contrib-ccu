@@ -746,7 +746,7 @@ module.exports = function (RED) {
             this.logger.debug('rpcCheckInit', iface, elapsed, pingTimeout);
             if (elapsed > pingTimeout) {
                 this.setIfaceStatus(iface, false);
-                this.logger.error('ping timeout', iface, elapsed);
+                this.logger.warn('ping timeout', iface, elapsed);
                 this.rpcInit(iface);
                 return;
             }
