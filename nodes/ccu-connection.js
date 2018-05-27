@@ -446,6 +446,12 @@ module.exports = function (RED) {
             });
         }
 
+        /**
+         * Set ReGaHSS program active/inactive
+         * @param {string} name
+         * @param {boolean} active
+         * @returns {Promise}
+         */
         programActive(name, active) {
             return new Promise((resolve, reject) => {
                 const program = this.program[name];
@@ -468,6 +474,11 @@ module.exports = function (RED) {
             });
         }
 
+        /**
+         * Execute ReGaHSS program
+         * @param {string} name
+         * @returns {Promise}
+         */
         programExecute(name) {
             return new Promise((resolve, reject) => {
                 const program = this.program[name];
@@ -489,6 +500,12 @@ module.exports = function (RED) {
             });
         }
 
+        /**
+         * Set a ReGaHSS variable
+         * @param {string} name
+         * @param {string|number|boolean} value
+         * @returns {Promise}
+         */
         setVariable(name, value) {
             return new Promise((resolve, reject) => {
                 const sysvar = this.sysvar[name];
@@ -543,6 +560,9 @@ module.exports = function (RED) {
             });
         }
 
+        /**
+         * Poll ReGaHSS variables and programs
+         */
         regaPoll() {
             this.logger.trace('regaPoll');
             if (this.regaPollPending) {
@@ -566,6 +586,10 @@ module.exports = function (RED) {
             }
         }
 
+        /**
+         * Poll ReGaHSS variables and call subscription callbacks
+         * @returns {Promise}
+         */
         getRegaVariables() {
             return new Promise((resolve, reject) => {
                 this.logger.debug('rega getVariables');
@@ -606,6 +630,10 @@ module.exports = function (RED) {
             });
         }
 
+        /**
+         * Poll ReGaHSS programs and call subscription callbacks
+         * @returns {Promise}
+         */
         getRegaPrograms() {
             return new Promise((resolve, reject) => {
                 this.logger.trace('rega getPrograms');
@@ -1022,6 +1050,12 @@ module.exports = function (RED) {
             };
         }
 
+        /**
+         * Subscribe to variable changes and register a callback
+         * @param {string} name
+         * @param {function} callback
+         * @returns {number|null} subscription id
+         */
         subscribeSysvar(name, callback) {
             if (typeof callback === 'function') {
                 const id = this.idSysvarCallback;
@@ -1035,6 +1069,11 @@ module.exports = function (RED) {
             return null;
         }
 
+        /**
+         * Remove a subscription to variable changes
+         * @param {number} id subscription id
+         * @returns {boolean}
+         */
         unsubscribeSysvar(id) {
             if (this.sysvarCallbacks[id]) {
                 this.logger.debug('unsubscribeSysvar', id);
@@ -1045,6 +1084,12 @@ module.exports = function (RED) {
             return false;
         }
 
+        /**
+         * Subscribe to program changes and register a callback
+         * @param {string} name
+         * @param {function} callback
+         * @returns {number|null} subscription id
+         */
         subscribeProgram(name, callback) {
             if (typeof callback === 'function') {
                 const id = this.idProgramCallback;
@@ -1058,6 +1103,11 @@ module.exports = function (RED) {
             return null;
         }
 
+        /**
+         * Remove a subscription to program changes
+         * @param {number} id subscription id
+         * @returns {boolean}
+         */
         unsubscribeProgram(id) {
             if (this.programCallbacks[id]) {
                 this.logger.debug('unsubscribeProgram', id);
