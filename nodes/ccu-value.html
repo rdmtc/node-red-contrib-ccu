@@ -11,10 +11,10 @@
             start: {value: true},
             change: {value: true},
             cache: {value: true},
-            on: {value: 0},
-            onEnabled: {value: false},
-            ramp: {value: 0.5},
-            rampEnabled: {value: false},
+            on: {value: ''},
+            onType: {value: ''},
+            ramp: {value: ''},
+            rampType: {value: ''},
             working: {value: false},
             ccuConfig: {value: '', type: 'ccu-connection', required: true},
             topic: {value: '${CCU}/${Interface}/${channel}/${datapoint}'}
@@ -139,6 +139,46 @@
                 }
                 loadConfig();
             });
+
+            const typeUndefined = {
+                value: 'undefined',
+                label: 'undefined',
+                hasValue: false
+            };
+
+            $('#node-input-on').typedInput({
+                default: 'undefined',
+                typeField: '#node-input-onType',
+                types: [
+                    'msg',
+                    'flow',
+                    'global',
+                    'num',
+                    typeUndefined
+                ]
+            });
+
+            $('#node-input-ramp').typedInput({
+                default: 'undefined',
+                typeField: '#node-input-rampType',
+                types: [
+                    'msg',
+                    'flow',
+                    'global',
+                    'num',
+                    typeUndefined
+                ]
+            });
+
+        },
+
+        oneditsave() {
+            if (this.onType === 'undefined') {
+                this.on = 0;
+            }
+            if (this.rampType === 'undefined') {
+                this.ramp = 0;
+            }
         }
     });
 </script>
@@ -172,12 +212,14 @@
     </div>
     <div class="form-row RAMP_TIME" style="display:none">
         <label for="node-input-ramp"><i class="icon-tag"></i> RAMP_TIME</label>
-        <input style="display: inline; width: 30px;" type="checkbox" id="node-input-rampEnabled"><input type="number" style="width: 100px" id="node-input-ramp">
+        <input style="width: 70%;" id="node-input-ramp">
+        <input type="hidden" id="node-input-rampType">
     </div>
 
     <div class="form-row ON_TIME" style="display:none">
         <label for="node-input-on"><i class="icon-tag"></i> ON_TIME</label>
-        <input style="display: inline; width: 30px;" type="checkbox" id="node-input-onEnabled"><input type="number" style="width: 100px" id="node-input-on">
+        <input style="width: 70%;" id="node-input-on">
+        <input type="hidden" id="node-input-onType">
     </div>
 
     <div class="form-row">
