@@ -11,6 +11,10 @@
             start: {value: true},
             change: {value: true},
             cache: {value: true},
+            on: {value: ''},
+            onType: {value: ''},
+            ramp: {value: ''},
+            rampType: {value: ''},
             working: {value: false},
             ccuConfig: {value: '', type: 'ccu-connection', required: true},
             topic: {value: '${CCU}/${Interface}/${channel}/${datapoint}'}
@@ -41,17 +45,33 @@
                 $.getJSON(url, d => {
                     data = d;
                     autocompleteChannel();
+                    autocompleteDatapoint();
                 });
             }
 
             $nodeInputCcuConfig.change(loadConfig);
 
+            $('#node-input-onEnabled').change(() => {
+                if ($('#node-input-onEnabled').is(':checked')) {
+                    $('#node-input-on').removeAttr('disabled');
+                } else {
+                    $('#node-input-on').attr('disabled', true);
+                }
+            });
+            $('#node-input-rampEnabled').change(() => {
+                if ($('#node-input-rampEnabled').is(':checked')) {
+                    $('#node-input-ramp').removeAttr('disabled');
+                } else {
+                    $('#node-input-ramp').attr('disabled', true);
+                }
+            });
             $nodeInputChannel.autocomplete({
                 source: [],
                 close: () => {
+                    const n = $nodeInputChannel.val().split(' ');
+                    const channel = n.shift();
+                    $nodeInputChannel.val(channel);
                     if (!$nodeInputName.val()) {
-                        const n = $nodeInputChannel.val().split(' ');
-                        n.shift();
                         $nodeInputName.val(n.join(' '));
                     }
                     autocompleteDatapoint();
@@ -91,10 +111,18 @@
 
             function autocompleteDatapoint() {
                 const c = data[$nodeInputChannel.val().split(' ')[0]];
+                $('.RAMP_TIME').hide();
+                $('.ON_TIME').hide();
                 if (c) {
                     $nodeInputDatapoint.autocomplete('option', 'source', c.datapoints);
                     if (c.datapoints.indexOf($nodeInputDatapoint.val()) === -1) {
                         $nodeInputDatapoint.val('').autocomplete('search');
+                    }
+                    if (c.datapoints.includes('RAMP_TIME')) {
+                        $('.RAMP_TIME').show();
+                    }
+                    if (c.datapoints.includes('ON_TIME')) {
+                        $('.ON_TIME').show();
                     }
                 }
             }
@@ -109,6 +137,45 @@
                 }
                 loadConfig();
             });
+
+            const typeUndefined = {
+                value: 'undefined',
+                label: 'undefined',
+                hasValue: false
+            };
+
+            $('#node-input-on').typedInput({
+                default: 'undefined',
+                typeField: '#node-input-onType',
+                types: [
+                    'msg',
+                    'flow',
+                    'global',
+                    'num',
+                    typeUndefined
+                ]
+            });
+
+            $('#node-input-ramp').typedInput({
+                default: 'undefined',
+                typeField: '#node-input-rampType',
+                types: [
+                    'msg',
+                    'flow',
+                    'global',
+                    'num',
+                    typeUndefined
+                ]
+            });
+        },
+
+        oneditsave() {
+            if (this.onType === 'undefined') {
+                this.on = 0;
+            }
+            if (this.rampType === 'undefined') {
+                this.ramp = 0;
+            }
         }
     });
 </script>
@@ -140,7 +207,17 @@
         <label for="node-input-datapoint"><i class="icon-tag"></i> datapoint</label>
         <input type="text" id="node-input-datapoint">
     </div>
+    <div class="form-row RAMP_TIME" style="display:none">
+        <label for="node-input-ramp"><i class="icon-tag"></i> RAMP_TIME</label>
+        <input style="width: 70%;" id="node-input-ramp">
+        <input type="hidden" id="node-input-rampType">
+    </div>
 
+    <div class="form-row ON_TIME" style="display:none">
+        <label for="node-input-on"><i class="icon-tag"></i> ON_TIME</label>
+        <input style="width: 70%;" id="node-input-on">
+        <input type="hidden" id="node-input-onType">
+    </div>
 
     <div class="form-row">
         <label for="node-input-mode"><i class="fa fa-empire"></i> set Mode</label>

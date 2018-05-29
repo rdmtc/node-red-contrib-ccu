@@ -25,7 +25,57 @@ module.exports = function (RED) {
             });
 
             this.on('input', msg => {
-                this.ccu.setValue(config.iface, config.channel.split(' ')[0], config.datapoint, msg.payload, config.burst);
+                let ramp;
+                switch (config.rampType) {
+                    case 'msg':
+                        ramp = msg[config.ramp];
+                        break;
+                    case 'flow':
+                        ramp = this.context().flow.get(config.ramp);
+                        break;
+                    case 'global':
+                        ramp = this.context().global.get(config.ramp);
+                        break;
+                    case 'num':
+                        ramp = parseInt(config.ramp, 10);
+                        break;
+                    default:
+                }
+
+                let on;
+                switch (config.onType) {
+                    case 'msg':
+                        on = msg[config.on];
+                        break;
+                    case 'flow':
+                        on = this.context().flow.get(config.on);
+                        break;
+                    case 'global':
+                        on = this.context().global.get(config.on);
+                        break;
+                    case 'num':
+                        on = parseInt(config.on, 10);
+                        break;
+                    default:
+                }
+
+                let delay = 0;
+
+                if (ramp) {
+                    this.ccu.setValue(config.iface, config.channel.split(' ')[0], 'RAMP_TIME', ramp, config.burst);
+                    delay += 62;
+                }
+
+                if (on) {
+                    setTimeout(() => {
+                        this.ccu.setValue(config.iface, config.channel.split(' ')[0], 'ON_TIME', on, config.burst);
+                    }, delay);
+                    delay += 62;
+                }
+
+                setTimeout(() => {
+                    this.ccu.setValue(config.iface, config.channel.split(' ')[0], config.datapoint, msg.payload, config.burst);
+                }, delay);
             });
 
             this.on('close', this._destructor);
