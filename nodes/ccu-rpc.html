@@ -4,7 +4,7 @@
         category: 'ccu',
         defaults: {
             name: {value: ''},
-            ccuConfig: {value: '', type: 'ccu-connection', required: true},
+            ccuConfig: {value: 'localhost', type: 'ccu-connection', required: true},
             iface: {value: 'BidCos-RF'},
             method: {value: ''},
             params: {value: '[]', validate: params => {
