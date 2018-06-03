@@ -246,9 +246,11 @@
 
     <div class="form-tips">
         <span>
-            Interface und/oder Channel und/oder Datapoint können leer gelassen werden um über `msg.interface`,
-            `msg.channel` und `msg.datapoint` übergeben zu werden. Alternativ können auch alle 3 über `msg.topic` (durch
-            Punkte getrennt) übergeben werden, z.B. `{"topic": "BidCos-RF.Licht Badezimmer:1.LEVEL", "payload": 0.7}`.
+            Interface und/oder Channel und/oder Datapoint können leer gelassen werden um über
+            <code>msg.interface</code>, <code>msg.channel</code> und <code>msg.datapoint</code> übergeben zu werden.
+            Alternativ können auch alle 3 über <code>msg.topic</code> (durch Punkte getrennt) übergeben werden, z.B.
+            <code>{"topic": "BidCos-RF.Licht Badezimmer:1.LEVEL",
+            "payload": 0.7}</code>.
             <br>
             Es ist zu beachten dass dieser Node nur dann Nachrichten ausgibt wenn Interface, Channel und Datapoint
             gesetzt sind. Um Events von mehreren Aktoren zu empfangen bitte den "rpc event" Node nutzen.
