@@ -9,22 +9,42 @@ module.exports = function (RED) {
                 return;
             }
 
-            const filter = {
-                iface: config.iface,
-                cache: config.cache,
-                change: config.change,
-                channel: config.channel.split(' ')[0],
-                datapoint: config.datapoint
-            };
+            if (config.iface && config.channel && config.datapoint) {
+                const filter = {
+                    iface: config.iface,
+                    cache: config.cache,
+                    change: config.change,
+                    channel: config.channel.split(' ')[0],
+                    datapoint: config.datapoint
+                };
 
-            this.idSubscription = this.ccu.subscribe(filter, msg => {
-                if (!msg.working || !config.working) {
-                    msg.topic = this.ccu.topicReplace(config.topic, msg);
-                    this.send(msg);
-                }
-            });
+                this.idSubscription = this.ccu.subscribe(filter, msg => {
+                    if (!msg.working || !config.working) {
+                        msg.topic = this.ccu.topicReplace(config.topic, msg);
+                        this.send(msg);
+                    }
+                });
+            }
 
             this.on('input', msg => {
+                const [tIface, tChannel, tDatapoint] = msg.topic.split('.');
+                const iface = config.iface || msg.interface || tIface;
+                const channel = (config.channel || msg.channel || tChannel || '').split(' ')[0];
+                const datapoint = config.datapoint || msg.datapoint || tDatapoint;
+
+                if (!iface) {
+                    this.error('interface undefined');
+                    return;
+                }
+                if (!channel) {
+                    this.error('channel undefined');
+                    return;
+                }
+                if (!datapoint) {
+                    this.error('datapoint undefined');
+                    return;
+                }
+
                 let ramp;
                 switch (config.rampType) {
                     case 'msg':
@@ -62,19 +82,19 @@ module.exports = function (RED) {
                 let delay = 0;
 
                 if (ramp) {
-                    this.ccu.setValue(config.iface, config.channel.split(' ')[0], 'RAMP_TIME', ramp, config.burst);
+                    this.ccu.setValue(iface, channel, 'RAMP_TIME', ramp, config.burst);
                     delay += 62;
                 }
 
                 if (on) {
                     setTimeout(() => {
-                        this.ccu.setValue(config.iface, config.channel.split(' ')[0], 'ON_TIME', on, config.burst);
+                        this.ccu.setValue(iface, channel, 'ON_TIME', on, config.burst);
                     }, delay);
                     delay += 62;
                 }
 
                 setTimeout(() => {
-                    this.ccu.setValue(config.iface, config.channel.split(' ')[0], config.datapoint, msg.payload, config.burst);
+                    this.ccu.setValue(iface, channel, datapoint, msg.payload, config.burst);
                 }, delay);
             });
 
@@ -82,8 +102,9 @@ module.exports = function (RED) {
         }
 
         _destructor(done) {
-            this.log('ccu-value close');
-            this.ccu.unsubscribe(this.idSubscription);
+            if (this.idSubscription) {
+                this.ccu.unsubscribe(this.idSubscription);
+            }
             done();
         }
     }

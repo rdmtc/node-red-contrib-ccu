@@ -4,9 +4,9 @@
         category: 'ccu',
         defaults: {
             name: {value: ''},
-            iface: {value: ''},
-            channel: {value: '', required: true},
-            datapoint: {value: '', required: true},
+            iface: {value: 'BidCos-RF'},
+            channel: {value: ''},
+            datapoint: {value: ''},
             mode: {value: ''},
             start: {value: true},
             change: {value: true},
@@ -192,6 +192,7 @@
     <div class="form-row">
         <label for="node-input-iface"><i class="fa fa-empire"></i> Interface</label>
         <select id="node-input-iface">
+            <option></option>
             <option>BidCos-RF</option>
             <option>BidCos-Wired</option>
             <option>HmIP-RF</option>
@@ -243,6 +244,17 @@
         <input type="text" id="node-input-name">
     </div>
 
+    <div class="form-tips">
+        <span>
+            Interface und/oder Channel und/oder Datapoint können leer gelassen werden um über `msg.interface`,
+            `msg.channel` und `msg.datapoint` übergeben zu werden. Alternativ können auch alle 3 über `msg.topic` (durch
+            Punkte getrennt) übergeben werden, z.B. `{"topic": "BidCos-RF.Licht Badezimmer:1.LEVEL", "payload": 0.7}`.
+            <br>
+            Es ist zu beachten dass dieser Node nur dann Nachrichten ausgibt wenn Interface, Channel und Datapoint
+            gesetzt sind. Um Events von mehreren Aktoren zu empfangen bitte den "rpc event" Node nutzen.
+        </span>
+    </div>
+
     <style>
         .ccu-checkbox {
           width: 100% !important;
@@ -254,6 +266,8 @@
     </style>
 
 </script>
+
+
 
 <script type="text/x-red" data-help-name="ccu-value" lang="de-DE">
     <p>Setzen und lesen von Kanal-Datenpunkten.</p>
