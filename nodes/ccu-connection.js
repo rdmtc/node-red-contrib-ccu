@@ -1320,15 +1320,16 @@ module.exports = function (RED) {
                     this.setValueCache[id] = params;
                     resolve();
                 });
-            }
-            this.setValueTimers[id] = setTimeout(() => {
-                delete this.setValueTimers[id];
-                this.setValueDeferred(id);
-            }, this.setValueThrottle);
+            } else {
+                this.setValueTimers[id] = setTimeout(() => {
+                    delete this.setValueTimers[id];
+                    this.setValueDeferred(id);
+                }, this.setValueThrottle);
 
-            return this.methodCall(iface, 'setValue', params).catch(err => {
-                this.logger.error('rpc >', iface, 'setValue', JSON.stringify(params), '<', err);
-            });
+                return this.methodCall(iface, 'setValue', params).catch(err => {
+                    this.logger.error('rpc >', iface, 'setValue', JSON.stringify(params), '<', err);
+                });
+            }
         }
 
         setValueDeferred(id) {
