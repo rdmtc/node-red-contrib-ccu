@@ -159,6 +159,10 @@ module.exports = function (RED) {
 
             this.values = {};
 
+            this.setValueThrottle = 125;
+            this.setValueTimers = {};
+            this.setValueCache = {};
+
             this.lastEvent = {};
 
             this.metadataFile = path.join(RED.settings.userDir, 'ccu_' + this.host + '.json');
@@ -1304,15 +1308,38 @@ module.exports = function (RED) {
         }
 
         setValue(iface, address, datapoint, value, burst) {
+            const id = `${iface}.${address}.${datapoint}`;
             value = this.paramCast(iface, address, 'VALUES', datapoint, value);
             const params = [address, datapoint, value];
             if (iface === 'BidCos-RF' && burst) {
                 params.push(burst);
             }
 
+            if (this.setValueTimers[id]) {
+                return new Promise(resolve => {
+                    this.setValueCache[id] = params;
+                    resolve();
+                });
+            }
+            this.setValueTimers[id] = setTimeout(() => {
+                delete this.setValueTimers[id];
+                this.setValueDeferred(id);
+            }, this.setValueThrottle);
+
             return this.methodCall(iface, 'setValue', params).catch(err => {
                 this.logger.error('rpc >', iface, 'setValue', JSON.stringify(params), '<', err);
             });
+        }
+
+        setValueDeferred(id) {
+            if (this.setValueCache[id]) {
+                const [iface] = id.split('.');
+                const params = this.setValueCache[id];
+                delete this.setValueCache[id];
+                return this.methodCall(iface, 'setValue', params).catch(err => {
+                    this.logger.error('rpc >', iface, 'setValue', JSON.stringify(params), '<', err);
+                });
+            }
         }
 
         paramCast(iface, address, psName, datapoint, value) {
