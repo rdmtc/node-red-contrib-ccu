@@ -10,6 +10,7 @@ module.exports = function (RED) {
             }
 
             if (config.iface && config.channel && config.datapoint) {
+                const id = `${config.iface}.${config.channel}.${config.datapoint}`;
                 const filter = {
                     iface: config.iface,
                     cache: config.cache,
@@ -19,10 +20,11 @@ module.exports = function (RED) {
                 };
 
                 this.idSubscription = this.ccu.subscribe(filter, msg => {
-                    if (!msg.working || !config.working) {
-                        msg.topic = this.ccu.topicReplace(config.topic, msg);
-                        this.send(msg);
+                    if (config.working && (msg.working || this.ccu.setValueCache[id])) {
+                        return;
                     }
+                    msg.topic = this.ccu.topicReplace(config.topic, msg);
+                    this.send(msg);
                 });
             }
 

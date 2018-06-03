@@ -159,7 +159,7 @@ module.exports = function (RED) {
 
             this.values = {};
 
-            this.setValueThrottle = 125;
+            this.setValueThrottle = 500;
             this.setValueTimers = {};
             this.setValueCache = {};
 
@@ -1316,10 +1316,11 @@ module.exports = function (RED) {
             }
 
             if (this.setValueTimers[id]) {
-                return new Promise(resolve => {
+                //return new Promise(resolve => {
                     this.setValueCache[id] = params;
-                    resolve();
-                });
+                    this.logger.debug('deferred', id);
+                //    resolve();
+                //});
             } else {
                 this.setValueTimers[id] = setTimeout(() => {
                     delete this.setValueTimers[id];
@@ -1334,6 +1335,7 @@ module.exports = function (RED) {
 
         setValueDeferred(id) {
             if (this.setValueCache[id]) {
+                this.logger.debug('setValueDeferred', id, this.setValueCache[id]);
                 const [iface] = id.split('.');
                 const params = this.setValueCache[id];
                 delete this.setValueCache[id];
