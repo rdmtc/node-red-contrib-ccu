@@ -110,23 +110,23 @@
         <input type="text" id="node-config-input-host">
     </div>
     <div class="form-row">
-        <label for="node-input-rpcServerHost"><i class="icon-tag"></i> listen address</label>
+        <label for="node-input-rpcServerHost"><i class="icon-tag"></i> Listen address</label>
         <select id="node-config-input-rpcServerHost"></select>
     </div>
     <div class="form-row">
-        <label for="node-input-rpcInitAddress"><i class="icon-tag"></i> init address</label>
+        <label for="node-input-rpcInitAddress"><i class="icon-tag"></i> Init address</label>
         <input type="text" id="node-config-input-rpcInitAddress">
     </div>
     <div class="form-row">
-        <label for="node-input-rpcBinPort"><i class="icon-tag"></i> binrpc listening port</label>
+        <label for="node-input-rpcBinPort"><i class="icon-tag"></i> BINRPC listening port</label>
         <input type="text" id="node-config-input-rpcBinPort">
     </div>
     <div class="form-row">
-        <label for="node-input-rpcXmlPort"><i class="icon-tag"></i> xmlrpc listening port</label>
+        <label for="node-input-rpcXmlPort"><i class="icon-tag"></i> XMLRPC listening port</label>
         <input type="text" id="node-config-input-rpcXmlPort">
     </div>
     <div class="form-row">
-        <label for="node-input-rfdEnabled"><i class="icon-tag"></i> interfaces</label>
+        <label for="node-input-rfdEnabled"><i class="icon-tag"></i> Interfaces</label>
         <div style="width: 70%; display: inline-block; vertical-align: text-top;">
             <label class="ccu-checkbox"><input type="checkbox" id="node-config-input-regaEnabled"> ReGaHSS</label><br>
             <label class="ccu-checkbox"><input type="checkbox" id="node-config-input-bcrfEnabled"> BidCos-RF</label><br>
@@ -137,26 +137,34 @@
         </div>
     </div>
     <div class="form-row">
-        <label for="node-input-rpcPingTimeout"><i class="icon-tag"></i> rpc ping timeout</label>
+        <label for="node-input-rpcPingTimeout"><i class="icon-tag"></i> RPC ping timeout</label>
         <input type="text" id="node-config-input-rpcPingTimeout">
     </div>
     <div class="form-row">
-        <label for="node-input-regaPoll"><i class="icon-tag"></i> rega poll</label>
+        <label for="node-input-regaPoll"><i class="icon-tag"></i> Rega poll</label>
         <div style="width: 70%; display: inline-block; vertical-align: text-top;">
             <label class="ccu-checkbox"><input type="checkbox" id="node-config-input-regaPoll"> Enabled</label><br>
         </div>
     </div>
      <div class="form-row">
-        <label for="node-input-regaInterval"><i class="icon-tag"></i> rega poll interval</label>
+        <label for="node-input-regaInterval"><i class="icon-tag"></i> Rega poll interval</label>
         <input type="text" id="node-config-input-regaInterval">
     </div>
-    <script type="text/x-red" data-help-name="ccu-connection">
-        <p>The <i>init address</i> normally equals the <i>listen address</i>, the address under which the host running
+    <script type="text/x-red" data-help-name="ccu-connection" lang="en-US">
+        <p>The <i>Init address</i> normally equals the <i>Listen address</i>, the address under which the host running
         Node-Red is reachable for the CCU</p>
         <p>For advanced users: when listening on all interfaces (address 0.0.0.0) or if Node-RED runs inside a
         (e.g. docker) container with NAT'd network or in other more special network environments, setting <i>init
         address</i> to something else then <i>listen address</i> is needed.</p>
     </script>
+    <script type="text/x-red" data-help-name="ccu-connection" lang="de-DE">
+        <p><i>Init address</i> entspricht normalerweise <i>Listen address</i>, Die Adresse unter der Node-RED von der
+        CCU aus erreichbar ist.</p>
+        <p>Für fortgeschrittene User: Wenn auf allen Interfaces gelauscht wird (Adresse 0.0.0.0) oder wenn Node-RED in
+        einem Container (z.B. Docker) mit NAT-Netzwerk läuft oder in anderen spezielleren Netzwerkumgebungen kann es
+        notwendig sein <i>Init address</i> und <i>Listen Address</i> auf unterschiedliche Werte zu setzen.</p>
+    </script>
+
     <style>
         .ccu-checkbox {
           width: auto !important;

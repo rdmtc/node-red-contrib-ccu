@@ -232,10 +232,10 @@
     <div class="form-row">
      <label for="node-input-change"><i class="icon-bookmark"></i> </label>
         <div style="width: 70%; display: inline-block; vertical-align: text-top;">
-            <label class="ccu-checkbox"><input type="checkbox" id="node-input-change"> Nur geänderte Werte ausgeben</label><br>
-            <label class="ccu-checkbox"><input type="checkbox" id="node-input-working"> Während WORKING keine Werte ausgeben</label>
-            <label class="ccu-checkbox"><input type="checkbox" id="node-input-cache"> Beim Start letzten bekannten Wert ausgeben</label><br>
-        </div>
+            <label class="ccu-checkbox"><input type="checkbox" id="node-input-change" data-i18n="ccu-value.change"></label><br>
+            <label class="ccu-checkbox"><input type="checkbox" id="node-input-working" data-i18n="ccu-value.working"></label>
+            <label class="ccu-checkbox"><input type="checkbox" id="node-input-cache" data-i18n="ccu-value.cache"></label><br>
+       </div>
 
     </div>
 
@@ -245,16 +245,7 @@
     </div>
 
     <div class="form-tips">
-        <span>
-            Interface und/oder Channel und/oder Datapoint können leer gelassen werden um über
-            <code>msg.interface</code>, <code>msg.channel</code> und <code>msg.datapoint</code> übergeben zu werden.
-            Alternativ können auch alle 3 über <code>msg.topic</code> (durch Punkte getrennt) übergeben werden, z.B.
-            <code>{"topic": "BidCos-RF.Licht Badezimmer:1.LEVEL",
-            "payload": 0.7}</code>.
-            <br>
-            Es ist zu beachten dass dieser Node nur dann Nachrichten ausgibt wenn Interface, Channel und Datapoint
-            gesetzt sind. Um Events von mehreren Aktoren zu empfangen bitte den "rpc event" Node nutzen.
-        </span>
+        <span data-i18n="ccu-value.tip"></span>
     </div>
 
     <style>

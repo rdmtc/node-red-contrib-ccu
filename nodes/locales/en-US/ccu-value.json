@@ -1,5 +1,5 @@
 {
   "ccu-value": {
-
+    "tip": "Omit Interface, Channel and/or Datapoint if you want to supply them via <code>msg.interface</code>, <code>msg.channel</code> und <code>msg.datapoint</code>. Alternatively you can supply all 3 via <code>msg.topic</code> (seperated through dots) e.g. <code>{\"topic\": \"BidCos-RF.Licht Badezimmer:1.LEVEL\", \"payload\": 0.7}</code>. <br>Mind that this node only emits messages if Interface, Channel und Datapoint are set. To receive events from multiple actuators please use the \"rpc event\" node."
   }
 }

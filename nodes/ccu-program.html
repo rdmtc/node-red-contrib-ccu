@@ -100,4 +100,26 @@
 
 <script type="text/x-red" data-help-name="ccu-program" lang="en-US">
     <p>Executes a ReGaHSS program.</p>
+    <h3>Inputs</h3>
+    <dl class="message-properties">
+        <dt>payload
+            <span class="property-type">*</span>
+        </dt>
+        <dd>
+            If the payload is of type boolean the program gets (de)activated. In all other cases the program will be
+            executed.
+        </dd>
+    </dl>
+    <h3>Outputs</h3>
+     <ol class="node-ports">
+         <li>Output
+             <dl class="message-properties">
+                 <dt>payload <span class="property-type">string</span></dt>
+                 <dd>
+                    The payload contains a timestamp of the last program run (property <code>ts</code> and the
+                    information if the program is activated (property <code>active</code>).
+                 </dd>
+             </dl>
+         </li>
+     </ol>
 </script>

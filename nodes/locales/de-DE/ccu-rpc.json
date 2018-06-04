@@ -1,5 +1,5 @@
 {
   "ccu-rpc": {
-
+    "tip": "Die Methode leer lassen um die Methode im <code>topic</code> Attribut der Nachricht zu übergeben. Werden keine Params konfiguriert können die Parameter im <code>payload</code> Attribut der Nachricht übergebenwerden."
   }
 }

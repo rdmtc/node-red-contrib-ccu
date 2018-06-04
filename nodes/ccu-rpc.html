@@ -106,11 +106,8 @@
         <input type="text" id="node-input-name">
     </div>
 
-    <div class="form-tips">
-        <span>Die Methode leer lassen um die Methode im <code>topic</code> Attribut der Nachricht zu übergeben.
-            Werden keine Params konfiguriert können die Parameter im <code>payload</code> Attribut der Nachricht übergeben
-            werden.
-        </span>
+    <div class="form-tips" data-i18n="ccu-rpc.tip">
+
     </div>
 </script>
 
@@ -149,4 +146,31 @@
 
 <script type="text/x-red" data-help-name="ccu-rpc" lang="en-US">
     <p>Executes a RPC method and outputs the return value.</p>
+    <h3>Inputs</h3>
+    <dl class="message-properties">
+        <dt>topic
+            <span class="property-type">String</span>
+        </dt>
+        <dd>
+            The method that should be called
+        </dd>
+        <dt>payload
+            <span class="property-type">Array|String</span>
+        </dt>
+        <dd>
+            An array or an JSON string containing an array of parameters for the rpc call.
+        </dd>
+
+    </dl>
+    <h3>Outputs</h3>
+     <ol class="node-ports">
+         <li>Output
+             <dl class="message-properties">
+                 <dt>payload <span class="property-type">array</span></dt>
+                 <dd>
+                    The return value of the rpc call.
+                 </dd>
+             </dl>
+         </li>
+     </ol>
 </script>
