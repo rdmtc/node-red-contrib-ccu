@@ -888,7 +888,7 @@ module.exports = function (RED) {
                             this.newParamsetDescription = true;
                             this.paramsetDescriptions[name] = res;
                         })
-                        .catch()
+                        .catch(err => this.logger.error(err))
                         .then(() => {
                             this.paramsetPending = false;
                             clearTimeout(this.getParamsetTimeout);
@@ -1316,11 +1316,11 @@ module.exports = function (RED) {
             }
 
             if (this.setValueTimers[id]) {
-                //return new Promise(resolve => {
-                    this.setValueCache[id] = params;
-                    this.logger.debug('deferred', id);
-                //    resolve();
-                //});
+                // Return new Promise(resolve => {
+                this.setValueCache[id] = params;
+                this.logger.debug('deferred', id);
+                //    Resolve();
+                // });
             } else {
                 this.setValueTimers[id] = setTimeout(() => {
                     delete this.setValueTimers[id];

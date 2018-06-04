@@ -21,7 +21,7 @@ module.exports = function (RED) {
         }
 
         _input(msg) {
-            const name = this.name;
+            const {name} = this;
             const value = msg.payload;
             this.ccu.setVariable(name, value)
                 .then(msg => {
