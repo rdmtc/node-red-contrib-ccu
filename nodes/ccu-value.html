@@ -17,7 +17,7 @@
             rampType: {value: ''},
             working: {value: false},
             ccuConfig: {value: 'localhost', type: 'ccu-connection', required: true},
-            topic: {value: '${CCU}/${Interface}/${channel}/${datapoint}'}
+            topic: {value: '${CCU}/${Interface}/${channel}/${datapoint}'} // eslint-disable-line no-template-curly-in-string
         },
         inputs: 1,
         outputs: 1,
