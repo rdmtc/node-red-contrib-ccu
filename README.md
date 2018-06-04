@@ -8,21 +8,20 @@
 
 > Node-RED Nodes for the Homematic CCU
 
-__Work in Progress__ Not yet finished, possibly many Bugs, documentation incomplete, ...
+With these Nodes you can connect [Homematic](https://github.com/hobbyquaker/awesome-homematic) and 
+[Node-RED](https://nodered.org/). Homematic is a series of smart home automation hardware from the manufacturer 
+[eQ-3](http://www.eq-3.de/), popular especially in Germany.
 
-With these Nodes you can connect Homematic and [Node-RED](https://nodered.org/). 
-[Homematic](https://github.com/hobbyquaker/awesome-homematic) is a series of smart home automation hardware from the 
-manufacturer [eQ-3](http://www.eq-3.de/), popular especially in Germany.
+For the communication with the CCU both RPC and ReGaHSS remote script are used. It's possible to connect to multiple 
+CCUs from one Node-RED instance. RPC setValue calls can be comfortably complemented with ON_TIME and RAMP_TIME values
+and special nodes ease the control of displays and mp3 actuators. RPC events can be filtered comprehensively (even 
+through regular expressions and also by rooms and functions). It's possible to start rega-programs and set 
+rega-variables and last but not least there are nodes to execute arbitrary rega-scripts and RPC calls.
 
-For the communication with the CCU both RPC and ReGaHSS remote script are used. It's possible to connect to multiple CCUs from one Node-RED instance.
+These nodes are included in [RedMatic](https://github.com/hobbyquaker/RedMatic) which ships Node-RED as an addon package 
+for installation on a Homematic CCU3 or RaspberryMatic.
 
-These nodes are included in [ccu-addon-node-red](https://github.com/hobbyquaker/ccu-addon-node-red) which installs 
-Node-RED as an addon on a Homematic CCU3 or RaspberryMatic.
-
-Some example flows can be found in the [ccu-addon-node-red wiki](https://github.com/hobbyquaker/ccu-addon-node-red/wiki/Flows) (German language).
-
-For bug reports, feature requests, feedback, ... use the [
-issue tracker of ccu-addon-node-red](https://github.com/hobbyquaker/ccu-addon-node-red/issues) 
+Some example flows can be found in the [RedMatic Wiki](https://github.com/hobbyquaker/RedMatic/wiki/Flows) (German language).
 
 
 ## License
