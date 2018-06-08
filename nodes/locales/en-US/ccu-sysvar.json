@@ -1,5 +1,5 @@
 {
   "ccu-sysvar": {
-
+    "tip": "Omit the variable name to supply it via msg.payload"
   }
 }

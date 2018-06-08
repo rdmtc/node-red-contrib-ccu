@@ -1,5 +1,5 @@
 {
   "ccu-program": {
-    "tip": "Tipp: "
+    "tip": "Wird kein Programm ausgewählt kann der Programm-Name über msg.topic übergeben werden."
   }
 }

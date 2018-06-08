@@ -1,5 +1,7 @@
 {
   "ccu-rpc": {
-
+    "tip1": "Omit Method to supply it via",
+    "tip2": "property. If Params are ommited they can be supplied via",
+    "tip3": "property."
   }
 }
