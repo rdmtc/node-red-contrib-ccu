@@ -12,9 +12,9 @@
             change: {value: true},
             cache: {value: true},
             on: {value: ''},
-            onType: {value: ''},
+            onType: {value: 'undefined'},
             ramp: {value: ''},
-            rampType: {value: ''},
+            rampType: {value: 'undefined'},
             working: {value: false},
             ccuConfig: {value: 'localhost', type: 'ccu-connection', required: true},
             topic: {value: '${CCU}/${Interface}/${channel}/${datapoint}'} // eslint-disable-line no-template-curly-in-string
@@ -232,11 +232,21 @@
     <div class="form-row">
      <label for="node-input-change"><i class="icon-bookmark"></i> </label>
         <div style="width: 70%; display: inline-block; vertical-align: text-top;">
-            <label class="ccu-checkbox"><input type="checkbox" id="node-input-change" data-i18n="ccu-value.change"></label><br>
-            <label class="ccu-checkbox"><input type="checkbox" id="node-input-working" data-i18n="ccu-value.working"></label>
-            <label class="ccu-checkbox"><input type="checkbox" id="node-input-cache" data-i18n="ccu-value.cache"></label><br>
-       </div>
+             <label class="ccu-checkbox" for="node-input-change">
+                <input type="checkbox" id="node-input-change">
+                <span data-i18n="ccu-value.change"></span>
+            </label>
 
+            <label class="ccu-checkbox">
+                <input type="checkbox" id="node-input-working">
+                <span data-i18n="ccu-value.working"></span>
+            </label>
+
+            <label class="ccu-checkbox">
+                <input type="checkbox" id="node-input-cache">
+                <span data-i18n="ccu-value.cache"></span>
+            </label>
+        </div>
     </div>
 
     <div class="form-row">
@@ -245,15 +255,31 @@
     </div>
 
     <div class="form-tips">
-        <span data-i18n="ccu-value.tip"></span>
+        <p>
+            <span data-i18n="ccu-value.tip1"></span>
+            <code>msg.interface</code>, <code>msg.channel</code>
+            <span data-i18n="ccu-value.tip2"></span>
+            <code>msg.datapoint</code>
+            <span data-i18n="ccu-value.tip3"></span>
+            <code>msg.topic</code>
+            <span data-i18n="ccu-value.tip4"></span>
+            <pre><code>{
+    "topic": "BidCos-RF.EEQ0000007:1.LEVEL",
+    "payload": 0.7
+}</code></pre>
+        </p>
+        <p>
+            <span data-i18n="ccu-value.tip5"></span>
+        </p>
     </div>
 
     <style>
         .ccu-checkbox {
-          width: 100% !important;
+            width: auto !important;
+            display: block !important;
         }
         .ccu-checkbox input {
-            width: 32px;
+            width: 24px;
             margin-top: -3px;
         }
     </style>

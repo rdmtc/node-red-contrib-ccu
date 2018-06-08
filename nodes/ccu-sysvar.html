@@ -24,7 +24,7 @@
 
                 if (nodeId && nodeId !== '_ADD_') {
                     $.getJSON('ccu?type=sysvar&config=' + nodeId, data => {
-                        $('#select-input-name').html('');
+                        $('#select-input-name').html('<option value=""></option>');
                         if (data) {
                             Object.keys(data).forEach(name => {
                                 $('#select-input-name').append('<option value="' + name + '"' + (name === cname ? ' selected' : '') + '>' + name + '</option>');
@@ -69,6 +69,8 @@
         <select id="select-input-name" style="display:none">
         </select>
     </div>
+
+    <div class="form-tips" data-i18n="ccu-sysvar.tip"></div>
 </script>
 
 <script type="text/x-red" data-help-name="ccu-sysvar" lang="de-DE">
@@ -87,7 +89,7 @@
          <li>Output
 
                <code>msg</code> Beispiel:<br>
-               <code>
+               <pre><code>
 {
 	"ccu": "localhost",
 	"iface": "ReGaHSS",
@@ -103,11 +105,20 @@
 	"id": 950,
 	"topic": "ReGaHSS/Anwesenheit"
 }
-               </code>
+               </code></pre>
          </li>
      </ol>
 </script>
 
 <script type="text/x-red" data-help-name="ccu-sysvar" lang="en-US">
     <p>Set and read ReGaHSS system variables.</p>
+        <h3>Inputs</h3>
+    <dl class="message-properties">
+        <dt>payload
+            <span class="property-type">*</span>
+        </dt>
+        <dd>
+            The value that should be assigned to the variable.
+        </dd>
+    </dl>
 </script>

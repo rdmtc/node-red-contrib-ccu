@@ -163,9 +163,6 @@
                 commands.forEach(cmd => {
                     $('#node-input-led-container').editableList('addItem', {cmd});
                 });
-            } else if (this.channelType === 'KEY') {
-                // TODO ...
-                console.error('channelType KEY not yet implemented');
             } else {
                 console.error('unknown channelType', this.channelType);
             }

@@ -305,9 +305,20 @@
     <div class="form-row">
         <label for="node-input-change"><i class="icon-bookmark"></i> </label>
         <div style="width: 70%; display: inline-block; vertical-align: text-top;">
-            <label class="ccu-checkbox"><input type="checkbox" id="node-input-change" data-i18n="ccu-rpc-event.change"></label><br>
-            <label class="ccu-checkbox"><input type="checkbox" id="node-input-working" data-i18n="ccu-rpc-event.working"></label>
-            <label class="ccu-checkbox"><input type="checkbox" id="node-input-cache" data-i18n="ccu-rpc-event.cache"></label><br>
+            <label class="ccu-checkbox" for="node-input-change">
+                <input type="checkbox" id="node-input-change">
+                <span data-i18n="ccu-rpc-event.change"></span>
+            </label>
+
+            <label class="ccu-checkbox">
+                <input type="checkbox" id="node-input-working">
+                <span data-i18n="ccu-rpc-event.working"></span>
+            </label>
+
+            <label class="ccu-checkbox">
+                <input type="checkbox" id="node-input-cache">
+                <span data-i18n="ccu-rpc-event.cache"></span>
+            </label>
         </div>
     </div>
     <div class="form-row">
@@ -317,10 +328,11 @@
 
     <style>
         .ccu-checkbox {
-          width: 100% !important;
+            width: auto !important;
+            display: block !important;
         }
         .ccu-checkbox input {
-            width: 32px;
+            width: 24px;
             margin-top: -3px;
         }
     </style>
