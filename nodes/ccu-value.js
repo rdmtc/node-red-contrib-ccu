@@ -59,10 +59,11 @@ module.exports = function (RED) {
                         ramp = this.context().global.get(config.ramp);
                         break;
                     case 'num':
-                        ramp = parseInt(config.ramp, 10);
+                        ramp = config.ramp;
                         break;
                     default:
                 }
+                ramp = parseFloat(ramp);
 
                 let on;
                 switch (config.onType) {
@@ -76,28 +77,27 @@ module.exports = function (RED) {
                         on = this.context().global.get(config.on);
                         break;
                     case 'num':
-                        on = parseInt(config.on, 10);
+                        on = config.on;
                         break;
                     default:
                 }
 
-                let delay = 0;
+                on = parseFloat(on);
 
-                if (ramp) {
-                    this.ccu.setValue(iface, channel, 'RAMP_TIME', ramp, config.burst);
-                    delay += 62;
-                }
-
-                if (on) {
-                    setTimeout(() => {
-                        this.ccu.setValue(iface, channel, 'ON_TIME', on, config.burst);
-                    }, delay);
-                    delay += 62;
-                }
-
-                setTimeout(() => {
+                if (!ramp && !on) {
                     this.ccu.setValue(iface, channel, datapoint, msg.payload, config.burst);
-                }, delay);
+                } else {
+                    let params = {};
+                    if (on) {
+                        params.ON_TIME = this.ccu.paramCast(iface, channel, 'VALUES', 'ON_TIME', on);
+                    }
+                    if (ramp) {
+                        params.RAMP_TIME = this.ccu.paramCast(iface, channel, 'VALUES', 'RAMP_TIME', ramp);
+                    }
+                    params[datapoint] = this.ccu.paramCast(iface, channel, 'VALUES', datapoint, msg.payload);
+                    this.ccu.methodCall(iface, 'putParamset', [channel, 'VALUES', params]);
+                }
+
             });
 
             this.on('close', this._destructor);
