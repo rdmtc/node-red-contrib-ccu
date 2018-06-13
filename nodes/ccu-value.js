@@ -59,7 +59,7 @@ module.exports = function (RED) {
                         ramp = this.context().global.get(config.ramp);
                         break;
                     case 'num':
-                        ramp = config.ramp;
+                        ramp = config.ramp; // eslint-disable-line prefer-destructuring
                         break;
                     default:
                 }
@@ -77,7 +77,7 @@ module.exports = function (RED) {
                         on = this.context().global.get(config.on);
                         break;
                     case 'num':
-                        on = config.on;
+                        on = config.on; // eslint-disable-line prefer-destructuring
                         break;
                     default:
                 }
@@ -87,7 +87,7 @@ module.exports = function (RED) {
                 if (!ramp && !on) {
                     this.ccu.setValue(iface, channel, datapoint, msg.payload, config.burst);
                 } else {
-                    let params = {};
+                    const params = {};
                     if (on) {
                         params.ON_TIME = this.ccu.paramCast(iface, channel, 'VALUES', 'ON_TIME', on);
                     }
@@ -97,7 +97,6 @@ module.exports = function (RED) {
                     params[datapoint] = this.ccu.paramCast(iface, channel, 'VALUES', datapoint, msg.payload);
                     this.ccu.methodCall(iface, 'putParamset', [channel, 'VALUES', params]);
                 }
-
             });
 
             this.on('close', this._destructor);
