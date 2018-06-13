@@ -21,7 +21,7 @@ rega-variables and last but not least there are nodes to execute arbitrary rega-
 These nodes are included in [RedMatic](https://github.com/hobbyquaker/RedMatic) which ships Node-RED as an addon package 
 for installation on a Homematic CCU3 or RaspberryMatic.
 
-Some example flows can be found in the [RedMatic Wiki](https://github.com/hobbyquaker/RedMatic/wiki/Flows) (German language).
+Some example flows can be found in the [RedMatic Wiki](https://github.com/hobbyquaker/RedMatic/wiki) (German language).
 
 
 ## License
