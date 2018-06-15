@@ -1065,8 +1065,8 @@ module.exports = function (RED) {
                 const id = this.idSysvarCallback;
                 this.idSysvarCallback += 1;
                 const filter = {name};
-                this.logger.debug('subscribeSysvar', JSON.stringify(filter));
-                this.sysvarCallbacks[this.idSysvarCallback] = {filter, callback};
+                this.logger.debug('subscribeSysvar', id, JSON.stringify(filter));
+                this.sysvarCallbacks[id] = {filter, callback};
                 return id;
             }
             this.logger.error('subscribeSysvar called without callback');
