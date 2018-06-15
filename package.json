@@ -20,7 +20,7 @@
   "author": "Sebastian Raff <hobbyquaker@gmail.com>",
   "license": "MIT",
   "dependencies": {
-    "binrpc": "^3.1.2",
+    "binrpc": "^3.2.1",
     "hm-discover": "^1.1.0",
     "homematic-rega": "^1.2.2",
     "homematic-xmlrpc": "^1.0.2",
