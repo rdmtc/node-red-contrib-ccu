@@ -1391,7 +1391,8 @@ module.exports = function (RED) {
                     default:
                 }
             } else {
-                this.logger.warn('no description for', device, datapoint);
+                this.logger.warn('unknown paramsetDescription ', psKey, datapoint);
+                // Fallback: use string for numbers, this should work for double and integer datapoints
                 if (typeof value === 'number') {
                     value = String(value);
                 }
