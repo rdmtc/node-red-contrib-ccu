@@ -117,6 +117,7 @@ module.exports = function (RED) {
 
             this.name = config.name;
             this.host = config.host;
+            this.users = {};
 
             this.logger.debug('ccu-connection', config.host);
 
@@ -263,8 +264,20 @@ module.exports = function (RED) {
             };
         }
 
+        register(node) {
+            this.users[node.id] = node;
+        }
+
+        deregister(node, done) {
+            delete node.users[node.id];
+            return done();
+        };
+
         setIfaceStatus(iface, connected) {
             this.ifaceStatus[iface] = connected;
+            Object.keys(this.users).forEach(id => {
+                this.users[id].setStatus({ifaceStatus: this.ifaceStatus});
+            });
         }
 
         saveMetadata() {
@@ -669,6 +682,7 @@ module.exports = function (RED) {
             Object.keys(this.ifaceTypes).forEach(iface => {
                 const enabled = config[this.ifaceTypes[iface].conf + 'Enabled'];
                 if (enabled) {
+                    this.setIfaceStatus(iface, false);
                     this.createClient(iface)
                         .then(() => {
                             if (this.ifaceTypes[iface].init) {

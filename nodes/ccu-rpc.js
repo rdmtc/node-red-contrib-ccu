@@ -1,3 +1,5 @@
+const statusHelper = require(__dirname + '/lib/status.js');
+
 module.exports = function (RED) {
     class CcuRpcNode {
         constructor(config) {
@@ -7,6 +9,10 @@ module.exports = function (RED) {
             if (!this.ccu) {
                 return;
             }
+
+            this.iface = config.iface;
+
+            this.ccu.register(this);
 
             this.on('input', msg => {
                 let params = config.params || msg.payload;
@@ -52,6 +58,9 @@ module.exports = function (RED) {
                         this.error(err.message);
                     });
             });
+        }
+        setStatus(data) {
+            statusHelper(this, data);
         }
     }
 

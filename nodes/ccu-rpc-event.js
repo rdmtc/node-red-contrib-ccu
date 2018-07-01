@@ -1,3 +1,5 @@
+const statusHelper = require(__dirname + '/lib/status.js');
+
 module.exports = function (RED) {
     class CcuRpcEventNode {
         constructor(config) {
@@ -8,11 +10,15 @@ module.exports = function (RED) {
                 return;
             }
 
+            this.iface = config.iface;
+
             const filter = {
                 iface: config.iface,
                 cache: config.cache,
                 change: config.change
             };
+
+            this.ccu.register(this);
 
             [
                 'rooms',
@@ -47,8 +53,15 @@ module.exports = function (RED) {
         _destructor(done) {
             this.log('ccu-rpc-event close');
             this.ccu.unsubscribe(this.idSubscription);
+            this.ccu.deregister(this);
             done();
         }
+
+        setStatus(data) {
+            statusHelper(this, data);
+        }
+
+
     }
 
     RED.nodes.registerType('ccu-rpc-event', CcuRpcEventNode);

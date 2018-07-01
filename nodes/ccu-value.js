@@ -1,3 +1,5 @@
+const statusHelper = require(__dirname + '/lib/status.js');
+
 module.exports = function (RED) {
     class CcuValue {
         constructor(config) {
@@ -8,6 +10,10 @@ module.exports = function (RED) {
             if (!this.ccu) {
                 return;
             }
+
+            this.iface = config.iface;
+
+            this.ccu.register(this);
 
             if (config.iface && config.channel && config.datapoint) {
                 const id = `${config.iface}.${config.channel}.${config.datapoint}`;
@@ -107,6 +113,10 @@ module.exports = function (RED) {
                 this.ccu.unsubscribe(this.idSubscription);
             }
             done();
+        }
+
+        setStatus(data) {
+            statusHelper(this, data);
         }
     }
 
