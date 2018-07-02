@@ -1,13 +1,20 @@
+const path = require('path');
+
+const statusHelper = require(path.join(__dirname, '/lib/status.js'));
+
 module.exports = function (RED) {
     class CcuSysvarNode {
         constructor(config) {
             RED.nodes.createNode(this, config);
 
             this.ccu = RED.nodes.getNode(config.ccuConfig);
+            this.iface = 'ReGaHSS';
 
             if (!this.ccu) {
                 return;
             }
+
+            this.ccu.register(this);
 
             this.name = config.name;
             this.topic = config.topic;
@@ -27,14 +34,22 @@ module.exports = function (RED) {
                 .then(msg => {
                     msg.topic = this.ccu.topicReplace(this.topic, msg);
                     this.send(msg);
+                    this.status({fill: 'green', shape: 'dot', text: 'connected'});
                 })
-                .catch(err => this.error(err.message));
+                .catch(err => {
+                    this.error(err.message);
+                    this.status({fill: 'red', shape: 'dot', text: 'error'});
+                });
         }
 
         _destructor(done) {
             this.log('ccu-sysvar close');
             this.ccu.unsubscribeSysvar(this.idSubscription);
             done();
+        }
+
+        setStatus(data) {
+            statusHelper(this, data);
         }
     }
 

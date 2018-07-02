@@ -41,6 +41,10 @@ module.exports = function (RED) {
     RED.httpAdmin.get('/ccu', (req, res) => {
         if (req.query.config && req.query.config !== '_ADD_') {
             const config = RED.nodes.getNode(req.query.config);
+            if (!config) {
+                res.status(500).send(JSON.stringify({}));
+                return;
+            }
             const obj = {};
 
             switch (req.query.type) {
@@ -271,12 +275,14 @@ module.exports = function (RED) {
         deregister(node, done) {
             delete node.users[node.id];
             return done();
-        };
+        }
 
         setIfaceStatus(iface, connected) {
             this.ifaceStatus[iface] = connected;
             Object.keys(this.users).forEach(id => {
-                this.users[id].setStatus({ifaceStatus: this.ifaceStatus});
+                if (typeof this.users[id].setStatus === 'function') {
+                    this.users[id].setStatus({ifaceStatus: this.ifaceStatus});
+                }
             });
         }
 
@@ -613,6 +619,7 @@ module.exports = function (RED) {
                 this.rega.getVariables((err, res) => {
                     if (err) {
                         reject(err);
+                        this.setIfaceStatus('ReGaHSS', false);
                     } else {
                         const d = new Date();
                         res.forEach(sysvar => {
@@ -642,6 +649,7 @@ module.exports = function (RED) {
                             }
                         });
                         resolve();
+                        this.setIfaceStatus('ReGaHSS', true);
                     }
                 });
             });
@@ -657,6 +665,7 @@ module.exports = function (RED) {
                 this.rega.getPrograms((err, res) => {
                     if (err) {
                         reject(err);
+                        this.setIfaceStatus('ReGaHSS', false);
                     } else {
                         const d = new Date();
                         res.forEach(prg => {
@@ -673,6 +682,7 @@ module.exports = function (RED) {
                             }
                         });
                         resolve();
+                        this.setIfaceStatus('ReGaHSS', true);
                     }
                 });
             });
