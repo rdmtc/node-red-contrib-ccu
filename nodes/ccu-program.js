@@ -54,7 +54,7 @@ module.exports = function (RED) {
         }
 
         _destructor(done) {
-            this.log('ccu-program close');
+            this.debug('ccu-program close');
             this.ccu.unsubscribeProgram(this.idSubscription);
             done();
         }

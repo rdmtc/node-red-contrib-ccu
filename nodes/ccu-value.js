@@ -112,6 +112,7 @@ module.exports = function (RED) {
 
         _destructor(done) {
             if (this.idSubscription) {
+                this.debug('ccu-value close');
                 this.ccu.unsubscribe(this.idSubscription);
             }
             done();

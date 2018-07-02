@@ -53,7 +53,7 @@ module.exports = function (RED) {
         }
 
         _destructor(done) {
-            this.log('ccu-rpc-event close');
+            this.debug('ccu-rpc-event close');
             this.ccu.unsubscribe(this.idSubscription);
             this.ccu.deregister(this);
             done();
