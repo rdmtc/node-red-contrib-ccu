@@ -1,4 +1,5 @@
-const statusHelper = require(__dirname + '/lib/status.js');
+const path = require('path');
+const statusHelper = require(path.join(__dirname, '/lib/status.js'));
 
 module.exports = function (RED) {
     class CcuSignal {
