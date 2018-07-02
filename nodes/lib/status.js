@@ -18,11 +18,9 @@ module.exports = (that, data) => {
         } else {
             that.status({fill: 'red', shape: 'dot', text: 'disconnected'});
         }
+    } else if (data.ifaceStatus && data.ifaceStatus[that.iface]) {
+        that.status({fill: 'green', shape: 'dot', text: 'connected'});
     } else {
-        if (data.ifaceStatus && data.ifaceStatus[that.iface]) {
-            that.status({fill: 'green', shape: 'dot', text: 'connected'});
-        } else {
-            that.status({fill: 'red', shape: 'dot', text: 'disconnected'});
-        }
+        that.status({fill: 'red', shape: 'dot', text: 'disconnected'});
     }
 };
