@@ -22,7 +22,7 @@
   "dependencies": {
     "binrpc": "^3.2.1",
     "hm-discover": "^1.1.0",
-    "homematic-rega": "^1.2.2",
+    "homematic-rega": "^1.2.3",
     "homematic-xmlrpc": "^1.0.2",
     "nextport": "^1.0.0"
   },
