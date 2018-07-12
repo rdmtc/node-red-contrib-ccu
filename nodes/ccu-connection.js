@@ -135,6 +135,8 @@ module.exports = function (RED) {
             this.rpcPingTimer = {};
             this.ifaceStatus = {};
 
+            this.methodCallQueue = {};
+
             this.regaEnabled = config.regaEnabled;
             this.regaInterval = parseInt(config.regaInterval, 10);
 
@@ -716,6 +718,14 @@ module.exports = function (RED) {
                 }
                 this.logger.debug('rpc.createClient', iface, JSON.stringify(clientOptions));
                 this.clients[iface] = rpc.createClient(clientOptions);
+                if (this.methodCallQueue[iface]) {
+                    this.methodCallQueue[iface].forEach(c => {
+                        this.methodCall(iface, c[0], c[1])
+                            .then(c[2])
+                            .catch(c[3]);
+                    });
+                    delete this.methodCallQueue[iface];
+                }
                 resolve(iface);
             });
         }
@@ -1325,8 +1335,15 @@ module.exports = function (RED) {
                             resolve(res);
                         }
                     });
+                } else if (this.ifaceTypes[iface]) {
+                    this.logger.debug('defering methodCall ' + iface + ' ' + method + ' ' + JSON.stringify(params));
+                    if (!this.methodCallQueue[iface]) {
+                        this.methodCallQueue[iface] = [[method, params, resolve, reject]];
+                    } else {
+                        this.methodCallQueue[iface].push([method, params, resolve, reject]);
+                    }
                 } else {
-                    reject(new Error('unknown interface ' + iface + ' ' + Object.keys(this.clients)));
+                    reject(new Error('unknown interface ' + iface + ' ' + Object.keys(this.clients) + ' ' + Object.keys(this.ifaceTypes)));
                 }
             });
         }
