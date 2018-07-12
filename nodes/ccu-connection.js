@@ -1337,10 +1337,10 @@ module.exports = function (RED) {
                     });
                 } else if (this.ifaceTypes[iface]) {
                     this.logger.debug('defering methodCall ' + iface + ' ' + method + ' ' + JSON.stringify(params));
-                    if (!this.methodCallQueue[iface]) {
-                        this.methodCallQueue[iface] = [[method, params, resolve, reject]];
-                    } else {
+                    if (this.methodCallQueue[iface]) {
                         this.methodCallQueue[iface].push([method, params, resolve, reject]);
+                    } else {
+                        this.methodCallQueue[iface] = [[method, params, resolve, reject]];
                     }
                 } else {
                     reject(new Error('unknown interface ' + iface + ' ' + Object.keys(this.clients) + ' ' + Object.keys(this.ifaceTypes)));
