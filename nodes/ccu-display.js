@@ -42,47 +42,72 @@ module.exports = function (RED) {
             }
 
             this.on('input', () => {
-                let payload;
-                switch (config.channelType) {
-                    case 'HM-Dis-WM55':
-                        payload = config.led;
-                        break;
-                    case 'HM-Dis-EP-WM55':
-                        payload = '0x02,0x0A';
+                let payload = '0x02,0x0A';
 
-                        payload += ',0x12,' + convertString(config.line1);
-                        if (config.icon1) {
-                            payload += ',0x13,' + config.icon1;
-                        }
-                        payload += ',0x0A';
-
-                        payload += ',0x12,' + convertString(config.line2);
-                        if (config.icon2) {
-                            payload += ',0x13,' + config.icon2;
-                        }
-                        payload += ',0x0A';
-
-                        payload += ',0x12,' + convertString(config.line3);
-                        if (config.icon3) {
-                            payload += ',0x13,' + config.icon3;
-                        }
-                        payload += ',0x0A';
-
-                        if (config.sound) {
-                            payload += ',0x14,' + config.sound + ',0x1C';
-                        }
-
-                        payload += ',' + config.repeat + ',0x1D,' + config.pause + ',0x16';
-
-                        if (config.signal) {
-                            payload += ',' + config.signal;
-                        }
-
-                        payload += ',0x03';
-                        break;
-                    default:
-                        console.error('channelType', config.channelType, 'unknown');
+                payload += ',0x12,' + convertString(config.line1);
+                if (config.channelType === 'HM-Dis-WM55') {
+                    payload += ',0x11,' + config.color1;
                 }
+                if (config.icon1) {
+                    payload += ',0x13,' + config.icon1;
+                }
+                payload += ',0x0A';
+
+                payload += ',0x12,' + convertString(config.line2);
+                if (config.channelType === 'HM-Dis-WM55') {
+                    payload += ',0x11,' + config.color2;
+                }
+                if (config.icon2) {
+                    payload += ',0x13,' + config.icon2;
+                }
+                payload += ',0x0A';
+
+                payload += ',0x12,' + convertString(config.line3);
+                if (config.channelType === 'HM-Dis-WM55') {
+                    payload += ',0x11,' + config.color3;
+                }
+                if (config.icon3) {
+                    payload += ',0x13,' + config.icon3;
+                }
+                payload += ',0x0A';
+
+                if (config.channelType === 'HM-Dis-WM55') {
+                    payload += ',0x12,' + convertString(config.line4);
+                    payload += ',0x11,' + config.color4;
+                    if (config.icon4) {
+                        payload += ',0x13,' + config.icon4;
+                    }
+                    payload += ',0x0A';
+
+                    payload += ',0x12,' + convertString(config.line5);
+                    payload += ',0x11,' + config.color5;
+                    if (config.icon5) {
+                        payload += ',0x13,' + config.icon5;
+                    }
+                    payload += ',0x0A';
+
+                    payload += ',0x12,' + convertString(config.line6);
+                    payload += ',0x11,' + config.color6;
+                    if (config.icon6) {
+                        payload += ',0x13,' + config.icon6;
+                    }
+                    payload += ',0x0A';
+                }
+
+                if (config.channelType === 'HM-Dis-EP-WM55') {
+                    if (config.sound) {
+                        payload += ',0x14,' + config.sound + ',0x1C';
+                    }
+
+                    payload += ',' + config.repeat + ',0x1D,' + config.pause + ',0x16';
+
+                    if (config.signal) {
+                        payload += ',' + config.signal;
+                    }
+                }
+
+                payload += ',0x03';
+
                 this.ccu.setValue(config.iface, config.channel, 'SUBMIT', payload);
             });
         }

@@ -8,10 +8,22 @@
             channel: {value: '', required: true},
             line1: {value: ''},
             icon1: {value: ''},
+            color1: {value: '0x80'},
             line2: {value: ''},
             icon2: {value: ''},
+            color2: {value: '0x80'},
             line3: {value: ''},
             icon3: {value: ''},
+            color3: {value: '0x80'},
+            line4: {value: ''},
+            icon4: {value: ''},
+            color4: {value: '0x80'},
+            line5: {value: ''},
+            icon5: {value: ''},
+            color5: {value: '0x80'},
+            line6: {value: ''},
+            icon6: {value: ''},
+            color6: {value: '0x80'},
             signal: {value: ''},
             channelType: {value: ''},
             led: {value: '0xF0'},
@@ -129,11 +141,20 @@
         </select>
     </div>
 
-
-
     <div class="form-row SUBMIT HM-Dis-WM55 HM-Dis-EP-WM55">
         <label for="node-input-line1"><i class="icon-envelope"></i> Zeile 1</label>
         <input type="text" id="node-input-line1">
+    </div>
+    <div class="form-row SUBMIT HM-Dis-WM55">
+        <label for="node-input-color1"><i class="icon-envelope"></i> Farbe 1</label>
+        <select id="node-input-color1">
+            <option value="0x80">Weiß</option>
+            <option value="0x81">Rot</option>
+            <option value="0x82">Orange</option>
+            <option value="0x83">Gelb</option>
+            <option value="0x84">Grün</option>
+            <option value="0x85">Blau</option>
+        </select>
     </div>
     <div class="form-row SUBMIT HM-Dis-WM55 HM-Dis-EP-WM55">
         <label for="node-input-icon1"><i class="icon-envelope"></i> Icon 1</label>
@@ -154,6 +175,17 @@
         <label for="node-input-line2"><i class="icon-envelope"></i> Zeile 2</label>
         <input type="text" id="node-input-line2">
     </div>
+    <div class="form-row SUBMIT HM-Dis-WM55">
+        <label for="node-input-color2"><i class="icon-envelope"></i> Farbe 2</label>
+        <select id="node-input-color2">
+            <option value="0x80">Weiß</option>
+            <option value="0x81">Rot</option>
+            <option value="0x82">Orange</option>
+            <option value="0x83">Gelb</option>
+            <option value="0x84">Grün</option>
+            <option value="0x85">Blau</option>
+        </select>
+    </div>
     <div class="form-row SUBMIT HM-Dis-WM55 HM-Dis-EP-WM55">
         <label for="node-input-icon2"><i class="icon-envelope"></i> Icon 2</label>
         <select id="node-input-icon2">
@@ -172,6 +204,17 @@
     <div class="form-row SUBMIT HM-Dis-WM55 HM-Dis-EP-WM55">
         <label for="node-input-line3"><i class="icon-envelope"></i> Zeile 3</label>
         <input type="text" id="node-input-line3">
+    </div>
+    <div class="form-row SUBMIT HM-Dis-WM55">
+        <label for="node-input-color3"><i class="icon-envelope"></i> Farbe 3</label>
+        <select id="node-input-color3">
+            <option value="0x80">Weiß</option>
+            <option value="0x81">Rot</option>
+            <option value="0x82">Orange</option>
+            <option value="0x83">Gelb</option>
+            <option value="0x84">Grün</option>
+            <option value="0x85">Blau</option>
+        </select>
     </div>
     <div class="form-row SUBMIT HM-Dis-WM55 HM-Dis-EP-WM55">
         <label for="node-input-icon3"><i class="icon-envelope"></i> Icon 3</label>
@@ -193,6 +236,17 @@
         <input type="text" id="node-input-line4">
     </div>
     <div class="form-row SUBMIT HM-Dis-WM55">
+        <label for="node-input-color4"><i class="icon-envelope"></i> Farbe 4</label>
+        <select id="node-input-color4">
+            <option value="0x80">Weiß</option>
+            <option value="0x81">Rot</option>
+            <option value="0x82">Orange</option>
+            <option value="0x83">Gelb</option>
+            <option value="0x84">Grün</option>
+            <option value="0x85">Blau</option>
+        </select>
+    </div>
+    <div class="form-row SUBMIT HM-Dis-WM55">
         <label for="node-input-icon4"><i class="icon-envelope"></i> Icon 4</label>
         <select id="node-input-icon4">
             <option value=""></option>
@@ -212,8 +266,50 @@
         <input type="text" id="node-input-line5">
     </div>
     <div class="form-row SUBMIT HM-Dis-WM55">
+        <label for="node-input-color5"><i class="icon-envelope"></i> Farbe 5</label>
+        <select id="node-input-color5">
+            <option value="0x80">Weiß</option>
+            <option value="0x81">Rot</option>
+            <option value="0x82">Orange</option>
+            <option value="0x83">Gelb</option>
+            <option value="0x84">Grün</option>
+            <option value="0x85">Blau</option>
+        </select>
+    </div>
+    <div class="form-row SUBMIT HM-Dis-WM55">
         <label for="node-input-icon5"><i class="icon-envelope"></i> Icon 5</label>
         <select id="node-input-icon5">
+            <option value=""></option>
+            <option value="0x80">Aus</option>
+            <option value="0x81">Ein</option>
+            <option value="0x82">Offen</option>
+            <option value="0x83">Geschlossen</option>
+            <option value="0x84">Fehler</option>
+            <option value="0x85">Ok</option>
+            <option value="0x86">Information</option>
+            <option value="0x87">Neue Nachricht</option>
+            <option value="0x88">Servicemeldung</option>
+        </select>
+    </div>
+
+    <div class="form-row SUBMIT HM-Dis-WM55">
+        <label for="node-input-line6"><i class="icon-envelope"></i> Zeile 6</label>
+        <input type="text" id="node-input-line6">
+    </div>
+    <div class="form-row SUBMIT HM-Dis-WM55">
+        <label for="node-input-color6"><i class="icon-envelope"></i> Farbe 6</label>
+        <select id="node-input-color6">
+            <option value="0x80">Weiß</option>
+            <option value="0x81">Rot</option>
+            <option value="0x82">Orange</option>
+            <option value="0x83">Gelb</option>
+            <option value="0x84">Grün</option>
+            <option value="0x85">Blau</option>
+        </select>
+    </div>
+    <div class="form-row SUBMIT HM-Dis-WM55">
+        <label for="node-input-icon6"><i class="icon-envelope"></i> Icon 6</label>
+        <select id="node-input-icon6">
             <option value=""></option>
             <option value="0x80">Aus</option>
             <option value="0x81">Ein</option>
