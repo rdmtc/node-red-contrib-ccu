@@ -280,12 +280,14 @@ module.exports = function (RED) {
         }
 
         setIfaceStatus(iface, connected) {
-            this.ifaceStatus[iface] = connected;
-            Object.keys(this.users).forEach(id => {
-                if (typeof this.users[id].setStatus === 'function') {
-                    this.users[id].setStatus({ifaceStatus: this.ifaceStatus});
-                }
-            });
+            if (this.ifaceStatus[iface] !== connected) {
+                this.ifaceStatus[iface] = connected;
+                Object.keys(this.users).forEach(id => {
+                    if (typeof this.users[id].setStatus === 'function') {
+                        this.users[id].setStatus({ifaceStatus: this.ifaceStatus});
+                    }
+                });
+            }
         }
 
         saveMetadata() {
