@@ -1,5 +1,5 @@
 {
   "ccu-program": {
-    "tip": "Omit the program name to supply it via msg.payload"
+    "tip": "Omit the program name to supply it via msg.topic"
   }
 }

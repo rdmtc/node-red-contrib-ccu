@@ -24,7 +24,7 @@
 
                 if (nodeId && nodeId !== '_ADD_') {
                     $.getJSON('ccu?type=program&config=' + nodeId, data => {
-                        $('#select-input-name').html('');
+                        $('#select-input-name').html('<option value=""></option>');
                         if (data) {
                             Object.keys(data).forEach(name => {
                                 $('#select-input-name').append('<option value="' + name + '"' + (name === cname ? ' selected' : '') + '>' + name + '</option>');
@@ -78,8 +78,9 @@
             <span class="property-type">*</span>
         </dt>
         <dd>
-            Ist der Payload vom Typ boolean wird das Programm bei <code>true</code> aktiviert und bei <code>false</code>
-            deaktiviert. In allen anderen Fällen (Payload ist z.B. ein leerer String) wird das Programm ausgeführt.
+            Ist der Payload vom Typ boolean wird das Programm bei <code>true</code> aktiviert und ausgeführt und bei
+            <code>false</code> deaktiviert. In allen anderen Fällen (Payload ist z.B. ein leerer String) wird das
+            Programm ausgeführt.
         </dd>
     </dl>
     <h3>Outputs</h3>
@@ -104,8 +105,8 @@
             <span class="property-type">*</span>
         </dt>
         <dd>
-            If the payload is of type boolean the program gets (de)activated. In all other cases the program will be
-            executed.
+            If the payload is of type boolean the program gets (de)activated. On activation it is executed also. In all
+            other cases the program will be executed.
         </dd>
     </dl>
     <h3>Outputs</h3>
