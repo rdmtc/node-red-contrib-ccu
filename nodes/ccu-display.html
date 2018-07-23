@@ -91,10 +91,6 @@
                     }
                 });
                 $nodeInputChannel.autocomplete('option', 'source', arr);
-
-                if (!data[$nodeInputChannel.val().split(' ')[0]]) {
-                    $nodeInputChannel.val('');
-                }
             }
 
             $nodeInputChannel.change(() => {
