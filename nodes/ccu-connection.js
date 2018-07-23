@@ -784,7 +784,7 @@ module.exports = function (RED) {
         }
 
         rpcCheckInit(iface) {
-            if (!this.metadata.devices[iface] || !this.metadata.devices[iface].length) {
+            if (!this.metadata.devices[iface] || !Object.keys(this.metadata.devices[iface]).length) {
                 return;
             }
             clearTimeout(this.rpcPingTimer[iface]);
