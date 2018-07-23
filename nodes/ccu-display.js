@@ -102,7 +102,7 @@ module.exports = function (RED) {
                 return res.slice(0, 12).join(',');
             }
 
-            this.on('input', () => {
+            this.on('input', msg => {
                 let payload = '0x02';
 
                 if (config.channelType === 'Hm-Dis-EP-WM55') {
