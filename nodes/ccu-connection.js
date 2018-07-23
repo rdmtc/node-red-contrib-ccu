@@ -87,10 +87,7 @@ module.exports = function (RED) {
                     Object.keys(devices).forEach(addr => {
                         if (
                             (addr.endsWith(':3') && devices[addr].PARENT_TYPE.match(/HM-Dis-EP-WM55/)) ||
-                            (
-                                (addr.endsWith(':1') || addr.endsWith(':2') || addr.endsWith(':3')) &&
-                                devices[addr].PARENT_TYPE.match(/HM-Dis-WM55/)
-                            )
+                            ((addr.endsWith(':1') || addr.endsWith(':2')) && devices[addr].PARENT_TYPE.match(/HM-Dis-WM55/))
                         ) {
                             obj[addr] = {
                                 name: config.channelNames[addr],
