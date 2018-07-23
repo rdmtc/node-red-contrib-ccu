@@ -268,7 +268,7 @@ module.exports = function (RED) {
                     port: 8701,
                     protocol: 'binrpc',
                     init: true,
-                    ping: false
+                    ping: false // Todo ? https://homematic-forum.de/forum/viewtopic.php?f=37&t=43629
                 }
             };
         }
@@ -341,6 +341,7 @@ module.exports = function (RED) {
                     load(this.paramsetFile);
                     resolve();
                 } else {
+                    // TODO #5 add SUBMIT datapoint if channel 3 of HM-Dis-EP-WM55
                     load(path.join(__dirname, '..', 'paramsets.json'));
                     this.saveParamsets().then(resolve);
                 }
@@ -783,6 +784,9 @@ module.exports = function (RED) {
         }
 
         rpcCheckInit(iface) {
+            if (!this.metadata.devices[iface] || !this.metadata.devices[iface].length) {
+                return;
+            }
             clearTimeout(this.rpcPingTimer[iface]);
             const pingTimeout = this.ifaceTypes[iface].pingTimeout || this.rpcPingTimeout;
             const elapsed = Math.round((now() - this.lastEvent[iface]) / 1000);
