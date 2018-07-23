@@ -44,6 +44,10 @@ module.exports = function (RED) {
             this.on('input', () => {
                 let payload = '0x02';
 
+                if (config.channelType === 'Hm-Dis-EP-WM55') {
+                    payload += ',0x0A';
+                }
+
                 payload += ',0x12,' + convertString(config.line1);
                 if (config.channelType === 'HM-Dis-WM55') {
                     payload += ',0x11,' + config.color1;
