@@ -160,6 +160,7 @@ module.exports = function (RED) {
             this.idProgramCallback = 0;
 
             this.channelNames = {};
+            this.regaIdChannel = {};
             this.regaChannels = [];
             this.channelRooms = {};
             this.channelFunctions = {};
@@ -417,6 +418,7 @@ module.exports = function (RED) {
                     } else {
                         res.forEach(ch => {
                             this.regaChannels.push(ch);
+                            this.regaIdChannel[ch.id] = ch.address;
                             this.channelNames[ch.address] = ch.name;
                         });
                         resolve();
@@ -576,17 +578,21 @@ module.exports = function (RED) {
                             const valueEnum = sysvar.enum && sysvar.enum[Number(newValue)];
                             Object.assign(sysvar, {
                                 ts,
-                                lc: ts,
+                                tsPrevious: sysvar.ts,
+                                lc: sysvar.value === newValue ? sysvar.lc : ts,
+                                lcPrevious: sysvar.lc,
                                 value: newValue,
+                                valuePrevious: sysvar.value,
                                 payload: newValue,
-                                valueEnum
+                                valueEnum,
+                                change: sysvar.value !== newValue
                             });
 
                             resolve(sysvar);
                         }
                     });
                 } else {
-                    reject(new Error('setVariable ' + name + ' not found'));
+                    reject(new Error('setVariable ' + name + ' unknown'));
                 }
             });
         }
@@ -617,6 +623,16 @@ module.exports = function (RED) {
             }
         }
 
+        findIface(channel) {
+            let found;
+            Object.keys(this.metadata.devices).forEach(iface => {
+                if (this.metadata.devices[iface][channel]) {
+                    found = iface;
+                }
+            });
+            return found;
+        }
+
         /**
          * Poll ReGaHSS variables and call subscription callbacks
          * @returns {Promise}
@@ -631,14 +647,17 @@ module.exports = function (RED) {
                     } else {
                         const d = new Date();
                         res.forEach(sysvar => {
-                            if (!this.sysvar[sysvar.name] || this.sysvar[sysvar.name].value !== sysvar.val) {
+                            let isNew = false;
+                            if (!this.sysvar[sysvar.name]) {
+                                isNew = true;
                                 this.sysvar[sysvar.name] = {
+                                    topic: '',
+                                    payload: sysvar.value,
                                     ccu: this.host,
                                     iface: 'ReGaHSS',
                                     type: 'SYSVAR',
                                     name: sysvar.name,
-                                    payload: sysvar.val,
-                                    value: sysvar.val,
+                                    value: sysvar.value,
                                     valueType: sysvar.type,
                                     valueEnum: sysvar.enum[Number(sysvar.val)],
                                     ts: d.getTime(),
@@ -646,14 +665,48 @@ module.exports = function (RED) {
                                     enum: sysvar.enum,
                                     id: sysvar.id
                                 };
+                                if (sysvar.channel) {
+                                    const channel = this.regaIdChannel[sysvar.channel];
+                                    const iface = this.findIface(channel);
+                                    const device = this.metadata.devices[iface] && this.metadata.devices[iface][channel] && this.metadata.devices[iface][channel].PARENT;
+                                    Object.assign(this.sysvar[sysvar.name], {
+                                        device,
+                                        deviceName: this.channelNames[device],
+                                        deviceType: this.metadata.devices[iface] && this.metadata.devices[iface][device] && this.metadata.devices[iface][device].TYPE,
+                                        channel,
+                                        channelName: this.channelNames[channel],
+                                        channelType: this.metadata.devices[iface] && this.metadata.devices[iface][channel] && this.metadata.devices[iface][channel].TYPE,
+                                        channelIndex: channel && parseInt(channel.split(':')[1], 10),
+                                        rooms: this.channelRooms[channel],
+                                        room: this.channelRooms[channel] && this.channelRooms[channel].length === 1 ? this.channelRooms[channel][0] : undefined,
+                                        functions: this.channelFunctions[channel],
+                                        function: this.channelFunctions[channel] && this.channelFunctions[channel].length === 1 ? this.channelFunctions[channel][0] : undefined
+                                    });
+                                }
+                            }
+                            if (this.sysvar[sysvar.name].value === sysvar.val) {
+                                Object.assign(this.sysvar[sysvar.name], {
+                                    change: false,
+                                    tsPrevious: this.sysvar[sysvar.name].ts,
+                                    ts: d.getTime()
+                                });
+                            } else {
+                                Object.assign(this.sysvar[sysvar.name], {
+                                    payload: sysvar.val,
+                                    value: sysvar.val,
+                                    valuePrevious: this.sysvar[sysvar.name].value,
+                                    ts: d.getTime(),
+                                    tsPrevious: this.sysvar[sysvar.name].ts,
+                                    lc: (new Date(sysvar.ts + ' UTC+' + (d.getTimezoneOffset() / -60))).getTime(),
+                                    lcPrevious: isNew ? undefined : this.sysvar[sysvar.name].lc,
+                                    change: !isNew
+                                });
                                 Object.keys(this.sysvarCallbacks).forEach(key => {
                                     const {filter, callback} = this.sysvarCallbacks[key];
                                     if (filter.name === sysvar.name) {
                                         callback(this.sysvar[sysvar.name]);
                                     }
                                 });
-                            } else {
-                                this.sysvar[sysvar.name].ts = d.getTime();
                             }
                         });
                         resolve();
@@ -679,8 +732,21 @@ module.exports = function (RED) {
                         res.forEach(prg => {
                             prg.type = 'PROGRAM';
                             prg.ts = (new Date(prg.ts + ' UTC+' + (d.getTimezoneOffset() / -60))).getTime();
-                            if (!this.program[prg.name] || this.program[prg.name].active !== prg.active || this.program[prg.name].ts !== prg.ts) {
-                                this.program[prg.name] = prg;
+                            if (!this.program[prg.name]) {
+                                this.program[prg.name] = {};
+                            }
+                            if (this.program[prg.name].active !== prg.active || this.program[prg.name].ts !== prg.ts) {
+                                this.program[prg.name] = {
+                                    ccu: this.host,
+                                    iface: 'ReGaHSS',
+                                    type: 'PROGRAM',
+                                    name: prg.name.name,
+                                    payload: prg.active,
+                                    active: prg.active,
+                                    activePrevious: this.program[prg.name].active,
+                                    ts: prg.ts,
+                                    tsPrevious: this.program[prg.name].ts
+                                };
                                 Object.keys(this.programCallbacks).forEach(key => {
                                     const {filter, callback} = this.programCallbacks[key];
                                     if (filter.name === prg.name) {
@@ -784,7 +850,7 @@ module.exports = function (RED) {
         }
 
         rpcCheckInit(iface) {
-            if (!this.metadata.devices[iface] || !Object.keys(this.metadata.devices[iface]).length) {
+            if (!this.metadata.devices[iface] || !Object.keys(this.metadata.devices[iface]).length > 0) {
                 return;
             }
             clearTimeout(this.rpcPingTimer[iface]);
@@ -1253,10 +1319,14 @@ module.exports = function (RED) {
                 datapointDefault: description.DEFAULT,
                 datapointControl: description.CONTROL,
                 value: payload,
+                valuePrevious: this.values[datapointName].value,
                 valueEnum: description.ENUM ? description.ENUM[Number(payload)] : undefined,
                 rooms: this.channelRooms[channel],
+                room: this.channelRooms[channel] && this.channelRooms[channel].length === 1 ? this.channelRooms[channel][0] : undefined,
                 functions: this.channelFunctions[channel],
+                function: this.channelFunctions[channel] && this.channelFunctions[channel].length === 1 ? this.channelFunctions[channel][0] : undefined,
                 ts,
+                tsPrevious: this.values[datapointName].ts,
                 lc: change ? ts : this.values[datapointName].lc,
                 change
             }, additions);
