@@ -722,7 +722,7 @@ module.exports = function (RED) {
          */
         getRegaPrograms() {
             return new Promise((resolve, reject) => {
-                this.logger.trace('rega getPrograms');
+                this.logger.debug('rega getPrograms');
                 this.rega.getPrograms((err, res) => {
                     if (err) {
                         reject(err);
