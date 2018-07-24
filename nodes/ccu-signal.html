@@ -121,9 +121,10 @@
                 removable: true,
                 addItem: (container, i, data) => {
                     if ($('#node-input-chime-container').editableList('length') > 10) {
-                        container.remove();
+                        $('#node-input-chime-container').editableList('removeItem', data);
                     } else {
                         $('<input type="number" class="number mp3" min="0" max="255" style="width: 80px;" value="' + data.cmd + '"/>').appendTo(container);
+                        container.find('input:last').focus();
                     }
                 }
             });
@@ -133,7 +134,7 @@
                 removable: true,
                 addItem: (container, i, data) => {
                     if ($('#node-input-led-container').editableList('length') > 10) {
-                        $('#node-input-led-container').editableList('removeItem', {data});
+                        $('#node-input-led-container').editableList('removeItem', data);
                         return false;
                     }
 
