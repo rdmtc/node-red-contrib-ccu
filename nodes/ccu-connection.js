@@ -353,7 +353,9 @@ module.exports = function (RED) {
             this.logger.debug('ccu-connection destructor');
 
             this.logger.debug('clear regaPollTimeout');
+            this.cancelRegaPoll = true;
             clearTimeout(this.regaPollTimeout);
+
 
             Object.keys(this.rpcPingTimer).forEach(iface => {
                 this.logger.debug('clear rpcPingTimer', iface);
@@ -612,7 +614,7 @@ module.exports = function (RED) {
                     .then(() => this.getRegaPrograms())
                     .catch(err => this.logger.error('rega getPrograms', err))
                     .then(() => {
-                        if (this.regaInterval) {
+                        if (this.regaInterval && !this.cancelRegaPoll) {
                             this.logger.trace('rega next poll in', this.regaInterval, 'seconds');
                             this.regaPollTimeout = setTimeout(() => {
                                 this.regaPoll();
