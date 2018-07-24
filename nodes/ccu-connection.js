@@ -356,7 +356,6 @@ module.exports = function (RED) {
             this.cancelRegaPoll = true;
             clearTimeout(this.regaPollTimeout);
 
-
             Object.keys(this.rpcPingTimer).forEach(iface => {
                 this.logger.debug('clear rpcPingTimer', iface);
                 clearTimeout(this.rpcPingTimer[iface]);
