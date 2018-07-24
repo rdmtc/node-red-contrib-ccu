@@ -54,6 +54,7 @@ module.exports = function (RED) {
                     offen: '0x82',
                     geoeffnet: '0x82',
                     geöffnet: '0x82',
+                    open: '0x82',
                     geschlossen: '0x83',
                     zu: '0x83',
                     closed: '0x83',
@@ -113,7 +114,7 @@ module.exports = function (RED) {
                 if (config.channelType === 'HM-Dis-WM55') {
                     payload += ',0x11,' + convertColor(msg.color1 || config.color1);
                 }
-                if (config.icon1) {
+                if (msg.icon1 || config.icon1) {
                     payload += ',0x13,' + convertIcon(msg.icon1 || config.icon1);
                 }
                 payload += ',0x0A';
@@ -122,7 +123,7 @@ module.exports = function (RED) {
                 if (config.channelType === 'HM-Dis-WM55') {
                     payload += ',0x11,' + convertColor(msg.color2 || config.color2);
                 }
-                if (config.icon2) {
+                if (msg.icon2 || config.icon2) {
                     payload += ',0x13,' + convertIcon(msg.icon2 || config.icon2);
                 }
                 payload += ',0x0A';
@@ -131,7 +132,7 @@ module.exports = function (RED) {
                 if (config.channelType === 'HM-Dis-WM55') {
                     payload += ',0x11,' + convertColor(msg.color3 || config.color3);
                 }
-                if (config.icon3) {
+                if (msg.icon3 || config.icon3) {
                     payload += ',0x13,' + convertIcon(msg.icon3 || config.icon3);
                 }
                 payload += ',0x0A';
@@ -139,21 +140,21 @@ module.exports = function (RED) {
                 if (config.channelType === 'HM-Dis-WM55') {
                     payload += ',0x12,' + convertString(msg.line4 || config.line4);
                     payload += ',0x11,' + convertColor(msg.color4 || config.color4);
-                    if (config.icon4) {
+                    if (msg.icon4 || config.icon4) {
                         payload += ',0x13,' + convertIcon(msg.icon4 || config.icon4);
                     }
                     payload += ',0x0A';
 
                     payload += ',0x12,' + convertString(msg.line5 || config.line5);
                     payload += ',0x11,' + convertColor(msg.color5 || config.color5);
-                    if (config.icon5) {
+                    if (msg.icon5 || config.icon5) {
                         payload += ',0x13,' + convertIcon(msg.icon5 || config.icon5);
                     }
                     payload += ',0x0A';
 
                     payload += ',0x12,' + convertString(msg.line6 || config.line6);
                     payload += ',0x11,' + convertColor(msg.color6 || config.color6);
-                    if (config.icon6) {
+                    if (msg.icon6 || config.icon6) {
                         payload += ',0x13,' + convertIcon(msg.icon6 || config.icon6);
                     }
                     payload += ',0x0A';
