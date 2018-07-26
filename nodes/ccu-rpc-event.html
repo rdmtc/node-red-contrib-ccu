@@ -39,24 +39,65 @@
         },
         oneditprepare() {
             const that = this;
+            const $nodeInputIface = $('#node-input-iface');
             const $nodeInputCcuConfig = $('#node-input-ccuConfig');
 
             let data;
 
-            function loadConfig() {
+            let ifacesLoaded = false;
+            let ifacesPending = false;
+
+            function loadIfaces(iface, cb) {
+                if (ifacesPending) {
+                    return;
+                }
+                ifacesPending = true;
+                console.log('loadIfaces()');
+                $nodeInputIface.html('<option value="">*</option>');
                 const nodeId = $nodeInputCcuConfig.val();
-                const url = 'ccu?config=' + nodeId;
-                console.log('get ' + url);
-                $.getJSON(url, d => {
-                    data = d;
-                    autocompleteRoomsFunctions();
-                    autocompleteDevices();
-                });
+                if (nodeId === '_ADD_') {
+                    if (typeof cb === 'function') {
+                        cb();
+                        ifacesPending = false;
+                    }
+                } else {
+                    const url = 'ccu?config=' + nodeId + '&type=ifaces';
+                    $.getJSON(url, d => {
+                        Object.keys(d).forEach(i => {
+                            $nodeInputIface.append('<option' + (d[i].enabled ? '' : ' disabled') + (i === iface ? ' selected' : '') + '>' + i + '</option>');
+                        });
+                        if (typeof cb === 'function') {
+                            cb();
+                            ifacesPending = false;
+                        }
+                    });
+                }
             }
 
-            $nodeInputCcuConfig.change(loadConfig);
+            $nodeInputCcuConfig.change(() => {
+                console.log('$nodeInputCcuConfig change');
+                loadIfaces(this.iface, () => {
+                    ifacesLoaded = true;
+                    $nodeInputIface.removeAttr('disabled');
+                    loadConfig();
+                });
+            });
+
+            function loadConfig() {
+                if (ifacesLoaded) {
+                    console.log('loadConfig');
+                    const nodeId = $nodeInputCcuConfig.val();
+                    const url = 'ccu?config=' + nodeId;
+                    $.getJSON(url, d => {
+                        data = d;
+                        autocompleteRoomsFunctions();
+                        autocompleteDevices();
+                    });
+                }
+            }
 
             $('#node-input-iface').change(() => {
+                console.log('#node-input-iface change');
                 autocompleteDevices();
             });
 
@@ -250,11 +291,6 @@
         <label for="node-input-iface"><i class="fa fa-empire"></i> Interface</label>
         <select id="node-input-iface">
             <option value="">*</option>
-            <option>BidCos-RF</option>
-            <option>BidCos-Wired</option>
-            <option>HmIP-RF</option>
-            <option>VirtualDevices</option>
-            <option>CUxD</option>
        </select>
     </div>
     <div class="form-row">

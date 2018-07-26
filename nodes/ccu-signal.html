@@ -52,22 +52,70 @@
             const $nodeInputChannel = $('#node-input-channel');
             const $nodeInputChannelType = $('#node-input-channelType');
             const $nodeInputCcuConfig = $('#node-input-ccuConfig');
+            const $nodeInputIface = $('#node-input-iface');
             const $nodeInputName = $('#node-input-name');
 
             let data;
-            const {iface} = this;
 
-            function loadConfig() {
+            let ifacesLoaded = false;
+            let ifacesPending = false;
+
+            function loadIfaces(iface, cb) {
+                if (ifacesPending) {
+                    return;
+                }
+                ifacesPending = true;
+                console.log('loadIfaces()');
+                $nodeInputIface.html('');
                 const nodeId = $nodeInputCcuConfig.val();
-                if (nodeId && nodeId !== '__ADD__') {
-                    $.getJSON('ccu?type=signal&config=' + nodeId + '&iface=' + iface, d => {
-                        data = d;
-                        autoCompleteChannel();
+                if (nodeId === '_ADD_') {
+                    if (typeof cb === 'function') {
+                        cb();
+                        ifacesPending = false;
+                    }
+                } else {
+                    const url = 'ccu?config=' + nodeId + '&type=ifaces';
+                    $.getJSON(url, d => {
+                        Object.keys(d).forEach(i => {
+                            $nodeInputIface.append('<option' + (d[i].enabled ? '' : ' disabled') + (i === iface ? ' selected' : '') + '>' + i + '</option>');
+                        });
+                        if (typeof cb === 'function') {
+                            cb();
+                            ifacesPending = false;
+                        }
                     });
                 }
             }
 
-            $nodeInputCcuConfig.change(loadConfig);
+            function loadConfig() {
+                if (ifacesLoaded) {
+                    const nodeId = $nodeInputCcuConfig.val();
+                    if (nodeId && nodeId !== '__ADD__') {
+                        console.log('loadConfig()');
+                        $.getJSON('ccu?type=signal&config=' + nodeId + '&iface=' + $nodeInputIface.val(), d => {
+                            data = d;
+                            autoCompleteChannel();
+                        });
+                    } else {
+                        autoCompleteChannel();
+                    }
+                }
+            }
+
+            $nodeInputCcuConfig.change(() => {
+                console.log('$nodeInputCcuConfig change');
+                loadIfaces(this.iface, () => {
+                    ifacesLoaded = true;
+                    $nodeInputIface.removeAttr('disabled');
+                    loadConfig();
+                });
+            });
+
+            $nodeInputIface.change(() => {
+                if (ifacesLoaded) {
+                    loadConfig();
+                }
+            });
 
             $nodeInputChannelType.change(() => {
                 $('.SUBMIT').hide();
@@ -80,7 +128,9 @@
                     const n = $nodeInputChannel.val().split(' ');
                     const channel = n.shift();
                     $nodeInputChannel.val(channel);
-                    $nodeInputChannelType.val(data[channel].type).trigger('change');
+                    if (data && data[channel]) {
+                        $nodeInputChannelType.val(data[channel].type).trigger('change');
+                    }
                     if (!$nodeInputName.val()) {
                         $nodeInputName.val(n.join(' '));
                     }
@@ -90,18 +140,18 @@
             });
 
             function autoCompleteChannel() {
-                if (!data) {
-                    return;
-                }
                 const arr = [];
-                Object.keys(data).forEach(addr => {
-                    if (addr.match(/:\d+$/)) {
-                        if (data[addr].name) {
-                            addr += ' ' + data[addr].name;
+                if (data) {
+                    Object.keys(data).forEach(addr => {
+                        if (addr.match(/:\d+$/)) {
+                            if (data[addr].name) {
+                                addr += ' ' + data[addr].name;
+                            }
+                            arr.push(addr);
                         }
-                        arr.push(addr);
-                    }
-                });
+                    });
+                }
+                console.log('autoCompleteChannel()', arr.length);
                 $nodeInputChannel.autocomplete('option', 'source', arr);
 
                 if (!data[$nodeInputChannel.val().split(' ')[0]]) {
@@ -210,13 +260,7 @@
     </div>
     <div class="form-row">
         <label for="node-input-iface"><i class="fa fa-empire"></i> Interface</label>
-        <select id="node-input-iface">
-            <option selected>BidCos-RF</option>
-            <!--<option>BidCos-Wired</option>-->
-            <!--<option>HmIP-RF</option>-->
-            <!--<option>VirtualDevices</option>-->
-            <!--<option>CUxD</option>-->
-       </select>
+        <select id="node-input-iface" disabled></select>
     </div>
     <div class="form-row">
         <label for="node-input-channel"><i class="icon-tags"></i> Kanal</label>

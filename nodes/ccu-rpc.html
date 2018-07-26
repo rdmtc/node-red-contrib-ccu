@@ -26,6 +26,48 @@
             return this.name || this.method || 'rpc';
         },
         oneditprepare() {
+            const $nodeInputIface = $('#node-input-iface');
+            const $nodeInputCcuConfig = $('#node-input-ccuConfig');
+
+            let ifacesLoaded = false;
+            let ifacesPending = false;
+
+            function loadIfaces(iface, cb) {
+                if (ifacesPending) {
+                    return;
+                }
+                ifacesPending = true;
+                console.log('loadIfaces()');
+                $nodeInputIface.html('<option></option>');
+                const nodeId = $nodeInputCcuConfig.val();
+                if (nodeId === '_ADD_') {
+                    if (typeof cb === 'function') {
+                        cb();
+                        ifacesPending = false;
+                    }
+                } else {
+                    const url = 'ccu?config=' + nodeId + '&type=ifaces';
+                    $.getJSON(url, d => {
+                        Object.keys(d).forEach(i => {
+                            $nodeInputIface.append('<option' + (d[i].enabled ? '' : ' disabled') + (i === iface ? ' selected' : '') + '>' + i + '</option>');
+                        });
+                        if (typeof cb === 'function') {
+                            cb();
+                            ifacesPending = false;
+                        }
+                    });
+                }
+            }
+
+            $nodeInputCcuConfig.change(() => {
+                console.log('$nodeInputCcuConfig change');
+                loadIfaces(this.iface, () => {
+                    ifacesLoaded = true;
+                    $nodeInputIface.removeAttr('disabled');
+                    autocompleteMethods();
+                });
+            });
+
             $('#node-input-method').autocomplete({
                 source: [],
                 close: () => {
@@ -34,8 +76,12 @@
                 delay: 0,
                 minLength: 0
             });
+
             $('#node-input-iface').change(() => {
-                autocompleteMethods();
+                if (ifacesLoaded) {
+                    console.log('#node-input-iface change');
+                    autocompleteMethods();
+                }
             });
 
             function autocompleteMethods() {
@@ -43,7 +89,7 @@
                 let methods;
                 switch (iface) {
                     case 'BidCos-RF':
-                        // TODO remove hardcoded methods...
+                        // TODO remove hardcoded methods, use system.listMethods...
                         methods = ['abortDeleteDevice', 'activateLinkParamset', 'addDevice', 'addLink', 'addVirtualDeviceInstance', 'changeKey', 'clearConfigCache', 'deleteDevice', 'deleteVolatileMetadata', 'determineParameter', 'exit', 'getAllMetadata', 'getDeviceDescription', 'getInstallMode', 'getKeyMismatchDevice', 'getLinkInfo', 'getLinkPeers', 'getLinks', 'getMetadata', 'getParamset', 'getParamsetDescription', 'getParamsetId', 'getServiceMessages', 'getValue', 'getVersion', 'getVolatileMetadata', 'hasVolatileMetadata', 'init', 'listBidcosInterfaces', 'listDevices', 'listReplaceableDevices', 'listTeams', 'logLevel', 'ping', 'putParamset', 'refreshDeployedDeviceFirmwareList', 'removeLink', 'replaceDevice', 'reportValueUsage', 'restoreConfigToDevice', 'rssiInfo', 'setBidcosInterface', 'setInstallMode', 'setInterfaceClock', 'setLinkInfo', 'setRFLGWInfoLED', 'setTeam', 'setTempKey', 'setValue', 'setVolatileMetadata', 'system.listMethods', 'system.methodHelp', 'updateFirmware', 'system.multicall'];
                         break;
                     case 'BidCos-Wired':
@@ -65,9 +111,9 @@
                     default:
                         methods = [];
                 }
+                console.log('autocompleteMethods', iface, methods.length);
                 $('#node-input-method').autocomplete('option', 'source', methods);
             }
-            autocompleteMethods();
         }
     });
 </script>
@@ -83,14 +129,8 @@
     </div>
     <div class="form-row">
         <label for="node-input-iface"><i class="fa fa-empire"></i> Interface</label>
-        <select id="node-input-iface">
+        <select id="node-input-iface" disabled>
             <option></option>
-            <option>BidCos-RF</option>
-            <option>BidCos-Wired</option>
-            <option>HmIP-RF</option>
-            <option>VirtualDevices</option>
-            <option>CUxD</option>
-            <option>ReGaHSS</option>
        </select>
     </div>
     <div class="form-row">
