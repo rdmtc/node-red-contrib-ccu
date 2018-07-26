@@ -313,9 +313,9 @@ module.exports = function (RED) {
         }
 
         saveMetadata() {
-            this.logger.debug('saveMetadata', this.metadataFile);
             return new Promise(resolve => {
                 fs.writeFileSync(this.metadataFile, JSON.stringify(this.metadata));
+                this.logger.info('metadata saved to', this.metadataFile);
                 resolve();
             });
         }
@@ -338,9 +338,9 @@ module.exports = function (RED) {
         }
 
         saveParamsets() {
-            this.logger.debug('saveParamsets', this.paramsetFile, (this.paramsetDescriptions ? Object.keys(this.paramsetDescriptions).length : 0));
             return new Promise(resolve => {
                 fs.writeFileSync(this.paramsetFile, JSON.stringify(this.paramsetDescriptions));
+                this.logger.info('paramsets saved to', this.paramsetFile, (this.paramsetDescriptions ? Object.keys(this.paramsetDescriptions).length : 0));
                 resolve();
             });
         }
@@ -808,8 +808,8 @@ module.exports = function (RED) {
                     clientOptions.host = this.host;
                     clientOptions.port = port;
                 }
-                this.logger.debug('rpc.createClient', iface, JSON.stringify(clientOptions));
                 this.clients[iface] = rpc.createClient(clientOptions);
+                this.logger.debug('rpc client createad', iface, JSON.stringify(clientOptions));
                 if (this.methodCallQueue[iface]) {
                     this.methodCallQueue[iface].forEach(c => {
                         this.methodCall(iface, c[0], c[1])
@@ -952,8 +952,8 @@ module.exports = function (RED) {
             const {rpc, protocol} = this.ifaceTypes[iface];
             const port = (protocol === 'binrpc' ? this.rpcBinPort : this.rpcXmlPort);
             if (!this.servers[protocol]) {
-                this.logger.info('rpc.createServer', url);
                 this.servers[protocol] = rpc.createServer({host: this.rpcServerHost, port});
+                this.logger.info(protocol === 'binrpc' ? 'binrpc' : 'xmlrpc', 'server listening on', url);
                 Object.keys(this.rpcMethods).forEach(method => {
                     this.servers[protocol].on(method, (err, params, callback) => {
                         if (err) {
