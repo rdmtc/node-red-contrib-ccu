@@ -18,10 +18,12 @@ module.exports = function (RED) {
 
             this.name = config.name;
 
-            this.idSubscription = this.ccu.subscribeProgram(this.name, msg => {
-                msg.topic = this.ccu.topicReplace(config.topic, msg);
-                this.send(msg);
-            });
+            if (this.name) {
+                this.idSubscription = this.ccu.subscribeProgram(this.name, msg => {
+                    msg.topic = this.ccu.topicReplace(config.topic, msg);
+                    this.send(msg);
+                });
+            }
 
             this.on('input', this._input);
             this.on('close', this._destructor);
@@ -54,8 +56,10 @@ module.exports = function (RED) {
         }
 
         _destructor(done) {
-            this.debug('ccu-program close');
-            this.ccu.unsubscribeProgram(this.idSubscription);
+            if (this.idSubscription) {
+                this.debug('unsubscribe');
+                this.ccu.unsubscribeProgram(this.idSubscription);
+            }
             done();
         }
 

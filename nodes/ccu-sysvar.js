@@ -19,10 +19,13 @@ module.exports = function (RED) {
             this.name = config.name;
             this.topic = config.topic;
 
-            this.idSubscription = this.ccu.subscribeSysvar(this.name, msg => {
-                msg.topic = this.ccu.topicReplace(config.topic, msg);
-                this.send(msg);
-            });
+            if (this.name) {
+                this.idSubscription = this.ccu.subscribeSysvar(this.name, msg => {
+                    msg.topic = this.ccu.topicReplace(config.topic, msg);
+                    this.send(msg);
+                });
+            }
+
             this.on('input', this._input);
             this.on('close', this._destructor);
         }
@@ -43,8 +46,10 @@ module.exports = function (RED) {
         }
 
         _destructor(done) {
-            this.log('ccu-sysvar close');
-            this.ccu.unsubscribeSysvar(this.idSubscription);
+            if (this.idSubscription) {
+                this.debug('unsubscribe');
+                this.ccu.unsubscribeSysvar(this.idSubscription);
+            }
             done();
         }
 
