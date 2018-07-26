@@ -48,19 +48,33 @@ module.exports = function (RED) {
             const obj = {};
 
             switch (req.query.type) {
-                case 'channels': {
-                    const devices = config.metadata.devices[req.query.iface];
-                    Object.keys(devices).forEach(addr => {
-                        if (addr.match(/:\d+$/)) {
-                            obj[addr] = {
-                                name: config.channelNames[addr],
-                                datapoints: Object.keys(config.paramsetDescriptions[config.paramsetName(devices[addr], 'VALUES')])
-                            };
-                        }
+                case 'ifaces': {
+                    Object.keys(config.ifaceTypes).forEach(iface => {
+                        obj[iface] = {
+                            enabled: Boolean(config.ifaceTypes[iface].enabled),
+                            connected: Boolean(config.ifaceStatus[iface])
+                        };
                     });
                     res.status(200).send(JSON.stringify(obj));
                     break;
                 }
+
+                case 'channels': {
+                    const devices = config.metadata.devices[req.query.iface];
+                    if (devices) {
+                        Object.keys(devices).forEach(addr => {
+                            if (addr.match(/:\d+$/)) {
+                                obj[addr] = {
+                                    name: config.channelNames[addr],
+                                    datapoints: Object.keys(config.paramsetDescriptions[config.paramsetName(devices[addr], 'VALUES')])
+                                };
+                            }
+                        });
+                    }
+                    res.status(200).send(JSON.stringify(obj));
+                    break;
+                }
+
                 case 'sysvar':
                     res.status(200).send(JSON.stringify(config.sysvar));
                     break;
@@ -71,33 +85,39 @@ module.exports = function (RED) {
 
                 case 'signal': {
                     const devices = config.metadata.devices[req.query.iface];
-                    Object.keys(devices).forEach(addr => {
-                        if (['SIGNAL_CHIME', 'SIGNAL_LED'].includes(devices[addr].TYPE)) {
-                            obj[addr] = {
-                                name: config.channelNames[addr],
-                                type: devices[addr].TYPE
-                            };
-                        }
-                    });
+                    if (devices) {
+                        Object.keys(devices).forEach(addr => {
+                            if (['SIGNAL_CHIME', 'SIGNAL_LED'].includes(devices[addr].TYPE)) {
+                                obj[addr] = {
+                                    name: config.channelNames[addr],
+                                    type: devices[addr].TYPE
+                                };
+                            }
+                        });
+                    }
                     res.status(200).send(JSON.stringify(obj));
                     break;
                 }
+
                 case 'display': {
                     const devices = config.metadata.devices[req.query.iface];
-                    Object.keys(devices).forEach(addr => {
-                        if (
-                            (addr.endsWith(':3') && devices[addr].PARENT_TYPE.match(/HM-Dis-EP-WM55/)) ||
-                            ((addr.endsWith(':1') || addr.endsWith(':2')) && devices[addr].PARENT_TYPE.match(/HM-Dis-WM55/))
-                        ) {
-                            obj[addr] = {
-                                name: config.channelNames[addr],
-                                type: devices[addr].PARENT_TYPE
-                            };
-                        }
-                    });
+                    if (devices) {
+                        Object.keys(devices).forEach(addr => {
+                            if (
+                                (addr.endsWith(':3') && devices[addr].PARENT_TYPE.match(/HM-Dis-EP-WM55/)) ||
+                                ((addr.endsWith(':1') || addr.endsWith(':2')) && devices[addr].PARENT_TYPE.match(/HM-Dis-WM55/))
+                            ) {
+                                obj[addr] = {
+                                    name: config.channelNames[addr],
+                                    type: devices[addr].PARENT_TYPE
+                                };
+                            }
+                        });
+                    }
                     res.status(200).send(JSON.stringify(obj));
                     break;
                 }
+
                 default:
                     res.status(200).send(JSON.stringify({
                         channelNames: config.channelNames,
@@ -121,6 +141,59 @@ module.exports = function (RED) {
     class CcuConnectionNode {
         constructor(config) {
             RED.nodes.createNode(this, config);
+
+            this.ifaceTypes = {
+                ReGaHSS: {
+                    conf: 'rega',
+                    rpc: binrpc,
+                    port: 1999,
+                    protocol: 'binrpc',
+                    init: false,
+                    ping: false
+                },
+                'BidCos-RF': {
+                    conf: 'bcrf',
+                    rpc: binrpc,
+                    port: 2001,
+                    protocol: 'binrpc',
+                    init: true,
+                    ping: true
+                },
+                'BidCos-Wired': {
+                    conf: 'bcwi',
+                    rpc: binrpc,
+                    port: 2000,
+                    protocol: 'binrpc',
+                    init: true,
+                    ping: true
+                },
+                'HmIP-RF': {
+                    conf: 'iprf',
+                    rpc: xmlrpc,
+                    port: 2010,
+                    protocol: 'http',
+                    init: true,
+                    ping: true, // Todo https://github.com/eq-3/occu/issues/42 - should be fixed, but isn't
+                    pingTimeout: 600 // Overwrites ccu-connection config
+                },
+                VirtualDevices: {
+                    conf: 'virt',
+                    rpc: xmlrpc,
+                    port: 9292,
+                    path: '/groups',
+                    protocol: 'http',
+                    init: true,
+                    ping: false // Todo ?
+                },
+                CUxD: {
+                    conf: 'cuxd',
+                    rpc: binrpc,
+                    port: 8701,
+                    protocol: 'binrpc',
+                    init: true,
+                    ping: false // Todo ? https://homematic-forum.de/forum/viewtopic.php?f=37&t=43629
+                }
+            };
 
             this.name = config.name;
             this.host = config.host;
@@ -215,61 +288,6 @@ module.exports = function (RED) {
                 },
                 error: (...args) => {
                     this.error(args.join(' ').substr(0, 300));
-                }
-            };
-        }
-
-        get ifaceTypes() {
-            return {
-                ReGaHSS: {
-                    conf: 'rega',
-                    rpc: binrpc,
-                    port: 1999,
-                    protocol: 'binrpc',
-                    init: false,
-                    ping: false
-                },
-                'BidCos-RF': {
-                    conf: 'bcrf',
-                    rpc: binrpc,
-                    port: 2001,
-                    protocol: 'binrpc',
-                    init: true,
-                    ping: true
-                },
-                'BidCos-Wired': {
-                    conf: 'bcwi',
-                    rpc: binrpc,
-                    port: 2000,
-                    protocol: 'binrpc',
-                    init: true,
-                    ping: true
-                },
-                'HmIP-RF': {
-                    conf: 'iprf',
-                    rpc: xmlrpc,
-                    port: 2010,
-                    protocol: 'http',
-                    init: true,
-                    ping: true, // Todo https://github.com/eq-3/occu/issues/42 - should be fixed, but isn't
-                    pingTimeout: 600 // Overwrites ccu-connection config
-                },
-                VirtualDevices: {
-                    conf: 'virt',
-                    rpc: xmlrpc,
-                    port: 9292,
-                    path: '/groups',
-                    protocol: 'http',
-                    init: true,
-                    ping: false // Todo ?
-                },
-                CUxD: {
-                    conf: 'cuxd',
-                    rpc: binrpc,
-                    port: 8701,
-                    protocol: 'binrpc',
-                    init: true,
-                    ping: false // Todo ? https://homematic-forum.de/forum/viewtopic.php?f=37&t=43629
                 }
             };
         }
@@ -766,6 +784,7 @@ module.exports = function (RED) {
         initIfaces(config) {
             Object.keys(this.ifaceTypes).forEach(iface => {
                 const enabled = config[this.ifaceTypes[iface].conf + 'Enabled'];
+                this.ifaceTypes[iface].enabled = enabled;
                 if (enabled) {
                     this.setIfaceStatus(iface, false);
                     this.createClient(iface)
