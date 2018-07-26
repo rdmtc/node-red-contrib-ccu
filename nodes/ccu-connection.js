@@ -50,10 +50,12 @@ module.exports = function (RED) {
             switch (req.query.type) {
                 case 'ifaces': {
                     Object.keys(config.ifaceTypes).forEach(iface => {
-                        obj[iface] = {
-                            enabled: Boolean(config.ifaceTypes[iface].enabled),
-                            connected: Boolean(config.ifaceStatus[iface])
-                        };
+                        if (iface !== 'ReGaHSS') {
+                            obj[iface] = {
+                                enabled: Boolean(config.ifaceTypes[iface].enabled),
+                                connected: Boolean(config.ifaceStatus[iface])
+                            };
+                        }
                     });
                     res.status(200).send(JSON.stringify(obj));
                     break;
