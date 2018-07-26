@@ -57,7 +57,8 @@
       "html"
     ],
     "rules": {
-      "no-template-curly-in-string": "warn"
+      "no-template-curly-in-string": "warn",
+      "capitalized-comments": 0
     }
   }
 }
