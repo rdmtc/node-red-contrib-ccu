@@ -106,7 +106,7 @@ module.exports = function (RED) {
             this.on('input', msg => {
                 let payload = '0x02';
 
-                if (config.channelType === 'Hm-Dis-EP-WM55') {
+                if (config.channelType === 'HM-Dis-EP-WM55') {
                     payload += ',0x0A';
                 }
 
