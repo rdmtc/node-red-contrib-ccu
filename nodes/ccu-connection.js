@@ -8,7 +8,11 @@ const Rega = require('homematic-rega');
 const xmlrpc = require('homematic-xmlrpc');
 const binrpc = require('binrpc');
 
+const pkg = require(path.join(__dirname, '..', 'package.json'));
+
 module.exports = function (RED) {
+    RED.log.info('node-red-contrib-ccu version: ' + pkg.version);
+
     const ccu = {network: {listen: [], ports: []}};
 
     function findport(start) {
@@ -305,6 +309,9 @@ module.exports = function (RED) {
 
         setIfaceStatus(iface, connected) {
             if (this.ifaceStatus[iface] !== connected) {
+                if (typeof this.ifaceStatus[iface] !== 'undefined') {
+                    this.logger.info(iface, connected ? 'connected' : 'disconnected');
+                }
                 this.ifaceStatus[iface] = connected;
                 Object.keys(this.users).forEach(id => {
                     if (typeof this.users[id].setStatus === 'function') {
@@ -784,10 +791,12 @@ module.exports = function (RED) {
         }
 
         initIfaces(config) {
+            const enabledIfaces = [];
             Object.keys(this.ifaceTypes).forEach(iface => {
                 const enabled = config[this.ifaceTypes[iface].conf + 'Enabled'];
                 this.ifaceTypes[iface].enabled = enabled;
                 if (enabled) {
+                    enabledIfaces.push(iface);
                     this.setIfaceStatus(iface, false);
                     this.createClient(iface)
                         .then(() => {
@@ -798,6 +807,7 @@ module.exports = function (RED) {
                         .catch(() => {});
                 }
             });
+            this.logger.info('Interfaces:', enabledIfaces.join(', '));
         }
 
         createClient(iface) {
