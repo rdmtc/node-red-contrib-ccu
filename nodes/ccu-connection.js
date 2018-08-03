@@ -571,7 +571,6 @@ module.exports = function (RED) {
             return new Promise((resolve, reject) => {
                 const sysvar = this.sysvar[name];
                 if (sysvar) {
-                    let newValue;
                     switch (sysvar.valueType) {
                         case 'boolean':
                             if (typeof value === 'string') {
@@ -580,10 +579,8 @@ module.exports = function (RED) {
                                 }
                             }
                             value = Boolean(value);
-                            newValue = value;
                             break;
                         case 'string':
-                            newValue = value;
                             value = '"' + value + '"';
                             break;
                         default:
@@ -593,7 +590,6 @@ module.exports = function (RED) {
                                 }
                             }
                             value = parseFloat(value) || 0;
-                            newValue = value;
                             break;
                     }
                     const script = `dom.GetObject(${sysvar.id}).State(${value});`;
@@ -710,7 +706,7 @@ module.exports = function (RED) {
                     } else if (filter.change && !this.sysvar[sysvar.name].change) {
                         match = false;
                     }
-                    this.logger.trace('match', match, JSON.stringify(filter), 'name:' + sysvar.name + ' ' + 'cache:' + this.sysvar[sysvar.name].cache + ' ' + 'change:' + this.sysvar[sysvar.name].change + ' ');
+                    this.logger.trace('match', match, JSON.stringify(filter), 'name:' + sysvar.name + ' cache:' + this.sysvar[sysvar.name].cache + ' change:' + this.sysvar[sysvar.name].change);
                     if (match) {
                         callback(this.sysvar[sysvar.name]);
                     }
