@@ -23,6 +23,8 @@ for installation on a Homematic CCU3 or RaspberryMatic.
 
 Some example flows can be found in the [RedMatic Wiki](https://github.com/hobbyquaker/RedMatic/wiki) (German language).
 
+__A modern Browser is required, Internet Explorer won't work.__
+
 
 ## License
 
