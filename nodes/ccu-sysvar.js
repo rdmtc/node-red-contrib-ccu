@@ -16,11 +16,19 @@ module.exports = function (RED) {
 
             this.ccu.register(this);
 
+            // Migration
+            if (typeof config.change === 'undefined') {
+                config.change = true;
+            }
+            if (typeof config.cache === 'undefined') {
+                config.cache = true;
+            }
+
             this.name = config.name;
             this.topic = config.topic;
 
             if (this.name) {
-                this.idSubscription = this.ccu.subscribeSysvar(this.name, msg => {
+                this.idSubscription = this.ccu.subscribeSysvar({name: this.name, cache: config.cache, change: config.change}, msg => {
                     msg.topic = this.ccu.topicReplace(config.topic, msg);
                     this.send(msg);
                 });
@@ -32,11 +40,9 @@ module.exports = function (RED) {
 
         _input(msg) {
             const name = this.name || msg.topic;
-            const value = msg.payload;
-            this.ccu.setVariable(name, value)
-                .then(msg => {
-                    msg.topic = this.ccu.topicReplace(this.topic, msg);
-                    this.send(msg);
+            const val = msg.payload;
+            this.ccu.setVariable(name, val)
+                .then(() => {
                     this.status({fill: 'green', shape: 'dot', text: 'connected'});
                 })
                 .catch(err => {

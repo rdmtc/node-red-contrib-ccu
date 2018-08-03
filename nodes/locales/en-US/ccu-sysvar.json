@@ -1,5 +1,7 @@
 {
   "ccu-sysvar": {
-    "tip": "Omit the variable name to supply it via msg.payload"
+    "tip": "Omit the variable name to supply it via msg.payload",
+    "change": "Emit changed values only",
+    "cache": "Emit value on start"
   }
 }

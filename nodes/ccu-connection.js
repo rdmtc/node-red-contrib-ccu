@@ -596,26 +596,13 @@ module.exports = function (RED) {
                             newValue = value;
                             break;
                     }
-                    const ts = now();
                     const script = `dom.GetObject(${sysvar.id}).State(${value});`;
-                    this.logger.debug('rega setVariable', name, script);
+                    this.logger.trace('setVariable', name, script);
                     this.rega.exec(script + '\n', err => {
                         if (err) {
                             reject(err);
                         } else {
-                            const valueEnum = sysvar.enum && sysvar.enum[Number(newValue)];
-                            Object.assign(sysvar, {
-                                ts,
-                                tsPrevious: sysvar.ts,
-                                lc: sysvar.value === newValue ? sysvar.lc : ts,
-                                lcPrevious: sysvar.lc,
-                                value: newValue,
-                                valuePrevious: sysvar.value,
-                                payload: newValue,
-                                valueEnum,
-                                change: sysvar.value !== newValue
-                            });
-
+                            this.regaPoll();
                             resolve(sysvar);
                         }
                     });
@@ -636,9 +623,9 @@ module.exports = function (RED) {
                 this.regaPollPending = true;
                 clearTimeout(this.regaPollTimeout);
                 this.getRegaVariables()
-                    .catch(err => this.logger.error('rega getVariables', err))
+                    .catch(err => this.logger.error('getRegaVariables', err))
                     .then(() => this.getRegaPrograms())
-                    .catch(err => this.logger.error('rega getPrograms', err))
+                    .catch(err => this.logger.error('getRegaPrograms', err))
                     .then(() => {
                         if (this.regaInterval && !this.cancelRegaPoll) {
                             this.logger.trace('rega next poll in', this.regaInterval, 'seconds');
@@ -661,13 +648,83 @@ module.exports = function (RED) {
             return found;
         }
 
+        updateRegaVariable(sysvar) {
+            this.logger.trace('updateRegaVariable', JSON.stringify(sysvar));
+            let isNew = false;
+            if (!this.sysvar[sysvar.name]) {
+                isNew = true;
+                this.sysvar[sysvar.name] = {
+                    topic: '',
+                    payload: sysvar.value,
+                    ccu: this.host,
+                    iface: 'ReGaHSS',
+                    type: 'SYSVAR',
+                    name: sysvar.name,
+                    value: sysvar.value,
+                    valueType: sysvar.type,
+                    valueEnum: sysvar.enum[Number(sysvar.val)],
+                    ts: sysvar.ts,
+                    enum: sysvar.enum,
+                    id: sysvar.id,
+                    cache: isNew
+                };
+                if (sysvar.channel) {
+                    const channel = this.regaIdChannel[sysvar.channel];
+                    const iface = this.findIface(channel);
+                    const device = this.metadata.devices[iface] && this.metadata.devices[iface][channel] && this.metadata.devices[iface][channel].PARENT;
+                    Object.assign(this.sysvar[sysvar.name], {
+                        device,
+                        deviceName: this.channelNames[device],
+                        deviceType: this.metadata.devices[iface] && this.metadata.devices[iface][device] && this.metadata.devices[iface][device].TYPE,
+                        channel,
+                        channelName: this.channelNames[channel],
+                        channelType: this.metadata.devices[iface] && this.metadata.devices[iface][channel] && this.metadata.devices[iface][channel].TYPE,
+                        channelIndex: channel && parseInt(channel.split(':')[1], 10),
+                        rooms: this.channelRooms[channel],
+                        room: this.channelRooms[channel] && this.channelRooms[channel].length === 1 ? this.channelRooms[channel][0] : undefined,
+                        functions: this.channelFunctions[channel],
+                        function: this.channelFunctions[channel] && this.channelFunctions[channel].length === 1 ? this.channelFunctions[channel][0] : undefined
+                    });
+                }
+            }
+            if (isNew || this.sysvar[sysvar.name].ts !== sysvar.ts) {
+                Object.assign(this.sysvar[sysvar.name], {
+                    payload: sysvar.val,
+                    value: sysvar.val,
+                    valueEnum: this.sysvar[sysvar.name].enum[Number(sysvar.val)],
+                    valuePrevious: this.sysvar[sysvar.name].value,
+                    valueEnumPrevious: this.sysvar[sysvar.name].valueEnum,
+                    ts: sysvar.ts,
+                    tsPrevious: this.sysvar[sysvar.name].ts,
+                    lc: sysvar.ts,
+                    lcPrevious: this.sysvar[sysvar.name].lc,
+                    change: isNew ? false : this.sysvar[sysvar.name].value !== sysvar.val,
+                    cache: isNew
+                });
+
+                Object.keys(this.sysvarCallbacks).forEach(key => {
+                    const {filter, callback} = this.sysvarCallbacks[key];
+                    let match = filter.name === sysvar.name;
+                    if (this.sysvar[sysvar.name].cache && !filter.cache) {
+                        match = false;
+                    } else if (filter.change && !this.sysvar[sysvar.name].change) {
+                        match = false;
+                    }
+                    this.logger.trace('match', match, JSON.stringify(filter), 'name:' + sysvar.name + ' ' + 'cache:' + this.sysvar[sysvar.name].cache + ' ' + 'change:' + this.sysvar[sysvar.name].change + ' ');
+                    if (match) {
+                        callback(this.sysvar[sysvar.name]);
+                    }
+                });
+            }
+        }
+
         /**
          * Poll ReGaHSS variables and call subscription callbacks
          * @returns {Promise}
          */
         getRegaVariables() {
             return new Promise((resolve, reject) => {
-                this.logger.debug('rega getVariables');
+                this.logger.trace('getRegaVariables');
                 this.rega.getVariables((err, res) => {
                     if (err) {
                         reject(err);
@@ -675,67 +732,9 @@ module.exports = function (RED) {
                     } else {
                         const d = new Date();
                         res.forEach(sysvar => {
-                            let isNew = false;
-                            if (!this.sysvar[sysvar.name]) {
-                                isNew = true;
-                                this.sysvar[sysvar.name] = {
-                                    topic: '',
-                                    payload: sysvar.value,
-                                    ccu: this.host,
-                                    iface: 'ReGaHSS',
-                                    type: 'SYSVAR',
-                                    name: sysvar.name,
-                                    value: sysvar.value,
-                                    valueType: sysvar.type,
-                                    valueEnum: sysvar.enum[Number(sysvar.val)],
-                                    ts: d.getTime(),
-                                    lc: (new Date(sysvar.ts + ' UTC+' + (d.getTimezoneOffset() / -60))).getTime(),
-                                    enum: sysvar.enum,
-                                    id: sysvar.id
-                                };
-                                if (sysvar.channel) {
-                                    const channel = this.regaIdChannel[sysvar.channel];
-                                    const iface = this.findIface(channel);
-                                    const device = this.metadata.devices[iface] && this.metadata.devices[iface][channel] && this.metadata.devices[iface][channel].PARENT;
-                                    Object.assign(this.sysvar[sysvar.name], {
-                                        device,
-                                        deviceName: this.channelNames[device],
-                                        deviceType: this.metadata.devices[iface] && this.metadata.devices[iface][device] && this.metadata.devices[iface][device].TYPE,
-                                        channel,
-                                        channelName: this.channelNames[channel],
-                                        channelType: this.metadata.devices[iface] && this.metadata.devices[iface][channel] && this.metadata.devices[iface][channel].TYPE,
-                                        channelIndex: channel && parseInt(channel.split(':')[1], 10),
-                                        rooms: this.channelRooms[channel],
-                                        room: this.channelRooms[channel] && this.channelRooms[channel].length === 1 ? this.channelRooms[channel][0] : undefined,
-                                        functions: this.channelFunctions[channel],
-                                        function: this.channelFunctions[channel] && this.channelFunctions[channel].length === 1 ? this.channelFunctions[channel][0] : undefined
-                                    });
-                                }
-                            }
-                            if (this.sysvar[sysvar.name].value === sysvar.val) {
-                                Object.assign(this.sysvar[sysvar.name], {
-                                    change: false,
-                                    tsPrevious: this.sysvar[sysvar.name].ts,
-                                    ts: d.getTime()
-                                });
-                            } else {
-                                Object.assign(this.sysvar[sysvar.name], {
-                                    payload: sysvar.val,
-                                    value: sysvar.val,
-                                    valuePrevious: this.sysvar[sysvar.name].value,
-                                    ts: d.getTime(),
-                                    tsPrevious: this.sysvar[sysvar.name].ts,
-                                    lc: (new Date(sysvar.ts + ' UTC+' + (d.getTimezoneOffset() / -60))).getTime(),
-                                    lcPrevious: isNew ? undefined : this.sysvar[sysvar.name].lc,
-                                    change: !isNew
-                                });
-                                Object.keys(this.sysvarCallbacks).forEach(key => {
-                                    const {filter, callback} = this.sysvarCallbacks[key];
-                                    if (filter.name === sysvar.name) {
-                                        callback(this.sysvar[sysvar.name]);
-                                    }
-                                });
-                            }
+                            this.logger.trace(JSON.stringify(sysvar));
+                            sysvar.ts = sysvar.ts ? (new Date(sysvar.ts + ' UTC+' + (d.getTimezoneOffset() / -60))).getTime() : d.getTime();
+                            this.updateRegaVariable(sysvar);
                         });
                         resolve();
                         this.setIfaceStatus('ReGaHSS', true);
@@ -1201,11 +1200,10 @@ module.exports = function (RED) {
          * @param {function} callback
          * @returns {number|null} subscription id
          */
-        subscribeSysvar(name, callback) {
+        subscribeSysvar(filter, callback) {
             if (typeof callback === 'function') {
                 const id = this.idSysvarCallback;
                 this.idSysvarCallback += 1;
-                const filter = {name};
                 this.logger.debug('subscribeSysvar', id, JSON.stringify(filter));
                 this.sysvarCallbacks[id] = {filter, callback};
                 return id;
