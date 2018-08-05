@@ -704,7 +704,9 @@ module.exports = function (RED) {
                     if (this.sysvar[sysvar.name].cache && !filter.cache) {
                         match = false;
                     } else if (filter.change && !this.sysvar[sysvar.name].change) {
-                        match = false;
+                        if (!(this.sysvar[sysvar.name].cache && filter.cache)) {
+                            match = false;
+                        }
                     }
                     this.logger.trace('match', match, JSON.stringify(filter), 'name:' + sysvar.name + ' cache:' + this.sysvar[sysvar.name].cache + ' change:' + this.sysvar[sysvar.name].change);
                     if (match) {
