@@ -614,7 +614,7 @@ module.exports = function (RED) {
         regaPoll() {
             this.logger.trace('regaPoll');
             if (this.regaPollPending) {
-                this.logger.error('rega poll already pending');
+                this.logger.warn('rega poll already pending');
             } else {
                 this.regaPollPending = true;
                 clearTimeout(this.regaPollTimeout);
