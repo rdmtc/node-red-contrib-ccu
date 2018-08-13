@@ -598,7 +598,9 @@ module.exports = function (RED) {
                         if (err) {
                             reject(err);
                         } else {
-                            this.regaPoll();
+                            if (!this.regaPollPending) {
+                                this.regaPoll();
+                            }
                             resolve(sysvar);
                         }
                     });
