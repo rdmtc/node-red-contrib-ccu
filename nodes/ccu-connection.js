@@ -197,7 +197,7 @@ module.exports = function (RED) {
                     port: 8701,
                     protocol: 'binrpc',
                     init: true,
-                    ping: false // Todo ? https://homematic-forum.de/forum/viewtopic.php?f=37&t=43629
+                    ping: true
                 }
             };
 
