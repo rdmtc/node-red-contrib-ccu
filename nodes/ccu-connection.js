@@ -208,6 +208,7 @@ module.exports = function (RED) {
             this.logger.debug('ccu-connection', config.host);
 
             this.globalContext = this.context().global;
+            this.contextStore = config.contextStore;
 
             this.rpcServerHost = config.rpcServerHost;
             this.rpcInitAddress = config.rpcInitAddress;
@@ -258,11 +259,7 @@ module.exports = function (RED) {
             this.metadataFile = path.join(RED.settings.userDir, 'ccu_' + this.host + '.json');
             this.loadMetadata();
 
-            this.globalContext.set('ccu-' + this.host, {
-                values: this.values,
-                sysvar: this.sysvar,
-                program: this.program
-            });
+            this.setContext();
 
             this.rega = new Rega({host: this.host});
             if (config.regaEnabled) {
@@ -296,6 +293,16 @@ module.exports = function (RED) {
                     this.error(args.join(' ').substr(0, 300));
                 }
             };
+        }
+
+        setContext() {
+            if (this.contextStore) {
+                this.globalContext.set('ccu-' + this.host, {
+                    values: this.values,
+                    sysvar: this.sysvar,
+                    program: this.program
+                }, this.contextStore);
+            }
         }
 
         register(node) {
@@ -396,6 +403,8 @@ module.exports = function (RED) {
                     this.logger.error(err);
                     done();
                 });
+
+            this.setContext();
         }
 
         getEntry(data, key, val) {

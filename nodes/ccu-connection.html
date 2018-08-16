@@ -19,17 +19,25 @@
             rpcInitAddress: {value: '', required: true},
             rpcServerHost: {value: '', required: true},
             rpcBinPort: {value: '', required: true},
-            rpcXmlPort: {value: '', required: true}
+            rpcXmlPort: {value: '', required: true},
+
+            contextStore: {value: ''}
         },
         label() {
             return this.name || this.host;
         },
 
         oneditprepare() {
+
             const $nodeConfigInputHost = $('#node-config-input-host');
             const $nodeConfigInputName = $('#node-config-input-name');
             const $nodeConfigInputRpcServerHost = $('#node-config-input-rpcServerHost');
             const $nodeConfigInputRpcInitAddress = $('#node-config-input-rpcInitAddress');
+            const $nodeInputContextStore = $('#node-config-input-contextStore');
+
+            RED.settings.context.stores.forEach(store => {
+                $nodeInputContextStore.append('<option value="' + store + '"' + (this.contextStore === store ? ' selected' : '') + '>' + store + '</option>');
+            });
 
             function setInitAddress() {
                 const val = $nodeConfigInputRpcServerHost.val();
@@ -146,9 +154,15 @@
             <label class="ccu-checkbox"><input type="checkbox" id="node-config-input-regaPoll"> Enabled</label><br>
         </div>
     </div>
-     <div class="form-row">
+    <div class="form-row">
         <label for="node-input-regaInterval"><i class="icon-tag"></i> Rega poll interval</label>
         <input type="text" id="node-config-input-regaInterval">
+    </div>
+    <div class="form-row">
+        <label for="node-input-contextStore"><i class="icon-tag"></i> Context Store</label>
+        <select id="node-config-input-contextStore">
+            <option value="">none</option>
+        </select>
     </div>
     <script type="text/x-red" data-help-name="ccu-connection" lang="en-US">
         <p>The <i>Init address</i> normally equals the <i>Listen address</i>, the address under which the host running
