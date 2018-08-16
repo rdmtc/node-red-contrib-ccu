@@ -658,6 +658,7 @@ module.exports = function (RED) {
                     iface: 'ReGaHSS',
                     type: 'SYSVAR',
                     name: sysvar.name,
+                    info: sysvar.info,
                     value: sysvar.value,
                     valueType: sysvar.type,
                     valueEnum: sysvar.enum[Number(sysvar.val)],
