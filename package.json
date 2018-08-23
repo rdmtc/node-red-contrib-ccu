@@ -1,6 +1,6 @@
 {
   "name": "node-red-contrib-ccu",
-  "version": "1.1.20",
+  "version": "1.2.0",
   "description": "Node-RED Nodes for the Homematic CCU",
   "repository": "https://github.com/hobbyquaker/node-red-contrib-ccu",
   "keywords": [
@@ -37,7 +37,8 @@
       "ccu-sysvar": "nodes/ccu-sysvar.js",
       "ccu-program": "nodes/ccu-program.js",
       "ccu-script": "nodes/ccu-script.js",
-      "ccu-poll": "nodes/ccu-poll.js"
+      "ccu-poll": "nodes/ccu-poll.js",
+      "ccu-switch": "nodes/ccu-switch.js"
     }
   },
   "devDependencies": {
@@ -59,6 +60,10 @@
     "rules": {
       "no-template-curly-in-string": "warn",
       "capitalized-comments": 0
-    }
+    },
+    "ignore": [
+      "nodes/ccu-switch.js",
+      "nodes/ccu-switch.html"
+    ]
   }
 }
