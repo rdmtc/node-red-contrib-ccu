@@ -72,7 +72,7 @@ module.exports = function (RED) {
                             if (addr.match(/:\d+$/)) {
                                 obj[addr] = {
                                     name: config.channelNames[addr],
-                                    datapoints: Object.keys(config.paramsetDescriptions[config.paramsetName(devices[addr], 'VALUES')])
+                                    datapoints: Object.keys(config.paramsetDescriptions[config.paramsetName(req.query.iface, devices[addr], 'VALUES')])
                                 };
                             }
                         });
@@ -226,8 +226,9 @@ module.exports = function (RED) {
             this.clients = {};
             this.servers = {};
 
+            this.newParamsetDescriptionCount = 0;
             this.paramsetQueue = [];
-            this.paramsetFile = path.join(RED.settings.userDir, 'ccu_paramsets.json');
+            this.paramsetFile = path.join(RED.settings.userDir, 'ccu_paramsets_v2.json');
             this.loadParamsets();
 
             this.callbacks = {};
@@ -355,7 +356,7 @@ module.exports = function (RED) {
 
         saveParamsets() {
             return new Promise(resolve => {
-                fs.writeFileSync(this.paramsetFile, JSON.stringify(this.paramsetDescriptions));
+                fs.writeFileSync(this.paramsetFile, JSON.stringify(this.paramsetDescriptions, null, '  '));
                 this.logger.info('paramsets saved to', this.paramsetFile, (this.paramsetDescriptions ? Object.keys(this.paramsetDescriptions).length : 0));
                 resolve();
             });
@@ -376,7 +377,6 @@ module.exports = function (RED) {
                     load(this.paramsetFile);
                     resolve();
                 } else {
-                    // TODO #5 add SUBMIT datapoint if channel 3 of HM-Dis-EP-WM55
                     load(path.join(__dirname, '..', 'paramsets.json'));
                     this.saveParamsets().then(resolve);
                 }
@@ -991,16 +991,26 @@ module.exports = function (RED) {
             return url;
         }
 
-        paramsetName(device, paramset) {
+        paramsetName(iface, device, paramset) {
+            let cType = '';
+            let d;
             if (device) {
-                return (device.PARENT_TYPE ? device.PARENT_TYPE + '/' : '') + device.VERSION + '/' + device.TYPE + '/' + paramset;
+                if (device.PARENT) {
+                    // channel
+                    cType = device.TYPE;
+                    d = this.metadata.devices[iface][device.PARENT];
+                } else {
+                    // device
+                    d = device;
+                }
+                return [iface, d.TYPE, d.FIRMWARE, d.VERSION, cType, paramset].join('/');
             }
         }
 
         paramsetQueuePush(iface, device) {
             if (device.PARAMSETS) {
                 device.PARAMSETS.forEach(paramset => {
-                    const name = this.paramsetName(device, paramset);
+                    const name = this.paramsetName(iface, device, paramset);
                     if (!this.paramsetDescriptions[name]) {
                         this.paramsetQueue.push({
                             iface,
@@ -1035,8 +1045,14 @@ module.exports = function (RED) {
                     this.methodCall(iface, 'getParamsetDescription', [address, paramset])
                         .then(res => {
                             this.logger.trace('paramsetDescription', name);
+                            this.newParamsetDescriptionCount += 1;
                             this.newParamsetDescription = true;
                             this.paramsetDescriptions[name] = res;
+                            if (this.newParamsetDescriptionCount >= 30) {
+                                this.newParamsetDescription = false;
+                                this.newParamsetDescriptionCount = 0;
+                                this.saveParamsets();
+                            }
                         })
                         .catch(err => this.logger.error(err))
                         .then(() => {
@@ -1044,7 +1060,7 @@ module.exports = function (RED) {
                             clearTimeout(this.getParamsetTimeout);
                             this.getParamsetTimeout = setTimeout(() => {
                                 this.paramsetQueueShift();
-                            }, 1000);
+                            }, 200);
                         });
                 }
             } else {
@@ -1057,7 +1073,7 @@ module.exports = function (RED) {
         }
 
         getParamsetDescription(iface, device, paramset, param) {
-            const name = this.paramsetName(device, paramset);
+            const name = this.paramsetName(iface, device, paramset);
             if (this.paramsetDescriptions[name]) {
                 if (param) {
                     return this.paramsetDescriptions[name][param];
@@ -1507,7 +1523,7 @@ module.exports = function (RED) {
 
         paramCast(iface, address, psName, datapoint, value) {
             const device = this.metadata.devices[iface] && this.metadata.devices[iface][address];
-            const psKey = this.paramsetName(device, psName);
+            const psKey = this.paramsetName(iface, device, psName);
             const paramset = this.paramsetDescriptions[psKey] && this.paramsetDescriptions[psKey][datapoint];
             if (paramset) {
                 switch (paramset.TYPE) {
