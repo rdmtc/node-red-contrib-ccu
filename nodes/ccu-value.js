@@ -23,7 +23,7 @@ module.exports = function (RED) {
                     iface: config.iface,
                     cache: config.cache,
                     change: config.change,
-                    channel: (config.channel || '').split(' ')[0],
+                    channel: String(config.channel).split(' ')[0],
                     datapoint: config.datapoint
                 };
 
