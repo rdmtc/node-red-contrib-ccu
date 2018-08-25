@@ -1124,11 +1124,40 @@ module.exports = function (RED) {
 
         listDevicesAnswer(iface, device) {
             switch (iface) {
-                /*
-                Case 'hmip':
-                    return device; // Todo https://github.com/eq-3/occu/issues/45
-                    break;
-                */
+                case 'HmIP-RF':
+                    // fallthrough by intention
+                case 'VirtualDevices':
+                    const d = { // eslint-disable-line no-case-declarations
+                        ADDRESS: device.ADDRESS,
+                        VERSION: device.VERSION,
+                        AES_ACTIVE: device.AES_ACTIVE,
+                        CHILDREN: device.CHILDREN,
+                        DIRECTION: device.DIRECTION,
+                        FIRMWARE: device.FIRMWARE,
+                        FLAGS: device.FLAGS,
+                        GROUP: device.GROUP,
+                        INDEX: device.INDEX,
+                        INTERFACE: device.INTERFACE,
+                        LINK_SOURCE_ROLES: device.LINK_SOURCE_ROLES,
+                        LINK_TARGET_ROLES: device.LINK_TARGET_ROLES,
+                        PARAMSETS: device.PARAMSETS,
+                        PARENT: device.PARENT,
+                        PARENT_TYPE: device.PARENT_TYPE,
+                        RF_ADDRESS: device.RF_ADDRESS,
+                        ROAMING: device.ROAMING,
+                        RX_MODE: device.RX_MODE,
+                        TEAM: device.TEAM,
+                        TEAM_CHANNELS: device.TEAM_CHANNELS,
+                        TEAM_TAG: device.TEAM_TAG,
+                        TYPE: device.TYPE
+                    };
+                    // Würgaround https://github.com/eq-3/occu/issues/83
+                    Object.keys(d).forEach(k => {
+                        if (!d[k]) {
+                            delete d[k];
+                        }
+                    });
+                    return d;
                 default:
                     return {ADDRESS: device.ADDRESS, VERSION: device.VERSION};
             }
