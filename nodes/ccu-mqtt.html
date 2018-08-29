@@ -1,0 +1,83 @@
+<script type="text/javascript">
+    RED.nodes.registerType('ccu-mqtt', {
+
+        category: 'ccu',
+        defaults: {
+            name: {value: ''},
+            ccuConfig: {value: 'localhost', type: 'ccu-connection', required: true},
+
+            topicOutputEvent: {value: 'hm/status/${channelName}/${datapoint}'}, // eslint-disable-line no-template-curly-in-string
+            topicInputSetValue: {value: 'hm/set/${channelNameOrAddress}/${datapoint}'}, // eslint-disable-line no-template-curly-in-string
+
+            topicInputPutParam: {value: 'hm/param/${channelNameOrAddress}/${paramset}/${param}'}, // eslint-disable-line no-template-curly-in-string
+            topicInputPutParamset: {value: 'hm/param/${channelNameOrAddress}/${datapoint}/${paramset}'}, // eslint-disable-line no-template-curly-in-string
+
+            topicInputRpc: {value: 'hm/rpc/${iface}/${method}/${command}/${callid}'}, // eslint-disable-line no-template-curly-in-string
+
+            topicOutputSysvar: {value: 'hm/status/${name}'}, // eslint-disable-line no-template-curly-in-string
+            topicInputSysvar: {value: 'hm/set/${name}'}, // eslint-disable-line no-template-curly-in-string
+
+            payloadOutput: {value: 'mqsh-extended'},
+        },
+        inputs: 1,
+        outputs: 1,
+        icon: 'ccu.png',
+        color: '#8BB9D2',
+        paletteLabel: 'mqtt',
+        align: 'right',
+        label() {
+            return this.name || 'mqtt';
+        },
+        labelStyle() {
+            return this.name ? 'node_label_italic' : '';
+        },
+        oneditsave() {
+            console.log(this)
+        }
+    });
+</script>
+
+<script type="text/x-red" data-template-name="ccu-mqtt">
+    <div class="form-row">
+        <label for="node-input-ccuConfig"><i class="icon-global"></i> CCU</label>
+        <input type="text" id="node-input-ccuConfig">
+    </div>
+    <div class="form-row">
+        <label for="node-input-topicOutputEvent"><i class="icon-bookmark"></i> Event</label>
+        <input type="text" id="node-input-topicOutputEvent">
+    </div>
+    <div class="form-row">
+        <label for="node-input-topicInputSetValue"><i class="icon-bookmark"></i> setValue</label>
+        <input type="text" id="node-input-topicInputSetValue">
+    </div>
+    <div class="form-row">
+        <label for="node-input-topicOutputSysvar"><i class="icon-bookmark"></i> Sysvar Change</label>
+        <input type="text" id="node-input-topicOutputSysvar">
+    </div>
+    <div class="form-row">
+        <label for="node-input-topicInputSysvar"><i class="icon-bookmark"></i> Sysvar Set</label>
+        <input type="text" id="node-input-topicInputSysvar">
+    </div>
+    <div class="form-row">
+        <label for="node-input-payloadOutput"><i class="icon-bookmark"></i> Output Payload</label>
+        <select id="node-input-payloadOutput">
+            <option value="plain">Plain</option>
+            <option value="mqsh-basic">MQTT-Smarthome JSON Basic</option>
+            <option value="mqsh-extended">MQTT-Smarthome JSON Extended</option>
+        </select>
+    </div>
+
+    <div class="form-row">
+        <label for="node-input-name"><i class="icon-bookmark"></i> Name</label>
+        <input type="text" id="node-input-name">
+    </div>
+
+</script>
+
+<script type="text/x-red" data-help-name="ccu-mqtt" lang="de-DE">
+    
+</script>
+
+<script type="text/x-red" data-help-name="ccu-mqtt" lang="en-US">
+    
+</script>
