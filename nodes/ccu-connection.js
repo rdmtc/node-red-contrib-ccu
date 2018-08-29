@@ -634,7 +634,7 @@ module.exports = function (RED) {
                     .then(() => this.getRegaPrograms())
                     .catch(err => this.logger.error('getRegaPrograms', err))
                     .then(() => {
-                        if (this.regaInterval && !this.cancelRegaPoll) {
+                        if (this.regaInterval && this.regaEnabled && !this.cancelRegaPoll) {
                             this.logger.trace('rega next poll in', this.regaInterval, 'seconds');
                             this.regaPollTimeout = setTimeout(() => {
                                 this.regaPoll();
