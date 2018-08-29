@@ -8,7 +8,7 @@ module.exports = (that, data) => {
                     status += 1;
                 }
             });
-            if (status === 0) {
+            if (status <= 1) {
                 that.status({fill: 'red', shape: 'dot', text: 'disconnected'});
             } else if (status === Object.keys(data.ifaceStatus).length) {
                 that.status({fill: 'green', shape: 'dot', text: 'connected'});
