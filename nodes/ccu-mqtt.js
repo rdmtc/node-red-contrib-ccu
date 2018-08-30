@@ -101,6 +101,7 @@ module.exports = function (RED) {
 
         input(msg) {
             const {topic, payload} = msg;
+            this.debug('input ' + topic + ' ' + JSON.stringify(payload).slice(0,40));
 
             const topicList = {
                 setValue: this.topicInputSetValue,
@@ -141,9 +142,32 @@ module.exports = function (RED) {
         }
 
         setValue(filter, payload) {
-            console.log('SetValue', filter, payload);
-            console.log(this.ccu.metadata)
+            if (filter.channelNameOrAddress) {
+                if (this.ccu.channelNames[filter.channelNameOrAddress]) {
+                    filter.channel = filter.channelNameOrAddress;
+                } else {
+                    filter.channel = this.ccu.findChannel(filter.channelNameOrAddress);
+                }
+                if (!filter.channel) {
+                    this.error('channel ' + filter.channelNameOrAddress + ' not found');
+                    return;
+                }
+            }
+
+            if (!filter.channel) {
+                this.error('channel undefined');
+                return;
+            }
+            const iface = this.ccu.findIface(filter.channel);
+
+            if (!iface) {
+                this.error('no interface found for channel ' + filter.channel);
+                return;
+            }
+
+            this.ccu.setValue(iface, filter.channel, filter.datapoint, payload);
         }
+
 
         sysvar(filter, payload) {
 
