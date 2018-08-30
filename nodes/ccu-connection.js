@@ -808,7 +808,7 @@ module.exports = function (RED) {
                                 };
                                 Object.keys(this.programCallbacks).forEach(key => {
                                     const {filter, callback} = this.programCallbacks[key];
-                                    if (filter.name === prg.name) {
+                                    if (!filter.name || filter.name === prg.name) {
                                         callback(this.program[prg.name]);
                                     }
                                 });
