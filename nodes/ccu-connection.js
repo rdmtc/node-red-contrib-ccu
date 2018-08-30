@@ -734,7 +734,7 @@ module.exports = function (RED) {
 
                 Object.keys(this.sysvarCallbacks).forEach(key => {
                     const {filter, callback} = this.sysvarCallbacks[key];
-                    let match = filter.name === sysvar.name;
+                    let match = !filter.name || filter.name === sysvar.name;
                     if (this.sysvar[sysvar.name].cache && !filter.cache) {
                         match = false;
                     } else if (filter.change && !this.sysvar[sysvar.name].change) {
@@ -756,7 +756,7 @@ module.exports = function (RED) {
          */
         getRegaVariables() {
             return new Promise((resolve, reject) => {
-                this.logger.trace('getRegaVariables');
+                this.logger.debug('getRegaVariables');
                 this.rega.getVariables((err, res) => {
                     if (err) {
                         reject(err);
@@ -781,7 +781,7 @@ module.exports = function (RED) {
          */
         getRegaPrograms() {
             return new Promise((resolve, reject) => {
-                this.logger.debug('rega getPrograms');
+                this.logger.debug('getRegaPrograms');
                 this.rega.getPrograms((err, res) => {
                     if (err) {
                         reject(err);
