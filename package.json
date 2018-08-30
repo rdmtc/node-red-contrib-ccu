@@ -24,8 +24,9 @@
     "hm-discover": "^1.1.0",
     "homematic-rega": "^1.2.6",
     "homematic-xmlrpc": "^1.0.2",
-    "nextport": "^1.0.0",
     "string-similarity": "^1.2.1"
+    "mqtt-wildcard": "^3.0.9",
+    "nextport": "^1.0.0"
   },
   "node-red": {
     "nodes": {
@@ -39,7 +40,8 @@
       "ccu-program": "nodes/ccu-program.js",
       "ccu-script": "nodes/ccu-script.js",
       "ccu-poll": "nodes/ccu-poll.js",
-      "ccu-switch": "nodes/ccu-switch.js"
+      "ccu-switch": "nodes/ccu-switch.js",
+      "ccu-hm2mqtt": "nodes/ccu-mqtt.js"
     }
   },
   "devDependencies": {

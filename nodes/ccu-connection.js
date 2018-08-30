@@ -656,8 +656,22 @@ module.exports = function (RED) {
         findIface(channel) {
             let found;
             Object.keys(this.metadata.devices).forEach(iface => {
-                if (this.metadata.devices[iface][channel]) {
-                    found = iface;
+                if (!found) {
+                    if (this.metadata.devices[iface][channel]) {
+                        found = iface;
+                    }
+                }
+            });
+            return found;
+        }
+
+        findChannel(name) {
+            let found;
+            Object.keys(this.channelNames).forEach(n => {
+                if (!found) {
+                    if (this.channelNames[n] === name) {
+                        found = name;
+                    }
                 }
             });
             return found;
