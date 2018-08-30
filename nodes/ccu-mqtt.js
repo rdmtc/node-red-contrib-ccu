@@ -57,10 +57,15 @@ module.exports = function (RED) {
         }
 
         event(msg) {
-            // Todo *_NOTWORKING
-
             const topic = this.ccu.topicReplace(this.topicOutputEvent, msg);
             this.send({topic, payload: this.output(msg)});
+
+            if (msg.working === false) {
+                const msgNotWorking = RED.util.cloneMessage(msg);
+                msgNotWorking.datapoint += '_NOTWORKING';
+                msgNotWorking.datapointName += '_NOTWORKING';
+                this.send({topic, payload: this.output(msg)});
+            }
         }
 
         sysvar(msg) {
@@ -169,9 +174,7 @@ module.exports = function (RED) {
         }
 
 
-        sysvar(filter, payload) {
 
-        }
     }
 
     RED.nodes.registerType('ccu-mqtt', CcuMqttNode);
