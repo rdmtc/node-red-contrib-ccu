@@ -610,7 +610,7 @@ module.exports = function (RED) {
                             break;
                     }
                     const script = `dom.GetObject(${sysvar.id}).State(${value});`;
-                    this.logger.trace('setVariable', name, script);
+                    this.logger.debug('setVariable', name, script);
                     this.rega.exec(script + '\n', err => {
                         if (err) {
                             reject(err);
@@ -684,7 +684,7 @@ module.exports = function (RED) {
                 isNew = true;
                 this.sysvar[sysvar.name] = {
                     topic: '',
-                    payload: sysvar.value,
+                    payload: sysvar.val,
                     ccu: this.host,
                     iface: 'ReGaHSS',
                     type: 'SYSVAR',
