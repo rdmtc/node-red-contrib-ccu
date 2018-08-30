@@ -221,6 +221,7 @@ module.exports = function (RED) {
             this.methodCallQueue = {};
 
             this.regaEnabled = config.regaEnabled;
+            this.regaPollEnabled = config.regaPoll;
             this.regaInterval = parseInt(config.regaInterval, 10);
 
             this.clients = {};
@@ -634,7 +635,7 @@ module.exports = function (RED) {
                     .then(() => this.getRegaPrograms())
                     .catch(err => this.logger.error('getRegaPrograms', err))
                     .then(() => {
-                        if (this.regaInterval && this.regaEnabled && !this.cancelRegaPoll) {
+                        if (this.regaInterval && this.regaPollEnabled && !this.cancelRegaPoll) {
                             this.logger.trace('rega next poll in', this.regaInterval, 'seconds');
                             this.regaPollTimeout = setTimeout(() => {
                                 this.regaPoll();
