@@ -29,7 +29,7 @@ module.exports = function (RED) {
 
             this.ccu.register(this);
 
-            this.on('input', (msg) => {
+            this.on('input', msg => {
                 this.input(msg);
             });
 
@@ -118,7 +118,7 @@ module.exports = function (RED) {
 
         input(msg) {
             const {topic, payload} = msg;
-            this.debug('input ' + topic + ' ' + JSON.stringify(payload).slice(0,40));
+            this.debug('input ' + topic + ' ' + JSON.stringify(payload).slice(0, 40));
 
             const topicList = {
                 setValue: this.topicInputSetValue,
@@ -137,7 +137,7 @@ module.exports = function (RED) {
                     const placeholders = [];
                     for (let i = 0, len = parts.length; i < len; i++) {
                         let match;
-                        if (match = parts[i].match(/^\${([a-zA-Z0-9_-]+)}$/)) {
+                        if (match = parts[i].match(/^\${([a-zA-Z0-9_-]+)}$/)) { // eslint-disable-line no-cond-assign
                             placeholders.push(match[1]);
                             patternArr[i] = (i + 1) < len ? '+' : '#';
                         } else {
@@ -232,7 +232,7 @@ module.exports = function (RED) {
             const paramsetDescription = this.ccu.paramsetDescriptions[psName];
             if (paramsetDescription && paramsetDescription[filter.param]) {
                 if (!(paramsetDescription[filter.param].OPERATIONS) && 2) {
-                    log.error('param ' + filter.param + ' not writeable');
+                    this.error('param ' + filter.param + ' not writeable');
                 }
                 payload = this.paramCast(payload, paramsetDescription[filter.param]);
             } else {
@@ -284,7 +284,7 @@ module.exports = function (RED) {
             Object.keys(payload).forEach(param => {
                 if (paramsetDescription && paramsetDescription[param]) {
                     if (!(paramsetDescription[param].OPERATIONS) && 2) {
-                        log.error('param ' + param + ' not writeable');
+                        this.error('param ' + param + ' not writeable');
                     }
                     paramset[param] = this.paramCast(payload[param], paramsetDescription[filter.param]);
                 } else {
@@ -296,7 +296,6 @@ module.exports = function (RED) {
             this.ccu.methodCall(iface, 'putParamset', [filter.channel, filter.paramset, paramset])
                 .catch(err => this.error(err.message));
         }
-
 
         paramCast(val, paramset) {
             switch (paramset && paramset.TYPE) {

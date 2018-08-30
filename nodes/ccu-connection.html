@@ -31,7 +31,6 @@
             const $nodeConfigInputHost = $('#node-config-input-host');
             const $nodeConfigInputName = $('#node-config-input-name');
             const $nodeConfigInputRpcServerHost = $('#node-config-input-rpcServerHost');
-            const $nodeConfigInputRpcInitAddress = $('#node-config-input-rpcInitAddress');
             const $nodeInputContextStore = $('#node-config-input-contextStore');
 
             RED.settings.context.stores.forEach(store => {
@@ -76,9 +75,6 @@
                 });
 
                 $nodeConfigInputRpcServerHost.val(this.rpcServerHost || data.listen[1]);
-                if (!this.rpcServerHost) {
-                    setInitAddress();
-                }
 
                 if (!this.rpcBinPort) {
                     $('#node-config-input-rpcBinPort').val(data.ports[0]);

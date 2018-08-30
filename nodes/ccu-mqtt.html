@@ -20,7 +20,7 @@
             topicInputRpc: {value: 'hm/rpc/${iface}/${method}/${command}/${callid}'}, // eslint-disable-line no-template-curly-in-string
             topicOutputRpc: {value: 'hm/response/${callid}'}, // eslint-disable-line no-template-curly-in-string
 
-            payloadOutput: {value: 'mqsh-extended'},
+            payloadOutput: {value: 'mqsh-extended'}
         },
         inputs: 1,
         outputs: 1,
@@ -35,7 +35,7 @@
             return this.name ? 'node_label_italic' : '';
         },
         oneditsave() {
-            console.log(this)
+            console.log(this);
         }
     });
 </script>

@@ -211,11 +211,11 @@ module.exports = function (RED) {
             this.globalContext = this.context().global;
             this.contextStore = config.contextStore;
 
-            if (!ccu.network.listen.includes(config.rpcServerHost)) {
+            if (ccu.network.listen.includes(config.rpcServerHost)) {
+                this.rpcServerHost = config.rpcServerHost;
+            } else {
                 this.rpcServerHost = stringSimilarity.findBestMatch(config.rpcServerHost, ccu.network.listen).bestMatch.target;
                 this.logger.error('Local address ' + config.rpcServerHost + ' not available. Using ' + this.rpcServerHost + ' instead.');
-            } else {
-                this.rpcServerHost = config.rpcServerHost;
             }
 
             this.rpcInitAddress = config.rpcInitAddress || this.rpcServerHost;
