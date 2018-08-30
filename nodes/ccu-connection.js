@@ -2,6 +2,7 @@ const os = require('os');
 const path = require('path');
 const fs = require('fs');
 
+const stringSimilarity = require('string-similarity');
 const nextport = require('nextport');
 const hmDiscover = require('hm-discover');
 const Rega = require('homematic-rega');
@@ -210,8 +211,14 @@ module.exports = function (RED) {
             this.globalContext = this.context().global;
             this.contextStore = config.contextStore;
 
-            this.rpcServerHost = config.rpcServerHost;
-            this.rpcInitAddress = config.rpcInitAddress;
+            if (!ccu.network.listen.includes(config.rpcServerHost)) {
+                this.rpcServerHost = stringSimilarity.findBestMatch(config.rpcServerHost, ccu.network.listen).bestMatch.target;
+                this.logger.error('Local address ' + config.rpcServerHost + ' not available. Using ' + this.rpcServerHost + ' instead.');
+            } else {
+                this.rpcServerHost = config.rpcServerHost;
+            }
+
+            this.rpcInitAddress = config.rpcInitAddress || this.rpcServerHost;
             this.rpcBinPort = parseInt(config.rpcBinPort, 10);
             this.rpcXmlPort = parseInt(config.rpcXmlPort, 10);
             this.rpcPingTimeout = parseInt(config.rpcPingTimeout, 10) || 60;

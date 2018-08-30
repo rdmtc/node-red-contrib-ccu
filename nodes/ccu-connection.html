@@ -16,7 +16,7 @@
             regaInterval: {value: 30},
 
             rpcPingTimeout: {value: 60},
-            rpcInitAddress: {value: '', required: true},
+            rpcInitAddress: {value: ''},
             rpcServerHost: {value: '', required: true},
             rpcBinPort: {value: '', required: true},
             rpcXmlPort: {value: '', required: true},
@@ -37,15 +37,6 @@
             RED.settings.context.stores.forEach(store => {
                 $nodeInputContextStore.append('<option value="' + store + '"' + (this.contextStore === store ? ' selected' : '') + '>' + store + '</option>');
             });
-
-            function setInitAddress() {
-                const val = $nodeConfigInputRpcServerHost.val();
-                if (val !== '0.0.0.0' && !$nodeConfigInputRpcInitAddress.val()) {
-                    $nodeConfigInputRpcInitAddress.val(val);
-                }
-            }
-
-            $nodeConfigInputRpcServerHost.on('change', setInitAddress);
 
             $nodeConfigInputHost.on('focus', () => $nodeConfigInputHost.autocomplete('search', ''));
 
@@ -165,14 +156,14 @@
     </div>
     <script type="text/x-red" data-help-name="ccu-connection" lang="en-US">
         <p>The <i>Init address</i> normally equals the <i>Listen address</i>, the address under which the host running
-        Node-Red is reachable for the CCU</p>
+        Node-Red is reachable for the CCU. You can leave it empty.</p>
         <p>For advanced users: when listening on all interfaces (address 0.0.0.0) or if Node-RED runs inside a
         (e.g. docker) container with NAT'd network or in other more special network environments, setting <i>init
-        address</i> to something else then <i>listen address</i> is needed.</p>
+        address</i> to something else then <i>listen address</i> is required.</p>
     </script>
     <script type="text/x-red" data-help-name="ccu-connection" lang="de-DE">
         <p><i>Init address</i> entspricht normalerweise <i>Listen address</i>, Die Adresse unter der Node-RED von der
-        CCU aus erreichbar ist.</p>
+        CCU aus erreichbar ist. Das Eingabefeld kann leer gelassen werden.</p>
         <p>Für fortgeschrittene User: Wenn auf allen Interfaces gelauscht wird (Adresse 0.0.0.0) oder wenn Node-RED in
         einem Container (z.B. Docker) mit NAT-Netzwerk läuft oder in anderen spezielleren Netzwerkumgebungen kann es
         notwendig sein <i>Init address</i> und <i>Listen Address</i> auf unterschiedliche Werte zu setzen.</p>

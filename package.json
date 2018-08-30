@@ -24,7 +24,8 @@
     "hm-discover": "^1.1.0",
     "homematic-rega": "^1.2.6",
     "homematic-xmlrpc": "^1.0.2",
-    "nextport": "^1.0.0"
+    "nextport": "^1.0.0",
+    "string-similarity": "^1.2.1"
   },
   "node-red": {
     "nodes": {
