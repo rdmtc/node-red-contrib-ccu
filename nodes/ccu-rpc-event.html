@@ -78,7 +78,6 @@
             }
 
             $nodeInputCcuConfig.change(() => {
-                console.log('$nodeInputCcuConfig change');
                 loadIfaces(this.iface, () => {
                     ifacesLoaded = true;
                     $nodeInputIface.removeAttr('disabled');
@@ -100,85 +99,7 @@
             }
 
             $('#node-input-iface').change(() => {
-                console.log('#node-input-iface change');
                 autocompleteDevices();
-            });
-
-            $('#node-input-rooms').autocomplete({
-                source: [],
-                close: () => {
-
-                },
-                delay: 0,
-                minLength: 0
-            });
-
-            $('#node-input-functions').autocomplete({
-                source: [],
-                close: () => {
-
-                },
-                delay: 0,
-                minLength: 0
-            });
-
-            $('#node-input-device').autocomplete({
-                source: [],
-                close: () => {
-
-                },
-                delay: 0,
-                minLength: 0
-            });
-
-            $('#node-input-deviceName').autocomplete({
-                source: [],
-                close: () => {
-
-                },
-                delay: 0,
-                minLength: 0
-            });
-
-            $('#node-input-deviceType').autocomplete({
-                source: [],
-                close: () => {
-
-                },
-                delay: 0,
-                minLength: 0
-            });
-            $('#node-input-channel').autocomplete({
-                source: [],
-                close: () => {
-
-                },
-                delay: 0,
-                minLength: 0
-            });
-            $('#node-input-channelName').autocomplete({
-                source: [],
-                close: () => {
-
-                },
-                delay: 0,
-                minLength: 0
-            });
-            $('#node-input-channelType').autocomplete({
-                source: [],
-                close: () => {
-
-                },
-                delay: 0,
-                minLength: 0
-            });
-            $('#node-input-datapoint').autocomplete({
-                source: [],
-                close: () => {
-
-                },
-                delay: 0,
-                minLength: 0
             });
 
             $('.filter').each(function () {
@@ -190,28 +111,47 @@
                 $this.typedInput({
                     typeField: $type,
                     types: ['str', 're']
-                })
-                    .typedInput('width', '70%')
-                    .on('change', (type, value) => {
-                        if (value === 're') {
-                            $this.autocomplete('disable');
-                        } else {
-                            $this.autocomplete('enable');
-                        }
-                    });
+                }).typedInput('width', '70%');
+
+                $this.parent().find('.red-ui-typedInput-input input').autocomplete({
+                    source: [],
+                    close: () => {
+
+                    },
+                    delay: 0,
+                    minLength: 0
+                });
+
+                $this.on('change', (type, value) => {
+                    if (value === 're') {
+                        $this.parent().find('.red-ui-typedInput-input input').autocomplete('disable');
+                    } else {
+                        $this.parent().find('.red-ui-typedInput-input input').autocomplete('enable');
+                    }
+                });
             });
 
             function autocompleteRoomsFunctions() {
                 if (!data) {
                     return;
                 }
-                $('#node-input-rooms').autocomplete('option', 'source', data.rooms);
-                $('#node-input-functions').autocomplete('option', 'source', data.functions);
+                $('#node-input-rooms').parent().find('.red-ui-typedInput-input input').autocomplete('option', 'source', data.rooms);
+                $('#node-input-functions').parent().find('.red-ui-typedInput-input input').autocomplete('option', 'source', data.functions);
             }
 
-            function paramsetName(device, paramset) {
+            function paramsetName(iface, device, paramset) {
+                let cType = '';
+                let d;
                 if (device) {
-                    return (device.PARENT_TYPE ? device.PARENT_TYPE + '/' : '') + device.VERSION + '/' + device.TYPE + '/' + paramset;
+                    if (device.PARENT) {
+                        // channel
+                        cType = device.TYPE;
+                        d = data.metadata.devices[iface][device.PARENT];
+                    } else {
+                        // device
+                        d = device;
+                    }
+                    return [iface, d.TYPE, d.FIRMWARE, d.VERSION, cType, paramset].join('/');
                 }
             }
 
@@ -229,6 +169,7 @@
                     channelType: [],
                     datapoint: []
                 };
+                console.log('autocompleteDevices', iface);
 
                 function composeLists(iface) {
                     if (!data.metadata.devices[iface]) {
@@ -243,7 +184,7 @@
                                 lists.channelType.push(data.metadata.devices[iface][device].TYPE);
                             }
 
-                            const psName = paramsetName(data.metadata.devices[iface][device], 'VALUES');
+                            const psName = paramsetName(iface, data.metadata.devices[iface][device], 'VALUES');
                             if (data.paramsetDescriptions[psName]) {
                                 Object.keys(data.paramsetDescriptions[psName]).forEach(datapoint => {
                                     if (!lists.datapoint.includes(datapoint)) {
@@ -259,6 +200,14 @@
                             }
                         }
                     });
+
+                    $('#node-input-device').parent().find('.red-ui-typedInput-input input').autocomplete('option', 'source', lists.device);
+                    $('#node-input-deviceName').parent().find('.red-ui-typedInput-input input').autocomplete('option', 'source', lists.deviceName);
+                    $('#node-input-deviceType').parent().find('.red-ui-typedInput-input input').autocomplete('option', 'source', lists.deviceType);
+                    $('#node-input-channel').parent().find('.red-ui-typedInput-input input').autocomplete('option', 'source', lists.channel);
+                    $('#node-input-channelName').parent().find('.red-ui-typedInput-input input').autocomplete('option', 'source', lists.channelName);
+                    $('#node-input-channelType').parent().find('.red-ui-typedInput-input input').autocomplete('option', 'source', lists.channelType);
+                    $('#node-input-datapoint').parent().find('.red-ui-typedInput-input input').autocomplete('option', 'source', lists.datapoint);
                 }
 
                 if (iface) {
@@ -268,14 +217,6 @@
                         composeLists(iface);
                     });
                 }
-
-                $('#node-input-device').autocomplete('option', 'source', lists.device);
-                $('#node-input-deviceName').autocomplete('option', 'source', lists.deviceName);
-                $('#node-input-deviceType').autocomplete('option', 'source', lists.deviceType);
-                $('#node-input-channel').autocomplete('option', 'source', lists.channel);
-                $('#node-input-channelName').autocomplete('option', 'source', lists.channelName);
-                $('#node-input-channelType').autocomplete('option', 'source', lists.channelType);
-                $('#node-input-datapoint').autocomplete('option', 'source', lists.datapoint);
             }
         }
     });

@@ -129,7 +129,9 @@ module.exports = function (RED) {
                     res.status(200).send(JSON.stringify({
                         channelNames: config.channelNames,
                         metadata: config.metadata,
-                        paramsetDescriptions: config.paramsetDescriptions
+                        paramsetDescriptions: config.paramsetDescriptions,
+                        rooms: config.rooms,
+                        functions: config.functions
                     }));
             }
         } else {
@@ -479,7 +481,9 @@ module.exports = function (RED) {
                     if (err) {
                         reject(err);
                     } else {
+                        this.rooms = [];
                         res.forEach(room => {
+                            this.rooms.push(room.name);
                             room.channels.forEach(chId => {
                                 const regaChannel = this.getEntry(this.regaChannels, 'id', chId);
                                 const address = regaChannel && regaChannel.address;
@@ -505,7 +509,9 @@ module.exports = function (RED) {
                     if (err) {
                         reject(err);
                     } else {
+                        this.functions = [];
                         res.forEach(func => {
+                            this.functions.push(func.name);
                             func.channels.forEach(chId => {
                                 const regaChannel = this.getEntry(this.regaChannels, 'id', chId);
                                 const address = regaChannel && regaChannel.address;
