@@ -50,6 +50,39 @@
             let ifacesLoaded = false;
             let ifacesPending = false;
 
+            $('.filter').each(function () {
+                const id = $(this).prop('id');
+                const $type = $('#' + id + 'Rx');
+                const name = id.split('-').pop() + 'Rx';
+                $type.val(that[name]);
+
+                const $this = $(this);
+
+                $this.typedInput({
+                    typeField: $type,
+                    types: ['str', 're']
+                }).typedInput('width', '70%');
+
+                const $input = $this.parent().find('.red-ui-typedInput-input input');
+
+                $input.autocomplete({
+                    source: [],
+                    close: () => {
+                        $input.trigger('change');
+                    },
+                    delay: 0,
+                    minLength: 0
+                });
+
+                $this.on('change', (type, value) => {
+                    if (value === 're') {
+                        $input.autocomplete('disable');
+                    } else {
+                        $input.autocomplete('enable');
+                    }
+                });
+            });
+
             function loadIfaces(iface, cb) {
                 if (ifacesPending) {
                     return;
@@ -100,38 +133,6 @@
 
             $('#node-input-iface').change(() => {
                 autocompleteDevices();
-            });
-
-            $('.filter').each(function () {
-                const id = $(this).prop('id');
-                const $type = $('#' + id + 'Rx');
-                const name = id.split('-').pop() + 'Rx';
-                $type.val(that[name]);
-
-                const $this = $(this);
-                const $input = $this.parent().find('.red-ui-typedInput-input input');
-
-                $this.typedInput({
-                    typeField: $type,
-                    types: ['str', 're']
-                }).typedInput('width', '70%');
-
-                $input.autocomplete({
-                    source: [],
-                    close: () => {
-                        $input.trigger('change');
-                    },
-                    delay: 0,
-                    minLength: 0
-                });
-
-                $this.on('change', (type, value) => {
-                    if (value === 're') {
-                        $input.autocomplete('disable');
-                    } else {
-                        $input.autocomplete('enable');
-                    }
-                });
             });
 
             function autocompleteRoomsFunctions() {
