@@ -107,16 +107,19 @@
                 const $type = $('#' + id + 'Rx');
                 const name = id.split('-').pop() + 'Rx';
                 $type.val(that[name]);
+
                 const $this = $(this);
+                const $input = $this.parent().find('.red-ui-typedInput-input input');
+
                 $this.typedInput({
                     typeField: $type,
                     types: ['str', 're']
                 }).typedInput('width', '70%');
 
-                $this.parent().find('.red-ui-typedInput-input input').autocomplete({
+                $input.autocomplete({
                     source: [],
                     close: () => {
-
+                        $input.trigger('change');
                     },
                     delay: 0,
                     minLength: 0
@@ -124,9 +127,9 @@
 
                 $this.on('change', (type, value) => {
                     if (value === 're') {
-                        $this.parent().find('.red-ui-typedInput-input input').autocomplete('disable');
+                        $input.autocomplete('disable');
                     } else {
-                        $this.parent().find('.red-ui-typedInput-input input').autocomplete('enable');
+                        $input.autocomplete('enable');
                     }
                 });
             });
