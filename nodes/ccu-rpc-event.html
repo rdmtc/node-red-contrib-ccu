@@ -146,10 +146,10 @@
                 Object.keys(data.channelRooms).forEach(channel => {
                     const room = data.channelRooms[channel];
                     const device = channel.split(':')[0];
-                    if (!data.roomChannels[room]) {
-                        data.roomChannels[room] = [channel];
-                    } else {
+                    if (data.roomChannels[room]) {
                         data.roomChannels[room].push(channel);
+                    } else {
+                        data.roomChannels[room] = [channel];
                     }
                     if (!data.roomDevices[room]) {
                         data.roomDevices[room] = [device];
@@ -160,10 +160,10 @@
                 Object.keys(data.channelFunctions).forEach(channel => {
                     const func = data.channelFunctions[channel];
                     const device = channel.split(':')[0];
-                    if (!data.functionChannels[func]) {
-                        data.functionChannels[func] = [channel];
-                    } else {
+                    if (data.functionChannels[func]) {
                         data.functionChannels[func].push(channel);
+                    } else {
+                        data.functionChannels[func] = [channel];
                     }
                     if (!data.functionDevices[func]) {
                         data.functionDevices[func] = [device];
@@ -173,7 +173,7 @@
                 });
                 Object.keys(data.channelNames).forEach(channel => {
                     const name = data.channelNames[channel];
-                    if (channel.match(/:[0-9]+$/)) {
+                    if (channel.match(/:\d+$/)) {
                         data.nameChannels[name] = channel;
                     } else {
                         data.nameDevices[name] = channel;
@@ -327,29 +327,27 @@
                         let roomCheck = false;
                         let functionCheck = false;
                         let deviceCheck = false;
-                        
+    
                         if (rooms.length > 0) {
                             rooms.forEach(room => {
                                 if (data.roomChannels[room].includes(channel)) {
                                     roomCheck = true;
                                 }
-
                             });
                         } else {
                             roomCheck = true;
                         }
-                        
+    
                         if (funcs.length > 0) {
                             funcs.forEach(func => {
                                 if (data.functionChannels[func].includes(channel)) {
                                     functionCheck = true;
                                 }
-
                             });
                         } else {
                             functionCheck = true;
                         }
-                        
+    
                         if (devices.length > 0) {
                             devices.forEach(device => {
                                 if (channel.startsWith(device)) {
@@ -371,7 +369,6 @@
 
                         if (rooms.length > 0) {
                             rooms.forEach(room => {
-
                                 if (data.roomDevices[room].includes(device)) {
                                     roomCheck = true;
                                 }
@@ -385,7 +382,6 @@
 
                         if (funcs.length > 0) {
                             funcs.forEach(func => {
-
                                 if (data.functionDevices[func].includes(device)) {
                                     functionCheck = true;
                                 }
@@ -439,7 +435,6 @@
                                         });
                                     }
                                 });
-
                             }
                         }
                     });

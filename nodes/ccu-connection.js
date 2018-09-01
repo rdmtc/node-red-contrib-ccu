@@ -131,7 +131,9 @@ module.exports = function (RED) {
                         metadata: config.metadata,
                         paramsetDescriptions: config.paramsetDescriptions,
                         rooms: config.rooms,
-                        functions: config.functions
+                        functions: config.functions,
+                        channelRooms: config.channelRooms,
+                        channelFunctions: config.channelFunctions
                     }));
             }
         } else {
