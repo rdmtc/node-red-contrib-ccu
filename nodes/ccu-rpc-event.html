@@ -241,13 +241,15 @@
                     if (devices.length === 0) {
                         if (deviceNames.length > 0) {
                             deviceNames.forEach(deviceName => {
-                                devices.push(data.nameDevices[deviceName]);
+                                if (deviceName) {
+                                    devices.push(data.nameDevices[deviceName]);
+                                }
                             });
                         } else if (deviceTypes.length > 0) {
                             deviceTypes.forEach(deviceType => {
                                 if (data.metadata.types[iface][deviceType]) {
                                     data.metadata.types[iface][deviceType].forEach(device => {
-                                        if (!devices.includes(device)) {
+                                        if (device && !devices.includes(device)) {
                                             devices.push(device);
                                         }
                                     });
@@ -265,7 +267,7 @@
                             channelTypes.forEach(channelType => {
                                 if (data.metadata.types[iface][channelType]) {
                                     data.metadata.types[iface][channelType].forEach(channel => {
-                                        if (!channels.includes(channel)) {
+                                        if (channel && !channels.includes(channel)) {
                                             channels.push(channel);
                                         }
                                     });
@@ -320,7 +322,7 @@
                     }
 
                     function checkChannel(channel) {
-                        if (!data.metadata.devices[iface][channel]) {
+                        if (!channel || !data.metadata.devices[iface][channel]) {
                             return true;
                         }
 
@@ -361,7 +363,7 @@
                     }
 
                     function checkDevice(device) {
-                        if (!data.metadata.devices[iface][device]) {
+                        if (!device || !data.metadata.devices[iface][device]) {
                             return true;
                         }
                         let roomCheck = false;
@@ -411,7 +413,7 @@
                             const psName = paramsetName(iface, data.metadata.devices[iface][dev], 'VALUES');
                             if (data.paramsetDescriptions[psName]) {
                                 Object.keys(data.paramsetDescriptions[psName]).forEach(dp => {
-                                    if (!lists.datapoint.includes(dp) && checkDatapoint(dp)) {
+                                    if (dp && !lists.datapoint.includes(dp) && checkDatapoint(dp)) {
                                         lists.datapoint.push(dp);
                                     }
                                 });
@@ -447,6 +449,10 @@
                         composeLists(iface);
                     });
                 }
+
+                Object.keys(lists).forEach(key => {
+                     lists[key].sort((a, b) => a.localeCompare(b));
+                });
 
                 $('#node-input-rooms').parent().find('.red-ui-typedInput-input input').autocomplete('option', 'source', data.rooms);
                 $('#node-input-functions').parent().find('.red-ui-typedInput-input input').autocomplete('option', 'source', data.functions);

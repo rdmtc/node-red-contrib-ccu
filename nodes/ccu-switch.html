@@ -217,6 +217,7 @@
                             arr.push(addr);
                         }
                     });
+                    arr.sort((a, b) => a.localeCompare(b));
                     $nodeInputChannel.autocomplete('option', 'source', arr);
 
                     if (!data[$nodeInputChannel.val().split(' ')[0]]) {
@@ -230,6 +231,7 @@
                     $('.RAMP_TIME').hide();
                     $('.ON_TIME').hide();
                     if (c) {
+                        c.datapoint.sort((a, b) => a.localeCompare(b));
                         $nodeInputDatapoint.autocomplete('option', 'source', c.datapoints);
                         if (c.datapoints.indexOf($nodeInputDatapoint.val()) === -1) {
                             $nodeInputDatapoint.val('').autocomplete('search');
