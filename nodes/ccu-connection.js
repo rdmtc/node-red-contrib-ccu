@@ -678,7 +678,7 @@ module.exports = function (RED) {
             Object.keys(this.channelNames).forEach(n => {
                 if (!found) {
                     if (this.channelNames[n] === name) {
-                        found = name;
+                        found = n;
                     }
                 }
             });
