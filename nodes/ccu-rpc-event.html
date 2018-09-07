@@ -451,7 +451,7 @@
                 }
 
                 Object.keys(lists).forEach(key => {
-                     lists[key].sort((a, b) => a.localeCompare(b));
+                    lists[key].sort((a, b) => a.localeCompare(b));
                 });
 
                 $('#node-input-rooms').parent().find('.red-ui-typedInput-input input').autocomplete('option', 'source', data.rooms);
