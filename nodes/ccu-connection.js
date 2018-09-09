@@ -1459,6 +1459,7 @@ module.exports = function (RED) {
             this.setIfaceStatus(iface, true);
 
             if (channel === 'CENTRAL' && datapoint === 'PONG') {
+                this.logger.debug('    < ' + iface + ' PONG ' + payload);
                 return;
             }
 
