@@ -71,10 +71,13 @@ module.exports = function (RED) {
                     if (devices) {
                         Object.keys(devices).forEach(addr => {
                             if (addr.match(/:\d+$/)) {
-                                obj[addr] = {
-                                    name: config.channelNames[addr],
-                                    datapoints: Object.keys(config.paramsetDescriptions[config.paramsetName(req.query.iface, devices[addr], 'VALUES')])
-                                };
+                                const psKey = config.paramsetName(req.query.iface, devices[addr], 'VALUES');
+                                if (config.paramsetDescriptions[psKey]) {
+                                    obj[addr] = {
+                                        name: config.channelNames[addr],
+                                        datapoints: Object.keys(config.paramsetDescriptions[psKey])
+                                    };
+                                }
                             }
                         });
                     }

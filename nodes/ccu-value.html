@@ -79,6 +79,7 @@
                 const url = 'ccu?config=' + nodeId + '&type=channels&iface=' + $nodeInputIface.val();
                 $.getJSON(url, d => {
                     data = d;
+                    console.log(d);
                     autocompleteChannel();
                     autocompleteDatapoint();
                 });
@@ -147,11 +148,12 @@
             }
 
             function autocompleteDatapoint() {
-                const c = data[$nodeInputChannel.val().split(' ')[0]];
+                const chName = $nodeInputChannel.val().split(' ')[0];
+                const c = data[chName];
                 $('.RAMP_TIME').hide();
                 $('.ON_TIME').hide();
                 if (c) {
-                    c.datapoint.sort((a, b) => a.localeCompare(b));
+                    c.datapoints.sort((a, b) => a.localeCompare(b));
                     $nodeInputDatapoint.autocomplete('option', 'source', c.datapoints);
                     if (c.datapoints.indexOf($nodeInputDatapoint.val()) === -1) {
                         $nodeInputDatapoint.val('').autocomplete('search');
