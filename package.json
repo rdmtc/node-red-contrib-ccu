@@ -63,7 +63,8 @@
     ],
     "rules": {
       "no-template-curly-in-string": "warn",
-      "capitalized-comments": 0
+      "capitalized-comments": 0,
+      "unicorn/catch-error-name": 0
     },
     "ignore": [
       "nodes/ccu-switch.js",
