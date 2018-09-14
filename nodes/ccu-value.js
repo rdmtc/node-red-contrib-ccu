@@ -38,7 +38,7 @@ module.exports = function (RED) {
 
             this.on('input', msg => {
                 const [tIface, tChannel, tDatapoint] = (msg.topic || '').split('.');
-                const iface = config.iface || msg.interface || tIface;
+                const iface = config.iface || msg.interface || msg.iface || tIface;
                 const channel = (config.channel || msg.channel || tChannel || '').split(' ')[0];
                 const datapoint = config.datapoint || msg.datapoint || tDatapoint;
 

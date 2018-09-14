@@ -49,7 +49,7 @@
                 }
                 ifacesPending = true;
                 console.log('loadIfaces()');
-                $nodeInputIface.html('<option></option>');
+                $nodeInputIface.html('<option value=""></option>');
                 const nodeId = $nodeInputCcuConfig.val();
                 if (nodeId === '_ADD_') {
                     if (typeof cb === 'function') {
@@ -60,7 +60,9 @@
                     const url = 'ccu?config=' + nodeId + '&type=ifaces';
                     $.getJSON(url, d => {
                         Object.keys(d).forEach(i => {
-                            $nodeInputIface.append('<option' + (d[i].enabled ? '' : ' disabled') + (i === iface ? ' selected' : '') + '>' + i + '</option>');
+                            if (i !== 'ReGaHSS') {
+                                $nodeInputIface.append('<option' + (d[i].enabled ? '' : ' disabled') + (i === iface ? ' selected' : '') + '>' + i + '</option>');
+                            }
                         });
                         if (typeof cb === 'function') {
                             cb();
