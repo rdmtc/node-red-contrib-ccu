@@ -452,8 +452,10 @@ module.exports = function (RED) {
                         res.forEach(dp => {
                             const ts = (new Date(dp.ts + ' UTC+' + (d.getTimezoneOffset() / -60))).getTime();
                             const [iface, channel, datapoint] = dp.name.split('.');
-                            const msg = this.createMessage(iface, channel, datapoint, dp.value, {cache: true, ts, lc: ts});
-                            this.callCallbacks(msg);
+                            if (datapoint && !datapoint.startsWith('PRESS_')) {
+                                const msg = this.createMessage(iface, channel, datapoint, dp.value, {cache: true, ts, lc: ts});
+                                this.callCallbacks(msg);
+                            }
                         });
                         resolve();
                     }
