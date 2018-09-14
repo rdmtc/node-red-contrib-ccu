@@ -20,6 +20,8 @@
             topicInputRpc: {value: 'hm/rpc/${iface}/${method}/${command}/${callid}'}, // eslint-disable-line no-template-curly-in-string
             topicOutputRpc: {value: 'hm/response/${callid}'}, // eslint-disable-line no-template-curly-in-string
 
+            topicCounters: {value: 'hm/status/counter/${iface}/${rxtx}'}, // eslint-disable-line no-template-curly-in-string
+
             payloadOutput: {value: 'mqsh-extended'}
         },
         inputs: 1,
@@ -96,7 +98,12 @@
         <input type="text" id="node-input-topicOutputRpc">
     </div>
     -->
-        <div class="form-row">
+    <div class="form-row">
+        <label for="node-input-topicCounters">Message Counters</label>
+        <input type="text" id="node-input-topicCounters">
+    </div>
+
+    <div class="form-row">
         <b>Payload Configuration</b>
     </div>
     <div class="form-row">

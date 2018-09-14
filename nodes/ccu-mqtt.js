@@ -25,6 +25,10 @@ module.exports = function (RED) {
 
             this.topicInputRpc = config.topicInputRpc;
 
+            this.topicCounters = config.topicCounters;
+            this.rxCounters = {};
+            this.txCounters = {};
+
             this.payloadOutput = config.payloadOutput;
 
             this.ccu.register(this);
@@ -46,6 +50,19 @@ module.exports = function (RED) {
             });
 
             this.on('close', this._destructor);
+
+            if (this.topicCounters) {
+                setTimeout(() => {
+                    this.ccu.enabledIfaces.forEach(iface => {
+                        this.send({topic: this.ccu.topicReplace(this.topicCounters, {iface, rxtx: 'rx'}), payload: '0', retain: true});
+                        this.send({topic: this.ccu.topicReplace(this.topicCounters, {iface, rxtx: 'tx'}), payload: '0', retain: true});
+                    });
+                }, 25000);
+                setInterval(() => {
+                    this.checkCounters('rxCounters');
+                    this.checkCounters('txCounters');
+                }, 30000);
+            }
         }
 
         _destructor(done) {
@@ -55,6 +72,17 @@ module.exports = function (RED) {
             this.ccu.unsubscribeProgram(this.idProgramSubscription);
             this.ccu.deregister(this);
             done();
+        }
+
+        checkCounters(c) {
+            Object.keys(this.ccu[c]).forEach(iface => {
+                if (this.ccu[c][iface] !== this[c][iface]) {
+                    this[c][iface] = this.ccu[c][iface];
+                    const topic = this.ccu.topicReplace(this.topicCounters, {iface, rxtx: c.substr(0, 2)});
+                    const payload = this[c][iface];
+                    this.send({topic, payload, retain: true});
+                }
+            });
         }
 
         setStatus(data) {

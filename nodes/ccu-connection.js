@@ -238,6 +238,8 @@ module.exports = function (RED) {
             this.regaPollEnabled = config.regaPoll;
             this.regaInterval = parseInt(config.regaInterval, 10);
 
+            this.enabledIfaces = [];
+
             this.clients = {};
             this.servers = {};
 
@@ -271,6 +273,8 @@ module.exports = function (RED) {
             this.setValueCache = {};
 
             this.lastEvent = {};
+            this.rxCounters = {};
+            this.txCounters = {};
 
             this.metadataFile = path.join(RED.settings.userDir, 'ccu_' + this.host + '.json');
             this.loadMetadata();
@@ -836,12 +840,11 @@ module.exports = function (RED) {
         }
 
         initIfaces(config) {
-            const enabledIfaces = [];
             Object.keys(this.ifaceTypes).forEach(iface => {
                 const enabled = config[this.ifaceTypes[iface].conf + 'Enabled'];
                 this.ifaceTypes[iface].enabled = enabled;
                 if (enabled) {
-                    enabledIfaces.push(iface);
+                    this.enabledIfaces.push(iface);
                     this.setIfaceStatus(iface, false);
                     this.createClient(iface)
                         .then(() => {
@@ -852,7 +855,7 @@ module.exports = function (RED) {
                         .catch(() => {});
                 }
             });
-            this.logger.info('Interfaces:', enabledIfaces.join(', '));
+            this.logger.info('Interfaces:', this.enabledIfaces.join(', '));
         }
 
         createClient(iface) {
@@ -1280,6 +1283,13 @@ module.exports = function (RED) {
                         this.publishEvent(call.params, working, direction);
                     });
                     this.logger.debug('    >', iface, 'system.multicall', JSON.stringify(result));
+
+                    if (this.rxCounters[iface]) {
+                        this.rxCounters[iface] += 1;
+                    } else {
+                        this.rxCounters[iface] = 1;
+                    }
+
                     callback(null, '');
                 }
             };
@@ -1536,6 +1546,11 @@ module.exports = function (RED) {
                             resolve(res);
                         }
                     });
+                    if (this.txCounters[iface]) {
+                        this.txCounters[iface] += 1;
+                    } else {
+                        this.txCounters[iface] = 1;
+                    }
                 } else if (this.ifaceTypes[iface]) {
                     this.logger.debug('defering methodCall ' + iface + ' ' + method + ' ' + JSON.stringify(params));
                     if (this.methodCallQueue[iface]) {
