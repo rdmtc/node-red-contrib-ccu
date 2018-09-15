@@ -939,7 +939,7 @@ module.exports = function (RED) {
                 this.setIfaceStatus(iface, false);
                 this.logger.warn('ping timeout', iface, elapsed);
                 this.methodCall(iface, 'init', [this.initUrl(iface), ''])
-                    .catch()
+                    .catch(() => {})
                     .then(() => {
                         setTimeout(() => {
                             this.rpcInit(iface);
