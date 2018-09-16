@@ -937,13 +937,7 @@ module.exports = function (RED) {
             if (elapsed > pingTimeout) {
                 this.setIfaceStatus(iface, false);
                 this.logger.warn('ping timeout', iface, elapsed);
-                this.methodCall(iface, 'init', [this.initUrl(iface), ''])
-                    .catch(() => {})
-                    .then(() => {
-                        setTimeout(() => {
-                            this.rpcInit(iface);
-                        }, 1000);
-                    });
+                this.rpcInit(iface);
                 return;
             }
             if (elapsed >= (pingTimeout / 2)) {
