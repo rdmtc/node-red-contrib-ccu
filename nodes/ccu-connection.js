@@ -1208,6 +1208,12 @@ module.exports = function (RED) {
                     this.logger.debug('    >', iface, 'system.listMethods', JSON.stringify(res));
                     callback(null, res);
                 },
+                setReadyConfig: (_, params, callback) => {
+                    const [idInit] = params;
+                    const iface = idInit.replace(/^nr_/, '');
+                    this.logger.debug('    >', iface, 'setReadyConfig ""');
+                    callback(null, '');
+                },
                 updateDevice: (_, params, callback) => {
                     const [idInit] = params;
                     const iface = idInit.replace(/^nr_/, '');
