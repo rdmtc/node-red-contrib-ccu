@@ -1563,7 +1563,6 @@ module.exports = function (RED) {
                         }
                     });
                     if (['setValue', 'putParamset', 'activateLinkParamset'].includes(method)) {
-
                         if (this.txCounters[iface]) {
                             this.txCounters[iface] += 1;
                         } else {
