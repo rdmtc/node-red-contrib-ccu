@@ -1556,10 +1556,12 @@ module.exports = function (RED) {
                             resolve(res);
                         }
                     });
-                    if (this.txCounters[iface]) {
-                        this.txCounters[iface] += 1;
-                    } else {
-                        this.txCounters[iface] = 1;
+                    if (['setValue', 'putParamset'].includes(method)) {
+                        if (this.txCounters[iface]) {
+                            this.txCounters[iface] += 1;
+                        } else {
+                            this.txCounters[iface] = 1;
+                        }
                     }
                 } else if (this.ifaceTypes[iface]) {
                     this.logger.debug('defering methodCall ' + iface + ' ' + method + ' ' + JSON.stringify(params));
