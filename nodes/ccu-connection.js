@@ -1017,6 +1017,9 @@ module.exports = function (RED) {
                             this.logger.error('rpc <', iface, method, err);
                         }
                         this.logger.debug('rpc <', iface, method, JSON.stringify(params));
+                        if (method === 'event') {
+                            method = 'eventSingle';
+                        }
                         this.rpcMethods[method](err, params, callback);
                     });
                 });
@@ -1272,6 +1275,21 @@ module.exports = function (RED) {
                     this.publishEvent(params);
                     callback(null, '');
                 },
+                eventSingle: (_, params, callback) => {
+                    const [idInit] = params;
+                    const iface = idInit.replace(/^nr_/, '');
+                    this.logger.debug('    >', iface, 'event ""');
+                    this.publishEvent(params);
+
+                    if (params[2] !== 'PONG') {
+                        if (this.rxCounters[iface]) {
+                            this.rxCounters[iface] += 1;
+                        } else {
+                            this.rxCounters[iface] = 1;
+                        }
+                    }
+                    callback(null, '');
+                },
                 'system.multicall': (_, params, callback) => {
                     const result = [];
                     let iface;
@@ -1279,10 +1297,14 @@ module.exports = function (RED) {
                     const queue = [];
                     let working;
                     let direction;
+                    let pong = true;
                     params[0].forEach(call => {
                         if (call.methodName === 'event') {
                             queue.push(call);
                             const [idInit, , datapoint, value] = call.params;
+                            if (datapoint !== 'PONG') {
+                                pong = false;
+                            }
                             if (datapoint === 'WORKING' && value) {
                                 working = true;
                             }
@@ -1292,6 +1314,7 @@ module.exports = function (RED) {
                             iface = idInit.replace(/^nr_/, '');
                             result.push('');
                         } else if (this.rpcMethods[call.methodName]) {
+                            pong = false;
                             this.rpcMethods[call.methodName](call.params, res => result.push(res));
                         }
                     });
@@ -1300,10 +1323,12 @@ module.exports = function (RED) {
                     });
                     this.logger.debug('    >', iface, 'system.multicall', JSON.stringify(result));
 
-                    if (this.rxCounters[iface]) {
-                        this.rxCounters[iface] += 1;
-                    } else {
-                        this.rxCounters[iface] = 1;
+                    if (!pong) {
+                        if (this.rxCounters[iface]) {
+                            this.rxCounters[iface] += 1;
+                        } else {
+                            this.rxCounters[iface] = 1;
+                        }
                     }
 
                     callback(null, '');
