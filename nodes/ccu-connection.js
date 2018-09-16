@@ -888,7 +888,7 @@ module.exports = function (RED) {
                         this.lastEvent[iface] = now();
                         this.setIfaceStatus(iface, true);
                         if (iface === 'CUxD') {
-                            this.getCuxdDevices();
+                            this.getDevices(iface);
                         }
                         if (this.ifaceTypes[iface].ping) {
                             this.rpcCheckInit(iface);
@@ -898,8 +898,7 @@ module.exports = function (RED) {
             });
         }
 
-        getCuxdDevices() {
-            const iface = 'CUxD';
+        getDevices(iface) {
             this.methodCall(iface, 'listDevices', []).then(devices => {
                 if (!this.metadata.devices[iface]) {
                     this.metadata.devices[iface] = {};
@@ -1215,7 +1214,22 @@ module.exports = function (RED) {
                     this.logger.debug('    >', iface, 'system.listMethods', JSON.stringify(res));
                     callback(null, res);
                 },
-                setReadyConfig: (_, params, callback) => {
+                updateDevice: (_, params, callback) => {
+                    const [idInit] = params;
+                    const iface = idInit.replace(/^nr_/, '');
+                    this.logger.debug('    >', iface, 'updateDevice ""');
+                    callback(null, '');
+                },
+                replaceDevice: (_, params, callback) => {
+                    const [idInit] = params;
+                    const iface = idInit.replace(/^nr_/, '');
+                    this.logger.debug('    >', iface, 'replaceDevice ""');
+                    callback(null, '');
+                },
+                readdedDevice: (_, params, callback) => {
+                    const [idInit] = params;
+                    const iface = idInit.replace(/^nr_/, '');
+                    this.logger.debug('    >', iface, 'readdedDevice ""');
                     callback(null, '');
                 },
                 newDevices: (_, params, callback) => {
@@ -1251,8 +1265,6 @@ module.exports = function (RED) {
                     this.logger.debug('    >', iface, 'listDevices', JSON.stringify(res));
                     callback(null, res);
                 },
-                // TODO implement updateDevice
-                // TODO implement replaceDevice
                 event: (_, params, callback) => {
                     const [idInit] = params;
                     const iface = idInit.replace(/^nr_/, '');
