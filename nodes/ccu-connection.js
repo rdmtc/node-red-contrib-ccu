@@ -1315,7 +1315,7 @@ module.exports = function (RED) {
                             result.push('');
                         } else if (this.rpcMethods[call.methodName]) {
                             pong = false;
-                            this.rpcMethods[call.methodName](call.params, res => result.push(res));
+                            this.rpcMethods[call.methodName](call.params || [], res => result.push(res));
                         }
                     });
                     queue.forEach(call => {
