@@ -27,12 +27,10 @@ module.exports = function (RED) {
             this.name = config.name;
             this.topic = config.topic;
 
-            if (this.name) {
-                this.idSubscription = this.ccu.subscribeSysvar({name: this.name, cache: config.cache, change: config.change}, msg => {
-                    msg.topic = this.ccu.topicReplace(config.topic, msg);
-                    this.send(msg);
-                });
-            }
+            this.idSubscription = this.ccu.subscribeSysvar({name: this.name, cache: config.cache, change: config.change}, msg => {
+                msg.topic = this.ccu.topicReplace(config.topic, msg);
+                this.send(msg);
+            });
 
             this.on('input', this._input);
             this.on('close', this._destructor);
