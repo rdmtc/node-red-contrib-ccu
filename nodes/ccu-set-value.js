@@ -87,6 +87,12 @@ module.exports = function (RED) {
                         }
                     }
 
+                    if (this.functions) {
+                        if (!this.ccu.channelFunctions[address] || !this.ccu.channelFunctions[address].includes(this.functions)) {
+                            return;
+                        }
+                    }
+
                     const psKey = this.ccu.paramsetName(iface, channel, 'VALUES');
 
                     if (this.ccu.paramsetDescriptions[psKey] && Object.keys(this.ccu.paramsetDescriptions[psKey]).includes(this.datapoint)) {
