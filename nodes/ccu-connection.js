@@ -82,6 +82,11 @@ module.exports = function (RED) {
                     res.status(200).send(JSON.stringify(obj));
                     break;
                 }
+                case 'rooms':
+                    res.status(200).send(JSON.stringify({
+                        rooms: config.rooms
+                    }));
+                    break;
 
                 case 'sysvar':
                     res.status(200).send(JSON.stringify(config.sysvar));
@@ -1305,8 +1310,8 @@ module.exports = function (RED) {
                             if (datapoint !== 'PONG') {
                                 pong = false;
                             }
-                            if (datapoint === 'WORKING' && value) {
-                                working = true;
+                            if (datapoint === 'WORKING') {
+                                working = value;
                             }
                             if (datapoint === 'DIRECTION') {
                                 direction = value;
@@ -1522,8 +1527,19 @@ module.exports = function (RED) {
             this.logger.debug('publishEvent', JSON.stringify(params));
 
             const msg = this.createMessage(iface, channel, datapoint, payload, {cache: false, working, direction});
+            if (msg.channelType === 'DIMMER' && msg.datapoint === 'LEVEL' && !working) {
+                clearTimeout(this.workingTimeout);
+                this.workingTimeout = setTimeout(() => {
+                    const datapointName = iface + '.' + channel + '.';
+                    msg.working = this.values[datapointName + 'WORKING'] && this.values[datapointName + 'WORKING'].working;
+                    msg.direction = this.values[datapointName + 'DIRECTION'] && this.values[datapointName + 'DIRECTION'].direction;
+                    this.callCallbacks(msg);
+                }, 250);
+            } else {
+                this.callCallbacks(msg);
+            }
 
-            this.callCallbacks(msg);
+
         }
 
         callCallbacks(msg) {
