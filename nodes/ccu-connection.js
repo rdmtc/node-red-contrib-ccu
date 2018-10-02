@@ -1538,8 +1538,6 @@ module.exports = function (RED) {
             } else {
                 this.callCallbacks(msg);
             }
-
-
         }
 
         callCallbacks(msg) {
