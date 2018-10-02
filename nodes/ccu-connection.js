@@ -1527,14 +1527,14 @@ module.exports = function (RED) {
             this.logger.debug('publishEvent', JSON.stringify(params));
 
             const msg = this.createMessage(iface, channel, datapoint, payload, {cache: false, working, direction});
-            if (msg.channelType === 'DIMMER' && msg.datapoint === 'LEVEL' && !working) {
+            if (['DIMMER', 'BLIND'].includes(msg.channelType) && msg.datapoint === 'LEVEL' && !working) {
                 clearTimeout(this.workingTimeout);
                 this.workingTimeout = setTimeout(() => {
                     const datapointName = iface + '.' + channel + '.';
                     msg.working = this.values[datapointName + 'WORKING'] && this.values[datapointName + 'WORKING'].working;
                     msg.direction = this.values[datapointName + 'DIRECTION'] && this.values[datapointName + 'DIRECTION'].direction;
                     this.callCallbacks(msg);
-                }, 250);
+                }, 300);
             } else {
                 this.callCallbacks(msg);
             }
