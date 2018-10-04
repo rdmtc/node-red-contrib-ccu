@@ -1,6 +1,6 @@
 {
   "name": "node-red-contrib-ccu",
-  "version": "1.6.9",
+  "version": "1.6.10",
   "description": "Node-RED Nodes for the Homematic CCU",
   "repository": "https://github.com/hobbyquaker/node-red-contrib-ccu",
   "keywords": [
@@ -24,7 +24,7 @@
     "hm-discover": "^1.1.0",
     "homematic-rega": "^1.2.6",
     "homematic-xmlrpc": "^1.0.2",
-    "string-similarity": "^1.2.1",
+    "string-similarity": "^2.0.0",
     "mqtt-wildcard": "^3.0.9",
     "nextport": "^1.0.0"
   },
