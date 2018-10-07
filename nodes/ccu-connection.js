@@ -88,6 +88,12 @@ module.exports = function (RED) {
                     }));
                     break;
 
+                case 'functions':
+                    res.status(200).send(JSON.stringify({
+                        functions: config.functions
+                    }));
+                    break;
+
                 case 'sysvar':
                     res.status(200).send(JSON.stringify(config.sysvar));
                     break;
@@ -138,6 +144,8 @@ module.exports = function (RED) {
                         paramsetDescriptions: config.paramsetDescriptions,
                         rooms: config.rooms,
                         functions: config.functions,
+                        sysvar: config.sysvar,
+                        program: config.program,
                         channelRooms: config.channelRooms,
                         channelFunctions: config.channelFunctions
                     }));
@@ -713,6 +721,7 @@ module.exports = function (RED) {
                     value: sysvar.value,
                     valueType: sysvar.type,
                     valueEnum: sysvar.enum[Number(sysvar.val)],
+                    unit: sysvar.unit,
                     ts: sysvar.ts,
                     enum: sysvar.enum,
                     id: sysvar.id,
@@ -816,6 +825,7 @@ module.exports = function (RED) {
                             }
                             if (this.program[prg.name].active !== prg.active || this.program[prg.name].ts !== prg.ts) {
                                 this.program[prg.name] = {
+                                    id: prg.id,
                                     ccu: this.host,
                                     iface: 'ReGaHSS',
                                     type: 'PROGRAM',
