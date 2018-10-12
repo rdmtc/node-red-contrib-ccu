@@ -899,7 +899,7 @@ module.exports = function (RED) {
         rpcInit(iface) {
             return new Promise((resolve, reject) => {
                 const initUrl = this.rpcServer(iface);
-                this.methodCall(iface, 'init', [initUrl, 'nr_' + (Math.round(Math.random() * 0xffff)).toString(16) + '_' + iface])
+                this.methodCall(iface, 'init', [initUrl, 'nr_' + (Math.round(Math.random() * 65535)).toString(16) + '_' + iface])
                     .then(() => {
                         this.lastEvent[iface] = now();
                         this.setIfaceStatus(iface, true);
@@ -1661,7 +1661,6 @@ module.exports = function (RED) {
                         reject(err);
                     });
                 });
-
             }
             return new Promise(resolve => resolve());
         }
