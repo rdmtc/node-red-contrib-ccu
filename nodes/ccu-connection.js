@@ -472,6 +472,7 @@ module.exports = function (RED) {
                                 this.callCallbacks(msg);
                             }
                         });
+                        this.cachedValuesReceived = true;
                         resolve();
                     }
                 });
@@ -898,7 +899,7 @@ module.exports = function (RED) {
         rpcInit(iface) {
             return new Promise((resolve, reject) => {
                 const initUrl = this.rpcServer(iface);
-                this.methodCall(iface, 'init', [initUrl, 'nr_' + iface])
+                this.methodCall(iface, 'init', [initUrl, 'nr_' + (Math.round(Math.random() * 0xffff)).toString(16) + '_' + iface])
                     .then(() => {
                         this.lastEvent[iface] = now();
                         this.setIfaceStatus(iface, true);
@@ -1221,38 +1222,38 @@ module.exports = function (RED) {
             return {
                 'system.listMethods': (_, params, callback) => {
                     const [idInit] = params;
-                    const iface = idInit.replace(/^nr_/, '');
+                    const iface = idInit.replace(/^nr_[0-9a-f]*_?/, '');
                     const res = Object.keys(this.rpcMethods);
                     this.logger.debug('    >', iface, 'system.listMethods', JSON.stringify(res));
                     callback(null, res);
                 },
                 setReadyConfig: (_, params, callback) => {
                     const [idInit] = params;
-                    const iface = idInit.replace(/^nr_/, '');
+                    const iface = idInit.replace(/^nr_[0-9a-f]*_?/, '');
                     this.logger.debug('    >', iface, 'setReadyConfig ""');
                     callback(null, '');
                 },
                 updateDevice: (_, params, callback) => {
                     const [idInit] = params;
-                    const iface = idInit.replace(/^nr_/, '');
+                    const iface = idInit.replace(/^nr_[0-9a-f]*_?/, '');
                     this.logger.debug('    >', iface, 'updateDevice ""');
                     callback(null, '');
                 },
                 replaceDevice: (_, params, callback) => {
                     const [idInit] = params;
-                    const iface = idInit.replace(/^nr_/, '');
+                    const iface = idInit.replace(/^nr_[0-9a-f]*_?/, '');
                     this.logger.debug('    >', iface, 'replaceDevice ""');
                     callback(null, '');
                 },
                 readdedDevice: (_, params, callback) => {
                     const [idInit] = params;
-                    const iface = idInit.replace(/^nr_/, '');
+                    const iface = idInit.replace(/^nr_[0-9a-f]*_?/, '');
                     this.logger.debug('    >', iface, 'readdedDevice ""');
                     callback(null, '');
                 },
                 newDevices: (_, params, callback) => {
                     const [idInit, devices] = params;
-                    const iface = idInit.replace(/^nr_/, '');
+                    const iface = idInit.replace(/^nr_[0-9a-f]*_?/, '');
 
                     devices.forEach(device => {
                         this.newDevice(iface, device);
@@ -1265,7 +1266,7 @@ module.exports = function (RED) {
                 },
                 deleteDevices: (_, params, callback) => {
                     const [idInit, devices] = params;
-                    const iface = idInit.replace(/^nr_/, '');
+                    const iface = idInit.replace(/^nr_[0-9a-f]*_?/, '');
 
                     devices.forEach(device => {
                         this.deleteDevice(iface, device);
@@ -1278,21 +1279,21 @@ module.exports = function (RED) {
                 },
                 listDevices: (_, params, callback) => {
                     const [idInit] = params;
-                    const iface = idInit.replace(/^nr_/, '');
+                    const iface = idInit.replace(/^nr_[0-9a-f]*_?/, '');
                     const res = this.listDevices(iface) || [];
                     this.logger.debug('    >', iface, 'listDevices', JSON.stringify(res));
                     callback(null, res);
                 },
                 event: (_, params, callback) => {
                     const [idInit] = params;
-                    const iface = idInit.replace(/^nr_/, '');
+                    const iface = idInit.replace(/^nr_[0-9a-f]*_?/, '');
                     this.logger.debug('    >', iface, 'event ""');
                     this.publishEvent(params);
                     callback(null, '');
                 },
                 eventSingle: (_, params, callback) => {
                     const [idInit] = params;
-                    const iface = idInit.replace(/^nr_/, '');
+                    const iface = idInit.replace(/^nr_[0-9a-f]*_?/, '');
                     this.logger.debug('    >', iface, 'event ""');
                     this.publishEvent(params);
 
@@ -1326,7 +1327,7 @@ module.exports = function (RED) {
                             if (datapoint === 'DIRECTION') {
                                 direction = value;
                             }
-                            iface = idInit.replace(/^nr_/, '');
+                            iface = idInit.replace(/^nr_[0-9a-f]*_?/, '');
                             result.push('');
                         } else if (this.rpcMethods[call.methodName]) {
                             pong = false;
@@ -1425,6 +1426,9 @@ module.exports = function (RED) {
                 filter = filter || {};
                 this.logger.debug('subscribe', JSON.stringify(filter));
                 this.callbacks[id] = {filter, callback};
+
+                // TODO: if this.cachedValuesReceived generate message on new subscription
+
                 return id;
             }
             this.logger.error('subscribe called without callback');
@@ -1524,7 +1528,7 @@ module.exports = function (RED) {
 
         publishEvent(params, working, direction) {
             const [idInit, channel, datapoint, payload] = params;
-            const iface = idInit.replace(/^nr_/, '');
+            const iface = idInit.replace(/^nr_[0-9a-f]*_?/, '');
 
             this.lastEvent[iface] = now();
             this.setIfaceStatus(iface, true);
@@ -1541,8 +1545,8 @@ module.exports = function (RED) {
                 clearTimeout(this.workingTimeout);
                 this.workingTimeout = setTimeout(() => {
                     const datapointName = iface + '.' + channel + '.';
-                    msg.working = this.values[datapointName + 'WORKING'] && this.values[datapointName + 'WORKING'].working;
-                    msg.direction = this.values[datapointName + 'DIRECTION'] && this.values[datapointName + 'DIRECTION'].direction;
+                    msg.working = this.values[datapointName + 'WORKING'] && this.values[datapointName + 'WORKING'].value;
+                    msg.direction = this.values[datapointName + 'DIRECTION'] && this.values[datapointName + 'DIRECTION'].value;
                     this.callCallbacks(msg);
                 }, 300);
             } else {
@@ -1651,10 +1655,15 @@ module.exports = function (RED) {
                     this.setValueDeferred(id);
                 }, this.setValueThrottle);
 
-                return this.methodCall(iface, 'setValue', params).catch(err => {
-                    this.logger.error('rpc >', iface, 'setValue', JSON.stringify(params), '<', err);
+                return new Promise((resolve, reject) => {
+                    this.methodCall(iface, 'setValue', params).then(resolve).catch(err => {
+                        this.logger.error('rpc >', iface, 'setValue', JSON.stringify(params), '<', err);
+                        reject(err);
+                    });
                 });
+
             }
+            return new Promise(resolve => resolve());
         }
 
         setValueDeferred(id) {
