@@ -63,7 +63,6 @@ module.exports = function (RED) {
                     res.status(200).send(JSON.stringify(obj));
                     break;
                 }
-
                 case 'channels': {
                     const devices = config.metadata.devices[req.query.iface];
                     if (devices) {
@@ -278,6 +277,7 @@ module.exports = function (RED) {
             this.program = {};
 
             this.values = {};
+            this.links = {};
 
             this.setValueThrottle = 500;
             this.setValueTimers = {};
@@ -903,42 +903,63 @@ module.exports = function (RED) {
                     .then(() => {
                         this.lastEvent[iface] = now();
                         this.setIfaceStatus(iface, true);
-                        if (iface === 'CUxD') {
-                            this.getDevices(iface);
-                        }
                         if (this.ifaceTypes[iface].ping) {
                             this.rpcCheckInit(iface);
                         }
-                        resolve(iface);
+                        if (iface === 'CUxD') {
+                            this.getDevices(iface).then(() => resolve(iface)).catch(() => resolve(iface));
+                        } else if (['BidCos-RF', 'BidCos-Wired', 'HmIP-RF'].includes(iface)) {
+                            this.methodCall(iface, 'getLinks', []).then(res => {
+                                this.links[iface] = res;
+                                resolve(iface);
+                            }).catch(() => resolve(iface));
+                        } else {
+                            resolve(iface);
+                        }
                     }).catch(err => reject(err));
             });
         }
 
+        getLinks(iface, address, receiver) {
+            const links = [];
+            if (this.links[iface]) {
+                this.links[iface].forEach(link => {
+                    if (link[receiver ? 'RECEIVER' : 'SENDER'] === address) {
+                        links.push(link[receiver ? 'SENDER' : 'RECEIVER']);
+                    }
+                });
+            }
+            return links;
+        }
+
         getDevices(iface) {
-            this.methodCall(iface, 'listDevices', []).then(devices => {
-                if (!this.metadata.devices[iface]) {
-                    this.metadata.devices[iface] = {};
-                }
-                const knownDevices = [];
-                let change = false;
-                devices.forEach(device => {
-                    knownDevices.push(device.ADDRESS);
-                    if (!this.metadata.devices[iface][device.ADDRESS]) {
-                        this.newDevice(iface, device);
-                        change = true;
+            return new Promise((resolve, reject) => {
+                this.methodCall(iface, 'listDevices', []).then(devices => {
+                    if (!this.metadata.devices[iface]) {
+                        this.metadata.devices[iface] = {};
                     }
-                });
+                    const knownDevices = [];
+                    let change = false;
+                    devices.forEach(device => {
+                        knownDevices.push(device.ADDRESS);
+                        if (!this.metadata.devices[iface][device.ADDRESS]) {
+                            this.newDevice(iface, device);
+                            change = true;
+                        }
+                    });
 
-                Object.keys(this.metadata.devices[iface]).forEach(addr => {
-                    if (!knownDevices.includes(addr)) {
-                        this.deleteDevice(iface, addr);
-                        change = true;
+                    Object.keys(this.metadata.devices[iface]).forEach(addr => {
+                        if (!knownDevices.includes(addr)) {
+                            this.deleteDevice(iface, addr);
+                            change = true;
+                        }
+                    });
+
+                    if (change) {
+                        this.saveMetadata();
                     }
-                });
-
-                if (change) {
-                    this.saveMetadata();
-                }
+                    resolve();
+                }).catch(reject);
             });
         }
 
