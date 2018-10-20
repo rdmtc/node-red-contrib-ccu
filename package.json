@@ -22,7 +22,7 @@
   "dependencies": {
     "binrpc": "^3.2.2",
     "hm-discover": "^1.1.0",
-    "homematic-rega": "^1.3.0",
+    "homematic-rega": "^1.3.1",
     "homematic-xmlrpc": "^1.0.2",
     "string-similarity": "^2.0.0",
     "mqtt-wildcard": "^3.0.9",
