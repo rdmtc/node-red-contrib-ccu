@@ -98,7 +98,7 @@ module.exports = function (RED) {
                 const msgNotWorking = RED.util.cloneMessage(msg);
                 msgNotWorking.datapoint += '_NOTWORKING';
                 msgNotWorking.datapointName += '_NOTWORKING';
-                this.send({topic, payload: this.output(msg), retain: true});
+                this.send({topic: this.ccu.topicReplace(this.topicOutputEvent, msgNotWorking), payload: this.output(msgNotWorking), retain: true});
             }
         }
 
