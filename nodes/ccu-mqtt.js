@@ -94,7 +94,7 @@ module.exports = function (RED) {
             const retain = !(msg.datapoint && msg.datapoint.startsWith('PRESS_'));
             this.send({topic, payload: this.output(msg), retain});
 
-            if (msg.working === false) {
+            if (['LEVEL', 'STATE'].includes(msg.datapoint) && msg.working === false) {
                 const msgNotWorking = RED.util.cloneMessage(msg);
                 msgNotWorking.datapoint += '_NOTWORKING';
                 msgNotWorking.datapointName += '_NOTWORKING';
