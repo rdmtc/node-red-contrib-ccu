@@ -1731,7 +1731,11 @@ module.exports = function (RED) {
                         }
                     // eslint-disable-line no-fallthrough
                     case 'INTEGER':
-                        value = parseInt(value, 10);
+                        if (typeof value === 'boolean') {
+                            value = Number(value);
+                        } else {
+                            value = parseInt(value, 10) || 0;
+                        }
                         if (typeof paramset.MIN !== 'undefined' && value < paramset.MIN) {
                             value = paramset.MIN;
                         } else if (typeof paramset.MAX !== 'undefined' && value > paramset.MAX) {
