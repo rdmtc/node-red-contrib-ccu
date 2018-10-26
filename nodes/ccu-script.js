@@ -23,6 +23,8 @@ module.exports = function (RED) {
             script += '\n\nvar nr_script_call_success = true;\n';
             this.ccu.script(script)
                 .then(msg => {
+                    msg.iface = this.iface;
+                    msg.ccu = this.ccu.host;
                     msg.topic = this.ccu.topicReplace(this.topic, msg);
                     this.send(msg);
                     if (msg && msg.objects && msg.objects.nr_script_call_success === 'true') {
