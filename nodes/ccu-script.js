@@ -25,7 +25,7 @@ module.exports = function (RED) {
                 .then(msg => {
                     msg.topic = this.ccu.topicReplace(this.topic, msg);
                     this.send(msg);
-                    if (msg && msg.objects && msg.objects.nr_script_call_success) {
+                    if (msg && msg.objects && msg.objects.nr_script_call_success === 'true') {
                         this.status({fill: 'green', shape: 'dot', text: 'success'});
                     } else {
                         this.status({fill: 'red', shape: 'dot', text: 'error'});
