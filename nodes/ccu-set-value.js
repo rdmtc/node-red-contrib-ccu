@@ -49,7 +49,7 @@ module.exports = function (RED) {
         createQueue(msg) {
             const queue = [];
             Object.keys(this.ccu.metadata.devices).forEach(iface => {
-                if (this.iface && iface === this.iface) {
+                if (this.iface && iface !== this.iface) {
                     return;
                 }
                 Object.keys(this.ccu.metadata.devices[iface]).forEach(address => {
