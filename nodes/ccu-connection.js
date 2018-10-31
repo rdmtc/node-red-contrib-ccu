@@ -1342,11 +1342,21 @@ module.exports = function (RED) {
                             if (datapoint !== 'PONG') {
                                 pong = false;
                             }
+
                             if (datapoint === 'WORKING') {
                                 working = value;
-                            }
-                            if (datapoint === 'DIRECTION') {
+                            } else if (datapoint === 'PROCESS') {
+                                working = Boolean(value);
+                            } else if (datapoint === 'DIRECTION') {
                                 direction = value;
+                            } else if (datapoint === 'ACTIVITY_STATE') {
+                                if (value === 3) {
+                                    direction = 0;
+                                } else if (value === 0) {
+                                    direction = 3;
+                                } else {
+                                    direction = value;
+                                }
                             }
                             iface = idInit.replace(/^nr_[0-9a-f]*_?/, '');
                             result.push('');
@@ -1562,12 +1572,27 @@ module.exports = function (RED) {
             this.logger.debug('publishEvent', JSON.stringify(params));
 
             const msg = this.createMessage(iface, channel, datapoint, payload, {cache: false, working, direction});
-            if (['DIMMER', 'BLIND'].includes(msg.channelType) && msg.datapoint === 'LEVEL' && !working) {
+            if (msg.channelType.match(/BLIND|DIMMER/) && msg.datapoint === 'LEVEL' && !working) {
                 clearTimeout(this.workingTimeout);
                 this.workingTimeout = setTimeout(() => {
                     const datapointName = iface + '.' + channel + '.';
-                    msg.working = this.values[datapointName + 'WORKING'] && this.values[datapointName + 'WORKING'].value;
-                    msg.direction = this.values[datapointName + 'DIRECTION'] && this.values[datapointName + 'DIRECTION'].value;
+                    if (this.values[datapointName + 'WORKING']) {
+                        msg.working = this.values[datapointName + 'WORKING'].value;
+                    } else if (this.values[datapointName + 'PROCESS']) {
+                        msg.working = Boolean(this.values[datapointName + 'PROCESS'].value);
+                    }
+                    if (this.values[datapointName + 'DIRECTION']) {
+                        msg.direction = this.values[datapointName + 'DIRECTION'].value;
+                    } else if (this.values[datapointName + 'ACTIVITY_STATE']) {
+                        const direction = this.values[datapointName + 'ACTIVITY_STATE'].value;
+                        if (direction === 0) {
+                            msg.direction = 3;
+                        } else if (direction === 3) {
+                            msg.direction = 0;
+                        } else {
+                            msg.direction = direction;
+                        }
+                    }
                     this.callCallbacks(msg);
                 }, 300);
             } else {
