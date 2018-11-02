@@ -1572,7 +1572,7 @@ module.exports = function (RED) {
             this.logger.debug('publishEvent', JSON.stringify(params));
 
             const msg = this.createMessage(iface, channel, datapoint, payload, {cache: false, working, direction});
-            if (msg.channelType.match(/BLIND|DIMMER/) && msg.datapoint === 'LEVEL' && !working) {
+            if (msg.channelType && msg.channelType.match(/BLIND|DIMMER/) && msg.datapoint === 'LEVEL' && !working) {
                 clearTimeout(this.workingTimeout);
                 this.workingTimeout = setTimeout(() => {
                     const datapointName = iface + '.' + channel + '.';
