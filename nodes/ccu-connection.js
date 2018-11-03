@@ -169,33 +169,45 @@ module.exports = function (RED) {
             this.ifaceTypes = {
                 ReGaHSS: {
                     conf: 'rega',
-                    rpc: binrpc,
+                    rpc: xmlrpc,
+                    localRpc: binrpc,
                     port: 1999,
-                    protocol: 'binrpc',
+                    localPort: 31999,
+                    protocol: 'http',
+                    localProtocol: 'binrpc',
                     init: false,
                     ping: false
                 },
                 'BidCos-RF': {
                     conf: 'bcrf',
-                    rpc: binrpc,
+                    rpc: xmlrpc,
+                    localRpc: binrpc,
                     port: 2001,
-                    protocol: 'binrpc',
+                    localPort: 32001,
+                    protocol: 'http',
+                    localProtocol: 'binrpc',
                     init: true,
                     ping: true
                 },
                 'BidCos-Wired': {
                     conf: 'bcwi',
-                    rpc: binrpc,
+                    rpc: xmlrpc,
+                    localRpc: binrpc,
                     port: 2000,
-                    protocol: 'binrpc',
+                    localPort: 32000,
+                    protocol: 'http',
+                    localProtocol: 'binrpc',
                     init: true,
                     ping: true
                 },
                 'HmIP-RF': {
                     conf: 'iprf',
                     rpc: xmlrpc,
+                    localRpc: xmlrpc,
                     port: 2010,
+                    localPort: 32010,
                     protocol: 'http',
+                    localProtocol: 'http',
                     init: true,
                     ping: true, // Todo https://github.com/eq-3/occu/issues/42 - should be fixed, but isn't
                     pingTimeout: 600 // Overwrites ccu-connection config
@@ -203,17 +215,23 @@ module.exports = function (RED) {
                 VirtualDevices: {
                     conf: 'virt',
                     rpc: xmlrpc,
+                    localRpc: xmlrpc,
                     port: 9292,
+                    localPort: 39292,
                     path: '/groups',
                     protocol: 'http',
+                    localProtocol: 'http',
                     init: true,
                     ping: false // Todo ?
                 },
                 CUxD: {
                     conf: 'cuxd',
                     rpc: binrpc,
+                    localRpc: binrpc,
                     port: 8701,
+                    localPort: 8701,
                     protocol: 'binrpc',
+                    localProtocol: 'binrpc',
                     init: true,
                     ping: true
                 }
@@ -224,6 +242,18 @@ module.exports = function (RED) {
             this.users = {};
 
             this.logger.debug('ccu-connection', config.host);
+
+            this.isLocal = false;
+            if (config.host === '127.0.0.1' || config.host === 'localhost') {
+                try {
+                    const rfdConf = fs.readFileSync('/etc/config/rfd.conf').toString();
+                    if (rfdConf.match(/Listen Port\s*=\s*32001/)) {
+                        this.logger.info('local connection detected');
+                        this.isLocal = true;
+                    }
+                } catch (error) {}
+            }
+
 
             this.globalContext = this.context().global;
             this.contextStore = config.contextStore;
@@ -874,16 +904,16 @@ module.exports = function (RED) {
 
         createClient(iface) {
             return new Promise(resolve => {
-                const {rpc, port, path, protocol} = this.ifaceTypes[iface];
+                const {rpc, localRpc, port, localPort, path, protocol, localProtocol} = this.ifaceTypes[iface];
                 const clientOptions = {};
                 if (path) {
-                    clientOptions.url = protocol + '://' + this.host + ':' + port + '/' + path;
+                    clientOptions.url = protocol + '://' + this.host + ':' + (this.isLocal ? localPort : port) + '/' + path;
                 } else {
                     clientOptions.host = this.host;
-                    clientOptions.port = port;
+                    clientOptions.port = (this.isLocal ? localPort : port);
                 }
-                this.clients[iface] = rpc.createClient(clientOptions);
-                this.logger.debug('rpc client createad', iface, JSON.stringify(clientOptions));
+                this.clients[iface] = (this.isLocal ? localRpc : rpc).createClient(clientOptions);
+                this.logger.debug('rpc client created', iface, JSON.stringify(clientOptions));
                 if (this.methodCallQueue[iface]) {
                     this.methodCallQueue[iface].forEach(c => {
                         this.methodCall(iface, c[0], c[1])
@@ -1036,20 +1066,22 @@ module.exports = function (RED) {
         }
 
         initUrl(iface) {
-            const {protocol} = this.ifaceTypes[iface];
-            const port = (protocol === 'binrpc' ? this.rpcBinPort : this.rpcXmlPort);
-            return protocol + '://' + (this.rpcInitAddress || this.rpcServerHost) + ':' + port;
+            const {protocol, localProtocol} = this.ifaceTypes[iface];
+            const proto = this.isLocal ? localProtocol : protocol;
+            const port = (proto === 'binrpc' ? this.rpcBinPort : this.rpcXmlPort);
+            return proto + '://' + (this.rpcInitAddress || this.rpcServerHost) + ':' + port;
         }
 
         rpcServer(iface) {
             const url = this.initUrl(iface);
-            const {rpc, protocol} = this.ifaceTypes[iface];
-            const port = (protocol === 'binrpc' ? this.rpcBinPort : this.rpcXmlPort);
-            if (!this.servers[protocol]) {
-                this.servers[protocol] = rpc.createServer({host: this.rpcServerHost, port});
-                this.logger.info(protocol === 'binrpc' ? 'binrpc' : 'xmlrpc', 'server listening on', url);
+            const {rpc, localRpc, protocol, localProtocol} = this.ifaceTypes[iface];
+            const proto = this.isLocal ? localProtocol : protocol;
+            const port = (proto === 'binrpc' ? this.rpcBinPort : this.rpcXmlPort);
+            if (!this.servers[proto]) {
+                this.servers[proto] = (this.isLocal ? localRpc : rpc).createServer({host: this.rpcServerHost, port});
+                this.logger.info(proto === 'binrpc' ? 'binrpc' : 'xmlrpc', 'server listening on', url);
                 Object.keys(this.rpcMethods).forEach(method => {
-                    this.servers[protocol].on(method, (err, params, callback) => {
+                    this.servers[proto].on(method, (err, params, callback) => {
                         if (err) {
                             this.logger.error('rpc <', iface, method, err);
                         }
@@ -1060,8 +1092,8 @@ module.exports = function (RED) {
                         this.rpcMethods[method](err, params, callback);
                     });
                 });
-                this.servers[protocol].on('NotFound', (method, params) => {
-                    this.logger.error('rpc <', protocol, 'method', method, 'not found:', JSON.stringify(params));
+                this.servers[proto].on('NotFound', (method, params) => {
+                    this.logger.error('rpc <', proto, 'method', method, 'not found:', JSON.stringify(params));
                 });
             }
             return url;
