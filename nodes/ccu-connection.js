@@ -166,35 +166,48 @@ module.exports = function (RED) {
         constructor(config) {
             RED.nodes.createNode(this, config);
 
+            this.logger.debug('ccu-connection', config.host);
+
+            this.isLocal = false;
+            if (config.host === '127.0.0.1' || config.host === 'localhost') {
+                try {
+                    const rfdConf = fs.readFileSync('/etc/config/rfd.conf').toString();
+                    if (rfdConf.match(/Listen Port\s*=\s*32001/)) {
+                        this.logger.info('local connection on ccu >= v3.41 detected');
+                        this.isLocal = true;
+                    }
+                } catch (error) {}
+            }
+
             this.ifaceTypes = {
                 ReGaHSS: {
                     conf: 'rega',
-                    rpc: binrpc,
-                    port: 1999,
-                    protocol: 'binrpc',
+                    rpc: this.isLocal ? binrpc : xmlrpc,
+                    port: this.isLocal ? 31999 : 1999,
+                    protocol: this.isLocal ? 'binrpc' : 'http',
                     init: false,
                     ping: false
                 },
                 'BidCos-RF': {
                     conf: 'bcrf',
-                    rpc: binrpc,
-                    port: 2001,
-                    protocol: 'binrpc',
+                    rpc: this.isLocal ? binrpc : xmlrpc,
+                    port: this.isLocal ? 32001 : 2001,
+                    protocol: this.isLocal ? 'binrpc' : 'http',
                     init: true,
                     ping: true
                 },
                 'BidCos-Wired': {
                     conf: 'bcwi',
-                    rpc: binrpc,
-                    port: 2000,
-                    protocol: 'binrpc',
+                    rpc: this.isLocal ? binrpc : xmlrpc,
+                    port: this.isLocal ? 32000 : 2000,
+                    protocol: this.isLocal ? 'binrpc' : 'http',
                     init: true,
                     ping: true
                 },
                 'HmIP-RF': {
                     conf: 'iprf',
                     rpc: xmlrpc,
-                    port: 2010,
+                    port: this.isLocal ? 32010 : 2010,
                     protocol: 'http',
                     init: true,
                     ping: true, // Todo https://github.com/eq-3/occu/issues/42 - should be fixed, but isn't
@@ -203,7 +216,8 @@ module.exports = function (RED) {
                 VirtualDevices: {
                     conf: 'virt',
                     rpc: xmlrpc,
-                    port: 9292,
+                    localRpc: xmlrpc,
+                    port: this.isLocal ? 39292 : 9292,
                     path: '/groups',
                     protocol: 'http',
                     init: true,
@@ -212,6 +226,7 @@ module.exports = function (RED) {
                 CUxD: {
                     conf: 'cuxd',
                     rpc: binrpc,
+                    localRpc: binrpc,
                     port: 8701,
                     protocol: 'binrpc',
                     init: true,
@@ -222,8 +237,6 @@ module.exports = function (RED) {
             this.name = config.name;
             this.host = config.host;
             this.users = {};
-
-            this.logger.debug('ccu-connection', config.host);
 
             this.globalContext = this.context().global;
             this.contextStore = config.contextStore;
@@ -292,7 +305,10 @@ module.exports = function (RED) {
 
             this.setContext();
 
-            this.rega = new Rega({host: this.host});
+            this.rega = new Rega({
+                host: this.host,
+                port: this.isLocal ? 8183 : 8181
+            });
             if (config.regaEnabled) {
                 this.getRegaData()
                     .then(() => {
@@ -348,7 +364,7 @@ module.exports = function (RED) {
         setIfaceStatus(iface, connected) {
             if (this.ifaceStatus[iface] !== connected) {
                 if (typeof this.ifaceStatus[iface] !== 'undefined') {
-                    this.logger.info(iface, connected ? 'connected' : 'disconnected');
+                    this.logger.info(iface, connected ? (this.ifaceTypes[iface].protocol + ' port ' + this.ifaceTypes[iface].port + ' connected') : 'disconnected');
                 }
                 this.ifaceStatus[iface] = connected;
                 Object.keys(this.users).forEach(id => {
@@ -883,7 +899,7 @@ module.exports = function (RED) {
                     clientOptions.port = port;
                 }
                 this.clients[iface] = rpc.createClient(clientOptions);
-                this.logger.debug('rpc client createad', iface, JSON.stringify(clientOptions));
+                this.logger.debug('rpc client created', iface, JSON.stringify(clientOptions));
                 if (this.methodCallQueue[iface]) {
                     this.methodCallQueue[iface].forEach(c => {
                         this.methodCall(iface, c[0], c[1])
