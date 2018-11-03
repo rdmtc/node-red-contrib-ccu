@@ -322,7 +322,10 @@ module.exports = function (RED) {
 
             this.setContext();
 
-            this.rega = new Rega({host: this.host});
+            this.rega = new Rega({
+                host: this.host,
+                port: this.isLocal ? 8183 : 8181
+            });
             if (config.regaEnabled) {
                 this.getRegaData()
                     .then(() => {
