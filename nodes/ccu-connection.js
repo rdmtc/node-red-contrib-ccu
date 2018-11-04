@@ -216,7 +216,6 @@ module.exports = function (RED) {
                 VirtualDevices: {
                     conf: 'virt',
                     rpc: xmlrpc,
-                    localRpc: xmlrpc,
                     port: this.isLocal ? 39292 : 9292,
                     path: '/groups',
                     protocol: 'http',
@@ -226,7 +225,6 @@ module.exports = function (RED) {
                 CUxD: {
                     conf: 'cuxd',
                     rpc: binrpc,
-                    localRpc: binrpc,
                     port: 8701,
                     protocol: 'binrpc',
                     init: true,
