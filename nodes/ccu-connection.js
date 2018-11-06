@@ -290,6 +290,8 @@ module.exports = function (RED) {
             this.values = {};
             this.links = {};
 
+            this.workingTimeout = {};
+
             this.setValueThrottle = 500;
             this.setValueTimers = {};
             this.setValueCache = {};
@@ -1578,7 +1580,7 @@ module.exports = function (RED) {
             this.lastEvent[iface] = now();
             this.setIfaceStatus(iface, true);
 
-            if (channel === 'CENTRAL' && datapoint === 'PONG') {
+            if (channel.includes('CENTRAL') && datapoint === 'PONG') {
                 this.logger.debug('    < ' + iface + ' PONG ' + payload);
                 return;
             }
@@ -1586,25 +1588,26 @@ module.exports = function (RED) {
             this.logger.debug('publishEvent', JSON.stringify(params));
 
             const msg = this.createMessage(iface, channel, datapoint, payload, {cache: false, working, direction});
+
             if (msg.channelType && msg.channelType.match(/BLIND|DIMMER/) && msg.datapoint === 'LEVEL' && !working) {
-                clearTimeout(this.workingTimeout);
-                this.workingTimeout = setTimeout(() => {
-                    const datapointName = iface + '.' + channel + '.';
-                    if (this.values[datapointName + 'WORKING']) {
-                        msg.working = this.values[datapointName + 'WORKING'].value;
-                    } else if (this.values[datapointName + 'PROCESS']) {
-                        msg.working = Boolean(this.values[datapointName + 'PROCESS'].value);
+                clearTimeout(this.workingTimeout[msg.datapointName]);
+                this.workingTimeout[msg.datapointName] = setTimeout(() => {
+                    const datapointNamePrefix = iface + '.' + channel + '.';
+                    if (this.values[datapointNamePrefix + 'WORKING']) {
+                        msg.working = this.values[datapointNamePrefix + 'WORKING'].value;
+                    } else if (this.values[datapointNamePrefix + 'PROCESS']) {
+                        msg.working = Boolean(this.values[datapointNamePrefix + 'PROCESS'].value);
                     }
-                    if (this.values[datapointName + 'DIRECTION']) {
-                        msg.direction = this.values[datapointName + 'DIRECTION'].value;
-                    } else if (this.values[datapointName + 'ACTIVITY_STATE']) {
-                        const direction = this.values[datapointName + 'ACTIVITY_STATE'].value;
-                        if (direction === 0) {
+                    if (this.values[datapointNamePrefix + 'DIRECTION']) {
+                        msg.direction = this.values[datapointNamePrefix + 'DIRECTION'].value;
+                    } else if (this.values[datapointNamePrefix + 'ACTIVITY_STATE']) {
+                        const activityState = this.values[datapointNamePrefix + 'ACTIVITY_STATE'].value;
+                        if (activityState === 0) {
                             msg.direction = 3;
-                        } else if (direction === 3) {
+                        } else if (activityState === 3) {
                             msg.direction = 0;
                         } else {
-                            msg.direction = direction;
+                            msg.direction = activityState;
                         }
                     }
                     this.callCallbacks(msg);
