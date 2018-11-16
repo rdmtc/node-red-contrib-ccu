@@ -11,6 +11,11 @@ const binrpc = require('binrpc');
 
 const pkg = require(path.join(__dirname, '..', 'package.json'));
 
+// https://stackoverflow.com/a/37837872
+function isIterable(obj) {
+    return obj != null && typeof obj[Symbol.iterator] === 'function';
+}
+
 module.exports = function (RED) {
     RED.log.info('node-red-contrib-ccu version: ' + pkg.version);
 
@@ -1073,7 +1078,11 @@ module.exports = function (RED) {
                         if (method === 'event') {
                             method = 'eventSingle';
                         }
-                        this.rpcMethods[method](err, params, callback);
+                        if (isIterable(params)) {
+                            this.rpcMethods[method](err, params, callback);
+                        } else {
+                            this.logger.error('rpc <', protocol, 'method', method, 'params not iterable', JSON.stringify(params));
+                        }
                     });
                 });
                 this.servers[protocol].on('NotFound', (method, params) => {
@@ -1378,7 +1387,11 @@ module.exports = function (RED) {
                             result.push('');
                         } else if (this.rpcMethods[call.methodName]) {
                             pong = false;
-                            this.rpcMethods[call.methodName](call.params || [], res => result.push(res));
+                            if (isIterable(call.params)) {
+                                this.rpcMethods[call.methodName](call.params || [], res => result.push(res));
+                            } else {
+                                this.logger.error('rpc <', protocol, 'method', call.methodName, 'params not iterable', JSON.stringify(call.params));
+                            }
                         }
                     });
                     queue.forEach(call => {
