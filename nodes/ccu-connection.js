@@ -11,6 +11,11 @@ const binrpc = require('binrpc');
 
 const pkg = require(path.join(__dirname, '..', 'package.json'));
 
+// https://stackoverflow.com/a/37837872
+function isIterable(obj) {
+    return obj != null && typeof obj[Symbol.iterator] === 'function';
+}
+
 module.exports = function (RED) {
     RED.log.info('node-red-contrib-ccu version: ' + pkg.version);
 
@@ -216,7 +221,6 @@ module.exports = function (RED) {
                 VirtualDevices: {
                     conf: 'virt',
                     rpc: xmlrpc,
-                    localRpc: xmlrpc,
                     port: this.isLocal ? 39292 : 9292,
                     path: '/groups',
                     protocol: 'http',
@@ -226,7 +230,6 @@ module.exports = function (RED) {
                 CUxD: {
                     conf: 'cuxd',
                     rpc: binrpc,
-                    localRpc: binrpc,
                     port: 8701,
                     protocol: 'binrpc',
                     init: true,
@@ -291,6 +294,8 @@ module.exports = function (RED) {
 
             this.values = {};
             this.links = {};
+
+            this.workingTimeout = {};
 
             this.setValueThrottle = 500;
             this.setValueTimers = {};
@@ -1073,7 +1078,11 @@ module.exports = function (RED) {
                         if (method === 'event') {
                             method = 'eventSingle';
                         }
-                        this.rpcMethods[method](err, params, callback);
+                        if (isIterable(params)) {
+                            this.rpcMethods[method](err, params, callback);
+                        } else {
+                            this.logger.error('rpc <', protocol, 'method', method, 'params not iterable', JSON.stringify(params));
+                        }
                     });
                 });
                 this.servers[protocol].on('NotFound', (method, params) => {
@@ -1378,7 +1387,11 @@ module.exports = function (RED) {
                             result.push('');
                         } else if (this.rpcMethods[call.methodName]) {
                             pong = false;
-                            this.rpcMethods[call.methodName](call.params || [], res => result.push(res));
+                            if (isIterable(call.params)) {
+                                this.rpcMethods[call.methodName](call.params || [], res => result.push(res));
+                            } else {
+                                this.logger.error('rpc <', protocol, 'method', call.methodName, 'params not iterable', JSON.stringify(call.params));
+                            }
                         }
                     });
                     queue.forEach(call => {
@@ -1580,7 +1593,7 @@ module.exports = function (RED) {
             this.lastEvent[iface] = now();
             this.setIfaceStatus(iface, true);
 
-            if (channel === 'CENTRAL' && datapoint === 'PONG') {
+            if (channel.includes('CENTRAL') && datapoint === 'PONG') {
                 this.logger.debug('    < ' + iface + ' PONG ' + payload);
                 return;
             }
@@ -1588,25 +1601,26 @@ module.exports = function (RED) {
             this.logger.debug('publishEvent', JSON.stringify(params));
 
             const msg = this.createMessage(iface, channel, datapoint, payload, {cache: false, working, direction});
+
             if (msg.channelType && msg.channelType.match(/BLIND|DIMMER/) && msg.datapoint === 'LEVEL' && !working) {
-                clearTimeout(this.workingTimeout);
-                this.workingTimeout = setTimeout(() => {
-                    const datapointName = iface + '.' + channel + '.';
-                    if (this.values[datapointName + 'WORKING']) {
-                        msg.working = this.values[datapointName + 'WORKING'].value;
-                    } else if (this.values[datapointName + 'PROCESS']) {
-                        msg.working = Boolean(this.values[datapointName + 'PROCESS'].value);
+                clearTimeout(this.workingTimeout[msg.datapointName]);
+                this.workingTimeout[msg.datapointName] = setTimeout(() => {
+                    const datapointNamePrefix = iface + '.' + channel + '.';
+                    if (this.values[datapointNamePrefix + 'WORKING']) {
+                        msg.working = this.values[datapointNamePrefix + 'WORKING'].value;
+                    } else if (this.values[datapointNamePrefix + 'PROCESS']) {
+                        msg.working = Boolean(this.values[datapointNamePrefix + 'PROCESS'].value);
                     }
-                    if (this.values[datapointName + 'DIRECTION']) {
-                        msg.direction = this.values[datapointName + 'DIRECTION'].value;
-                    } else if (this.values[datapointName + 'ACTIVITY_STATE']) {
-                        const direction = this.values[datapointName + 'ACTIVITY_STATE'].value;
-                        if (direction === 0) {
+                    if (this.values[datapointNamePrefix + 'DIRECTION']) {
+                        msg.direction = this.values[datapointNamePrefix + 'DIRECTION'].value;
+                    } else if (this.values[datapointNamePrefix + 'ACTIVITY_STATE']) {
+                        const activityState = this.values[datapointNamePrefix + 'ACTIVITY_STATE'].value;
+                        if (activityState === 0) {
                             msg.direction = 3;
-                        } else if (direction === 3) {
+                        } else if (activityState === 3) {
                             msg.direction = 0;
                         } else {
-                            msg.direction = direction;
+                            msg.direction = activityState;
                         }
                     }
                     this.callCallbacks(msg);
