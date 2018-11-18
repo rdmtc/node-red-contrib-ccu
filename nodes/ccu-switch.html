@@ -1,19 +1,3 @@
-<!--
-  Copyright JS Foundation and other contributors, http://js.foundation
-
-  Licensed under the Apache License, Version 2.0 (the "License");
-  you may not use this file except in compliance with the License.
-  You may obtain a copy of the License at
-
-  http://www.apache.org/licenses/LICENSE-2.0
-
-  Unless required by applicable law or agreed to in writing, software
-  distributed under the License is distributed on an "AS IS" BASIS,
-  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-  See the License for the specific language governing permissions and
-  limitations under the License.
--->
-
 <script type="text/javascript">
     (function () {
         const operators = [
@@ -51,15 +35,15 @@
             return result.key;
         }
         function getValueLabel(t, v) {
-    if (t === 'str') {
+            if (t === 'str') {
                 return '"' + clipValueLength(v) + '"';
-    } if (t === 'msg') {
+            } if (t === 'msg') {
                 return t + '.' + clipValueLength(v);
-    } if (t === 'flow' || t === 'global') {
+            } if (t === 'flow' || t === 'global') {
                 return t + '.' + clipValueLength(prop2name(v));
-    }
-    return clipValueLength(v);
-    }
+            }
+            return clipValueLength(v);
+        }
         RED.nodes.registerType('ccu-switch', {
             color: '#c2d5e4',
             category: 'ccu',
@@ -69,9 +53,9 @@
                 iface: {value: 'ReGaHSS'},
                 channel: {value: ''},
                 sysvar: {value: ''},
-                sysvarProperty: {value: ''},
+                sysvarProperty: {value: 'value'},
                 datapoint: {value: ''},
-                datapointProperty: {value: ''},
+                datapointProperty: {value: 'value'},
                 property: {value: 'payload', required: true, validate: RED.validators.typedInput('propertyType')},
                 propertyType: {value: 'msg'},
                 rules: {value: [{t: 'eq', v: '', vt: 'str'}]},
@@ -140,8 +124,6 @@
                     if (nodeId !== '_ADD_') {
                         const url = 'ccu?config=' + nodeId + '&type=ifaces';
                         $.getJSON(url, d => {
-                            $nodeInputIface.html('<option>ReGaHSS</option>');
-
                             Object.keys(d).forEach(i => {
                                 $nodeInputIface.append('<option' + (d[i].enabled ? '' : ' disabled') + (i === node.iface ? ' selected' : '') + '>' + i + '</option>');
                             });
@@ -228,10 +210,8 @@
 
                 function autocompleteDatapoint() {
                     const c = data[$nodeInputChannel.val().split(' ')[0]];
-                    $('.RAMP_TIME').hide();
-                    $('.ON_TIME').hide();
                     if (c) {
-                        c.datapoint.sort((a, b) => a.localeCompare(b));
+                        c.datapoints.sort((a, b) => a.localeCompare(b));
                         $nodeInputDatapoint.autocomplete('option', 'source', c.datapoints);
                         if (c.datapoints.indexOf($nodeInputDatapoint.val()) === -1) {
                             $nodeInputDatapoint.val('').autocomplete('search');
@@ -286,7 +266,7 @@
                     } else if (type === 'istype') {
                         typeField.typedInput('width', (newWidth - selectWidth - 70));
                     } else if (type === 'true' || type === 'false' || type === 'null' || type === 'nnull' || type === 'empty' || type === 'nempty' || type === 'else') {
-                    // valueField.hide();
+                        // valueField.hide();
                     } else {
                         valueField.typedInput('width', (newWidth - selectWidth - 70));
                     }
@@ -337,16 +317,16 @@
                         const btwnValue2Field = $('<input/>', {class: 'node-input-rule-btwn-value2', type: 'text', style: 'margin-left:2px;'}).appendTo(row3).typedInput({default: 'num', types: ['msg', 'flow', 'global', 'str', 'num', 'jsonata', 'env', previousValueType]});
                         const typeValueField = $('<input/>', {class: 'node-input-rule-type-value', type: 'text', style: 'margin-left: 5px;'}).appendTo(row)
                             .typedInput({default: 'string', types: [
-                                {value: 'string', label: 'string', hasValue: false},
-                                {value: 'number', label: 'number', hasValue: false},
-                                {value: 'boolean', label: 'boolean', hasValue: false},
-                                {value: 'array', label: 'array', hasValue: false},
-                                {value: 'buffer', label: 'buffer', hasValue: false},
-                                {value: 'object', label: 'object', hasValue: false},
-                                {value: 'json', label: 'JSON string', hasValue: false},
-                                {value: 'undefined', label: 'undefined', hasValue: false},
-                                {value: 'null', label: 'null', hasValue: false}
-                            ]});
+                                    {value: 'string', label: 'string', hasValue: false},
+                                    {value: 'number', label: 'number', hasValue: false},
+                                    {value: 'boolean', label: 'boolean', hasValue: false},
+                                    {value: 'array', label: 'array', hasValue: false},
+                                    {value: 'buffer', label: 'buffer', hasValue: false},
+                                    {value: 'object', label: 'object', hasValue: false},
+                                    {value: 'json', label: 'JSON string', hasValue: false},
+                                    {value: 'undefined', label: 'undefined', hasValue: false},
+                                    {value: 'null', label: 'null', hasValue: false}
+                                ]});
                         const finalspan = $('<span/>', {style: 'float: right;margin-top: 6px;'}).appendTo(row);
                         finalspan.append(' &#8594; <span class="node-input-rule-index">' + (i + 1) + '</span> ');
                         const caseSensitive = $('<input/>', {id: 'node-input-rule-case-' + i, class: 'node-input-rule-case', type: 'checkbox', style: 'width:auto;vertical-align:top'}).appendTo(row2);
@@ -504,7 +484,7 @@
                     }
                     node.rules.push(r);
                 });
-            // this.propertyType = $("#node-input-property").typedInput('type');
+                // this.propertyType = $("#node-input-property").typedInput('type');
             },
             oneditresize(size) {
                 const rows = $('#dialog-form>div:not(.node-input-rule-container-row)');
@@ -543,10 +523,10 @@
     <div class="form-row sysvar">
         <label for="node-input-sysvarProperty"><i class="icon-tags"></i> Property</label>
         <select id="node-input-sysvarProperty">
-            <option selected>value</option>
-            <option>valueEnum</option>
-            <option>ts</option>
-            <option>lc</option>
+            <option selected value="value">value</option>
+            <option value="valueEnum">valueEnum</option>
+            <option value="ts">ts</option>
+            <option value="lc">lc</option>
         </select>
     </div>
     <div class="form-row datapoint">
@@ -560,7 +540,7 @@
      <div class="form-row datapoint">
         <label for="node-input-datapointProperty"><i class="icon-tags"></i> Property</label>
         <select id="node-input-datapointProperty">
-            <option value="value">value</option>
+            <option selected value="value">value</option>
             <option value="ts">ts</option>
             <option value="lc">lc</option>
             <option value="working">working</option>
