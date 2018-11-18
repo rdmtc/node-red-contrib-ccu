@@ -120,6 +120,8 @@
                     ifacesPending = true;
                     console.log('loadIfaces()');
 
+                    $nodeInputIface.html('');
+
                     const nodeId = $nodeInputCcuConfig.val();
                     if (nodeId !== '_ADD_') {
                         const url = 'ccu?config=' + nodeId + '&type=ifaces';
