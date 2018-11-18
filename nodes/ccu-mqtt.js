@@ -210,7 +210,7 @@ module.exports = function (RED) {
                 return;
             }
 
-            this.ccu.setValue(iface, filter.channel, filter.datapoint, payload);
+            this.ccu.setValue(iface, filter.channel, filter.datapoint, payload).catch(() => {});
         }
 
         sysvar(filter, payload) {
