@@ -41,6 +41,7 @@
       "ccu-program": "nodes/ccu-program.js",
       "ccu-script": "nodes/ccu-script.js",
       "ccu-poll": "nodes/ccu-poll.js",
+      "ccu-get-value": "nodes/ccu-get-value.js",
       "ccu-switch": "nodes/ccu-switch.js",
       "ccu-hm2mqtt": "nodes/ccu-mqtt.js"
     }

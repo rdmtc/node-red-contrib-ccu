@@ -1,0 +1,235 @@
+<script type="text/javascript">
+
+        RED.nodes.registerType('ccu-get-value', {
+            color: '#c2d5e4',
+            category: 'ccu',
+            defaults: {
+                name: {value: ''},
+                ccuConfig: {value: 'localhost', type: 'ccu-connection', required: true},
+                iface: {value: 'ReGaHSS'},
+                channel: {value: ''},
+                sysvar: {value: ''},
+                sysvarProperty: {value: 'value'},
+                datapoint: {value: ''},
+                datapointProperty: {value: 'value'}
+            },
+            inputs: 1,
+            outputs: 1,
+            icon: 'ccu.png',
+            paletteLabel() {
+                return 'get value';
+            },
+            label() {
+                return this.name || 'get value';
+            },
+            labelStyle() {
+                return this.name ? 'node_label_italic' : '';
+            },
+            oneditprepare() {
+                const node = this;
+                const previousValueType = {value: 'prev', label: this._('inject.previous'), hasValue: false};
+
+                const $nodeInputIface = $('#node-input-iface');
+                const $nodeInputMode = $('#node-input-mode');
+                const $nodeInputCcuConfig = $('#node-input-ccuConfig');
+                const $nodeInputChannel = $('#node-input-channel');
+                const $nodeInputSysvar = $('#node-input-sysvar');
+                const $nodeInputDatapoint = $('#node-input-datapoint');
+                const $nodeInputDatapointProperty = $('#node-input-datapointProperty');
+
+                let data;
+
+                let ifacesLoaded = false;
+                let ifacesPending = false;
+
+                $('.form-row.datapoint').hide();
+                $('.form-row.sysvar').hide();
+
+                function loadIfaces(iface, cb) {
+                    if (ifacesPending) {
+                        return;
+                    }
+                    ifacesPending = true;
+                    console.log('loadIfaces()');
+
+                    $nodeInputIface.html('');
+
+                    const nodeId = $nodeInputCcuConfig.val();
+                    if (nodeId !== '_ADD_') {
+                        const url = 'ccu?config=' + nodeId + '&type=ifaces';
+                        $.getJSON(url, d => {
+                            Object.keys(d).forEach(i => {
+                                $nodeInputIface.append('<option' + (d[i].enabled ? '' : ' disabled') + (i === node.iface ? ' selected' : '') + '>' + i + '</option>');
+                            });
+
+                            $nodeInputIface.removeAttr('disabled');
+
+                            $nodeInputIface.trigger('change');
+                            if (typeof cb === 'function') {
+                                cb();
+                                ifacesPending = false;
+                            }
+                        });
+                        $.getJSON('ccu?type=sysvar&config=' + nodeId, data => {
+                            $nodeInputSysvar.html('');
+                            if (data) {
+                                Object.keys(data).forEach(name => {
+                                    $nodeInputSysvar.append('<option value="' + name + '"' + (name === node.sysvar ? ' selected' : '') + '>' + name + '</option>');
+                                });
+                            }
+                        });
+                    }
+                }
+
+                function loadConfig() {
+                    if (!ifacesLoaded) {
+                        return;
+                    }
+                    console.log('loadConfig()');
+                    const nodeId = $nodeInputCcuConfig.val();
+                    const url = 'ccu?config=' + nodeId + '&type=channels&iface=' + $nodeInputIface.val();
+                    $.getJSON(url, d => {
+                        data = d;
+                        autocompleteChannel();
+                        autocompleteDatapoint();
+                    });
+                }
+
+                $nodeInputCcuConfig.change(() => {
+                    console.log('$nodeInputCcuConfig change');
+                    loadIfaces(this.iface, () => {
+                        ifacesLoaded = true;
+                        loadConfig();
+                    });
+                });
+
+                $nodeInputChannel.autocomplete({
+                    source: [],
+                    close: () => {
+                        autocompleteDatapoint();
+                    },
+                    delay: 0,
+                    minLength: 0
+                });
+
+                $nodeInputDatapoint.autocomplete({
+                    source: [],
+                    delay: 0,
+                    minLength: 0
+                });
+
+                $nodeInputChannel.on('blur', autocompleteDatapoint);
+
+                function autocompleteChannel() {
+                    if (!data) {
+                        return;
+                    }
+                    const arr = [];
+                    Object.keys(data).forEach(addr => {
+                        if (addr.match(/:\d+$/)) {
+                            if (data[addr].name) {
+                                addr += ' ' + data[addr].name;
+                            }
+                            arr.push(addr);
+                        }
+                    });
+                    arr.sort((a, b) => a.localeCompare(b));
+                    $nodeInputChannel.autocomplete('option', 'source', arr);
+
+                    if (!data[$nodeInputChannel.val().split(' ')[0]]) {
+                        $nodeInputChannel.val('');
+                        $nodeInputDatapoint.val('');
+                    }
+                }
+
+                function autocompleteDatapoint() {
+                    const c = data[$nodeInputChannel.val().split(' ')[0]];
+                    if (c) {
+                        c.datapoints.sort((a, b) => a.localeCompare(b));
+                        $nodeInputDatapoint.autocomplete('option', 'source', c.datapoints);
+                        if (c.datapoints.indexOf($nodeInputDatapoint.val()) === -1) {
+                            $nodeInputDatapoint.val('').autocomplete('search');
+                        }
+                    }
+                }
+
+                $nodeInputIface.change(() => {
+                    console.log('$nodeInputIface change');
+                    if ($nodeInputIface.val() === 'ReGaHSS') {
+                        $('.form-row.datapoint').hide();
+                        $('.form-row.sysvar').show();
+                    } else if ($nodeInputIface.val()) {
+                        $('.form-row.sysvar').hide();
+                        $('.form-row.datapoint').show();
+                    }
+                    loadConfig();
+                });
+
+
+
+            },
+            oneditsave() {
+
+            },
+            oneditresize(size) {
+
+            }
+        });
+</script>
+
+<script type="text/x-red" data-template-name="ccu-get-value">
+    <div class="form-row">
+        <label for="node-input-name"><i class="fa fa-tag"></i> Name</label>
+        <input type="text" id="node-input-name">
+    </div>
+    <div class="form-row">
+        <label for="node-input-ccuConfig"><i class="icon-globe"></i> CCU</label>
+        <input type="text" id="node-input-ccuConfig">
+    </div>
+    <div class="form-row">
+        <label for="node-input-iface"><i class="fa fa-empire"></i> Interface</label>
+        <select id="node-input-iface" disabled>
+       </select>
+    </div>
+    <div class="form-row sysvar">
+        <label for="node-input-sysvar"><i class="icon-tags"></i> Sysvar</label>
+        <select id="node-input-sysvar">
+        </select>
+    </div>
+    <div class="form-row sysvar">
+        <label for="node-input-sysvarProperty"><i class="icon-tags"></i> Property</label>
+        <select id="node-input-sysvarProperty">
+            <option selected value="value">value</option>
+            <option value="valueEnum">valueEnum</option>
+            <option value="ts">ts</option>
+            <option value="lc">lc</option>
+        </select>
+    </div>
+    <div class="form-row datapoint">
+        <label for="node-input-channel"><i class="icon-tags"></i> Channel</label>
+        <input type="text" id="node-input-channel">
+    </div>
+    <div class="form-row datapoint">
+        <label for="node-input-datapoint"><i class="icon-tag"></i> Datapoint</label>
+        <input type="text" id="node-input-datapoint">
+    </div>
+     <div class="form-row datapoint">
+        <label for="node-input-datapointProperty"><i class="icon-tags"></i> Property</label>
+        <select id="node-input-datapointProperty">
+            <option selected value="value">value</option>
+            <option value="ts">ts</option>
+            <option value="lc">lc</option>
+            <option value="working">working</option>
+            <option value="direction">direction</option>
+        </select>
+    </div>
+
+</script>
+
+<script type="text/x-red" data-help-name="ccu-get-value" lang="en-US">
+    <p>This Node outputs the current state of a datapoint or a ccu variable on any incoming message.</p>
+</script>
+
+<script type="text/x-red" data-help-name="ccu-display" lang="de-DE">
+    <p>Dieser Node gibt bei jeder eingehenden Message den aktuellen Zustand eines Datenpunktes oder einer CCU Systemvariable aus.</p>
+</script>
