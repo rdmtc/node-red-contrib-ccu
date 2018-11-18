@@ -13,6 +13,7 @@ const pkg = require(path.join(__dirname, '..', 'package.json'));
 
 // https://stackoverflow.com/a/37837872
 function isIterable(obj) {
+    // eslint-disable-next-line eqeqeq, no-eq-null
     return obj != null && typeof obj[Symbol.iterator] === 'function';
 }
 
@@ -1390,7 +1391,7 @@ module.exports = function (RED) {
                             if (isIterable(call.params)) {
                                 this.rpcMethods[call.methodName](call.params || [], res => result.push(res));
                             } else {
-                                this.logger.error('rpc <', protocol, 'method', call.methodName, 'params not iterable', JSON.stringify(call.params));
+                                this.logger.error('rpc <', call.methodName, 'params not iterable', JSON.stringify(call.params));
                             }
                         }
                     });
