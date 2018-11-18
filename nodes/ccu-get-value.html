@@ -1,5 +1,4 @@
 <script type="text/javascript">
-
         RED.nodes.registerType('ccu-get-value', {
             color: '#c2d5e4',
             category: 'ccu',
@@ -27,15 +26,12 @@
             },
             oneditprepare() {
                 const node = this;
-                const previousValueType = {value: 'prev', label: this._('inject.previous'), hasValue: false};
 
                 const $nodeInputIface = $('#node-input-iface');
-                const $nodeInputMode = $('#node-input-mode');
                 const $nodeInputCcuConfig = $('#node-input-ccuConfig');
                 const $nodeInputChannel = $('#node-input-channel');
                 const $nodeInputSysvar = $('#node-input-sysvar');
                 const $nodeInputDatapoint = $('#node-input-datapoint');
-                const $nodeInputDatapointProperty = $('#node-input-datapointProperty');
 
                 let data;
 
@@ -164,15 +160,6 @@
                     }
                     loadConfig();
                 });
-
-
-
-            },
-            oneditsave() {
-
-            },
-            oneditresize(size) {
-
             }
         });
 </script>

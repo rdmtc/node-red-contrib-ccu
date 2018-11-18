@@ -9,8 +9,8 @@ module.exports = function (RED) {
                 return;
             }
 
-            this.on('input', (msg) => {
-                let out = {};
+            this.on('input', msg => {
+                const out = {};
 
                 if (config.iface === 'ReGaHSS') {
                     Object.assign(out, this.ccu.sysvar[config.sysvar]);
