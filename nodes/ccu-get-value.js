@@ -18,7 +18,7 @@ module.exports = function (RED) {
                 } else {
                     const address = config.iface + '.' + config.channel.split(' ')[0] + '.' + config.datapoint;
                     value = this.ccu.values[address];
-                    if(config.datapointProperty !== 'all') {
+                    if (config.datapointProperty !== 'all') {
                         value = value[config.datapointProperty];
                     }
                 }
