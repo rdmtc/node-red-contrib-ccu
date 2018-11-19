@@ -10,7 +10,9 @@
                 sysvar: {value: ''},
                 sysvarProperty: {value: 'value'},
                 datapoint: {value: ''},
-                datapointProperty: {value: 'value'}
+                datapointProperty: {value: 'value'},
+                setProp: { value: "payload" },
+                setPropType: { value: "msg" },
             },
             inputs: 1,
             outputs: 1,
@@ -27,6 +29,8 @@
             oneditprepare() {
                 const node = this;
 
+                const $nodeSetProp = $('#node-input-setProp');
+                const $nodeSetPropType = $('#node-input-setPropType');
                 const $nodeInputIface = $('#node-input-iface');
                 const $nodeInputCcuConfig = $('#node-input-ccuConfig');
                 const $nodeInputChannel = $('#node-input-channel');
@@ -37,6 +41,19 @@
 
                 let ifacesLoaded = false;
                 let ifacesPending = false;
+
+                if (!this.setProp) {
+                    this.setProp = 'payload';
+                    $nodeSetProp.val("payload");
+                }
+                if (!this.setPropType) {
+                    this.setPropType = 'msg';
+                }
+                $nodeSetProp.typedInput({
+                    default: this.setPropType,
+                    types: ['msg', 'flow', 'global'],
+                    typeField: $nodeSetPropType
+                });
 
                 $('.form-row.datapoint').hide();
                 $('.form-row.sysvar').hide();
@@ -200,7 +217,7 @@
         <label for="node-input-datapoint"><i class="icon-tag"></i> Datapoint</label>
         <input type="text" id="node-input-datapoint">
     </div>
-     <div class="form-row datapoint">
+    <div class="form-row datapoint">
         <label for="node-input-datapointProperty"><i class="icon-tags"></i> Property</label>
         <select id="node-input-datapointProperty">
             <option selected value="value">value</option>
@@ -210,7 +227,11 @@
             <option value="direction">direction</option>
         </select>
     </div>
-
+    <div class="form-row">
+        <label for="node-input-setProp"><i class="fa fa-edit"></i> <span>Set Property</span></label>
+        <input type="text" id="node-input-setProp" placeholder="payload" style="width:250px;">
+        <input type="hidden" id="node-input-setPropType">
+    </div>
 </script>
 
 <script type="text/x-red" data-help-name="ccu-get-value" lang="en-US">

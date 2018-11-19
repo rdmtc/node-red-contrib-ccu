@@ -4,22 +4,36 @@ module.exports = function (RED) {
             RED.nodes.createNode(this, config);
 
             this.ccu = RED.nodes.getNode(config.ccuConfig);
+            this.setProp = config.setProp || "payload";
+            this.setPropType = config.setPropType || "msg";
 
             if (!this.ccu) {
                 return;
             }
 
             this.on('input', msg => {
-                const out = {};
-
+                let value;
                 if (config.iface === 'ReGaHSS') {
-                    Object.assign(out, this.ccu.sysvar[config.sysvar]);
+                    value = this.ccu.sysvar[config.sysvar];
                 } else {
                     const address = config.iface + '.' + config.channel.split(' ')[0] + '.' + config.datapoint;
-                    Object.assign(out, this.ccu.values[address]);
+                    value = this.ccu.values[address].value;
                 }
-                out.topic = msg.topic;
-                this.send(out);
+
+                if (config.setPropType === 'msg') {
+                    RED.util.setMessageProperty(msg, config.setProp, value);
+                    this.send(msg);
+                } else if ((this.setPropType === 'flow') || (this.setPropType === 'global')) {
+                    const context = RED.util.parseContextStore(this.setProp);
+                    const target = this.context()[this.setPropType];
+                    target.set(context.key, value, context.store, (err) => {
+                        if (err) {
+                            this.error(err, msg);
+                        } else {
+                            this.send(msg);
+                        }
+                    });
+                }
             });
         }
     }
