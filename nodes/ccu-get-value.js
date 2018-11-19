@@ -4,8 +4,8 @@ module.exports = function (RED) {
             RED.nodes.createNode(this, config);
 
             this.ccu = RED.nodes.getNode(config.ccuConfig);
-            this.setProp = config.setProp || "payload";
-            this.setPropType = config.setPropType || "msg";
+            this.setProp = config.setProp || 'payload';
+            this.setPropType = config.setPropType || 'msg';
 
             if (!this.ccu) {
                 return;
@@ -26,7 +26,7 @@ module.exports = function (RED) {
                 } else if ((this.setPropType === 'flow') || (this.setPropType === 'global')) {
                     const context = RED.util.parseContextStore(this.setProp);
                     const target = this.context()[this.setPropType];
-                    target.set(context.key, value, context.store, (err) => {
+                    target.set(context.key, value, context.store, err => {
                         if (err) {
                             this.error(err, msg);
                         } else {
