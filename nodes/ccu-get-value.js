@@ -17,7 +17,10 @@ module.exports = function (RED) {
                     value = this.ccu.sysvar[config.sysvar];
                 } else {
                     const address = config.iface + '.' + config.channel.split(' ')[0] + '.' + config.datapoint;
-                    value = this.ccu.values[address][config.datapointProperty];
+                    value = this.ccu.values[address];
+                    if(config.datapointProperty !== 'all') {
+                        value = value[config.datapointProperty];
+                    }
                 }
 
                 if (config.setPropType === 'msg') {
