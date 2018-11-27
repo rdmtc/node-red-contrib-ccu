@@ -177,8 +177,8 @@ module.exports = function (RED) {
             this.isLocal = false;
             if (config.host === '127.0.0.1' || config.host === 'localhost') {
                 try {
-                    const rfdConf = fs.readFileSync('/etc/config/rfd.conf').toString();
-                    if (rfdConf.match(/Listen Port\s*=\s*32001/)) {
+                    const rfdConf = fs.readFileSync('/etc/lighttpd/conf.d/proxy.conf').toString();
+                    if (rfdConf.match(/"port"\s+=>\s+32001/)) {
                         this.logger.info('local connection on ccu >= v3.41 detected');
                         this.isLocal = true;
                     }
