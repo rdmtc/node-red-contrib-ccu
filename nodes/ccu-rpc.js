@@ -30,7 +30,7 @@ module.exports = function (RED) {
                     params = [];
                 }
 
-                const method = config.method || msg.topic;
+                const method = config.method || msg.method;
 
                 if (method === 'setValue') {
                     const [address, param, value] = params;
