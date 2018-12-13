@@ -22,7 +22,7 @@
   "dependencies": {
     "binrpc": "^3.2.2",
     "hm-discover": "^1.1.0",
-    "homematic-rega": "^1.3.4",
+    "homematic-rega": "^1.3.2",
     "homematic-xmlrpc": "^1.0.2",
     "string-similarity": "^3.0.0",
     "mqtt-wildcard": "^3.0.9",
@@ -41,7 +41,6 @@
       "ccu-program": "nodes/ccu-program.js",
       "ccu-script": "nodes/ccu-script.js",
       "ccu-poll": "nodes/ccu-poll.js",
-      "ccu-get-value": "nodes/ccu-get-value.js",
       "ccu-switch": "nodes/ccu-switch.js",
       "ccu-hm2mqtt": "nodes/ccu-mqtt.js"
     }
