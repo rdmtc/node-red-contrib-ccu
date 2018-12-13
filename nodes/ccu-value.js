@@ -18,19 +18,16 @@ module.exports = function (RED) {
             this.ccu.register(this);
 
             if (config.iface && config.channel && config.datapoint) {
-                const id = `${config.iface}.${config.channel}.${config.datapoint}`;
                 const filter = {
-                    iface: config.iface,
                     cache: config.cache,
                     change: config.change,
+                    stable: config.working,
+                    iface: config.iface,
                     channel: String(config.channel).split(' ')[0],
                     datapoint: config.datapoint
                 };
 
                 this.idSubscription = this.ccu.subscribe(filter, msg => {
-                    if (config.working && (msg.working || this.ccu.setValueCache[id])) {
-                        return;
-                    }
                     msg.topic = this.ccu.topicReplace(config.topic, msg);
                     this.send(msg);
                 });

@@ -277,6 +277,8 @@ module.exports = function (RED) {
 
             this.callbacks = {};
             this.idCallback = 0;
+            this.callbackBlacklists = {};
+            this.callbackWhitelists = {};
 
             this.sysvarCallbacks = {};
             this.idSysvarCallback = 0;
@@ -489,7 +491,7 @@ module.exports = function (RED) {
                         res.forEach(dp => {
                             const ts = (new Date(dp.ts + ' UTC+' + (d.getTimezoneOffset() / -60))).getTime();
                             const [iface, channel, datapoint] = dp.name.split('.');
-                            if (datapoint && !datapoint.startsWith('PRESS_')) {
+                            if (this.enabledIfaces.includes(iface) && datapoint && !datapoint.startsWith('PRESS_')) {
                                 const msg = this.createMessage(iface, channel, datapoint, dp.value, {cache: true, ts, lc: ts});
                                 this.callCallbacks(msg);
                             }
@@ -682,7 +684,7 @@ module.exports = function (RED) {
          * Poll ReGaHSS variables and programs
          */
         regaPoll() {
-            this.logger.trace('regaPoll');
+            //this.logger.trace('regaPoll');
             if (this.regaPollPending) {
                 this.logger.warn('rega poll already pending');
             } else {
@@ -694,7 +696,7 @@ module.exports = function (RED) {
                     .catch(err => this.logger.error('getRegaPrograms', err))
                     .then(() => {
                         if (this.regaInterval && this.regaPollEnabled && !this.cancelRegaPoll) {
-                            this.logger.trace('rega next poll in', this.regaInterval, 'seconds');
+                            //this.logger.trace('rega next poll in', this.regaInterval, 'seconds');
                             this.regaPollTimeout = setTimeout(() => {
                                 this.regaPoll();
                             }, this.regaInterval * 1000);
@@ -729,7 +731,7 @@ module.exports = function (RED) {
         }
 
         updateRegaVariable(sysvar) {
-            this.logger.trace('updateRegaVariable', JSON.stringify(sysvar));
+            //this.logger.trace('updateRegaVariable', JSON.stringify(sysvar));
             let isNew = false;
             if (!this.sysvar[sysvar.name]) {
                 isNew = true;
@@ -794,7 +796,7 @@ module.exports = function (RED) {
                             match = false;
                         }
                     }
-                    this.logger.trace('match', match, JSON.stringify(filter), 'name:' + sysvar.name + ' cache:' + this.sysvar[sysvar.name].cache + ' change:' + this.sysvar[sysvar.name].change);
+                    //this.logger.trace('match', match, JSON.stringify(filter), 'name:' + sysvar.name + ' cache:' + this.sysvar[sysvar.name].cache + ' change:' + this.sysvar[sysvar.name].change);
                     if (match) {
                         callback(this.sysvar[sysvar.name]);
                     }
@@ -816,7 +818,7 @@ module.exports = function (RED) {
                     } else {
                         const d = new Date();
                         res.forEach(sysvar => {
-                            this.logger.trace(JSON.stringify(sysvar));
+                            //this.logger.trace(JSON.stringify(sysvar));
                             sysvar.ts = sysvar.ts ? (new Date(sysvar.ts + ' UTC+' + (d.getTimezoneOffset() / -60))).getTime() : d.getTime();
                             this.updateRegaVariable(sysvar);
                         });
@@ -1000,7 +1002,7 @@ module.exports = function (RED) {
                 return;
             }
             if (elapsed >= (pingTimeout / 2)) {
-                this.logger.trace('ping', iface, elapsed);
+                //this.logger.trace('ping', iface, elapsed);
                 this.methodCall(iface, 'ping', ['nr']);
             }
             this.rpcPingTimer[iface] = setTimeout(() => {
@@ -1139,14 +1141,14 @@ module.exports = function (RED) {
                 const {iface, name, address, paramset} = item;
 
                 if (this.paramsetDescriptions[name]) {
-                    this.logger.trace('paramset', name, 'already known');
+                    //this.logger.trace('paramset', name, 'already known');
                     this.paramsetPending = false;
                     clearTimeout(this.getParamsetTimeout);
                     setImmediate(() => this.paramsetQueueShift());
                 } else {
                     this.methodCall(iface, 'getParamsetDescription', [address, paramset])
                         .then(res => {
-                            this.logger.trace('paramsetDescription', name);
+                            //this.logger.trace('paramsetDescription', name);
                             this.newParamsetDescriptionCount += 1;
                             this.newParamsetDescription = true;
                             this.paramsetDescriptions[name] = res;
@@ -1481,25 +1483,84 @@ module.exports = function (RED) {
         }
 
         subscribe(filter, callback) {
-            if (typeof callback === 'function') {
-                const id = this.idCallback;
-                this.idCallback += 1;
-                filter = filter || {};
-                this.logger.debug('subscribe', JSON.stringify(filter));
-                this.callbacks[id] = {filter, callback};
-
-                // TODO: if this.cachedValuesReceived generate message on new subscription
-
-                return id;
+            if (typeof callback !== 'function') {
+                this.logger.error('subscribe called without callback');
+                return null;
             }
-            this.logger.error('subscribe called without callback');
-            return null;
+
+            filter = filter || {};
+
+            if (typeof filter.interface !== 'undefined') {
+                filter.iface = filter.interface;
+                delete filter.interface;
+            }
+
+            const validFilterProperties = [
+                'change',
+                'cache',
+                'stable',
+                'iface',
+                'device',
+                'deviceType',
+                'deviceName',
+                'channel',
+                'channelType',
+                'channelName',
+                'channelIndex',
+                'datapoint',
+                'datapointName',
+                'room',
+                'function',
+                'rooms',
+                'functions'
+            ];
+
+            const propertiesArr = Object.keys(filter);
+
+            for (let i = 0, len = propertiesArr.length; i < len; i++) {
+                if (!validFilterProperties.includes(propertiesArr[i])) {
+                    this.logger.error('subscribe called with invalid filter property ' + propertiesArr[i]);
+                    return null;
+                }
+            }
+
+            const id = this.idCallback;
+            this.idCallback += 1;
+
+            //this.logger.trace('subscribe', id, JSON.stringify(filter));
+            this.callbacks[id] = {filter, callback};
+
+            if (filter.cache) {
+                Object.keys(this.values).forEach(dp => {
+                    const msg = Object.assign({}, this.values[dp]);
+                    msg.cache = true;
+                    msg.change = false;
+                    if (!this.callbackBlacklists[msg.datapointName]) {
+                        this.callbackBlacklists[msg.datapointName] = new Set();
+                    }
+                    if (!this.callbackWhitelists[msg.datapointName]) {
+                        this.callbackWhitelists[msg.datapointName] = new Set();
+                    }
+                    this.callCallback(msg, id);
+                });
+            }
+
+            return id;
         }
 
         unsubscribe(id) {
             if (this.callbacks[id]) {
                 this.logger.debug('unsubscribe', id);
                 delete this.callbacks[id];
+
+                Object.keys(this.callbackBlacklists).forEach(dp => {
+                    this.callbackBlacklists[dp].delete(id);
+                });
+
+                Object.keys(this.callbackWhitelists).forEach(dp => {
+                    this.callbackWhitelists[dp].delete(id);
+                });
+
                 return true;
             }
             this.logger.error('unsubscribe called for unknown callback', id);
@@ -1540,13 +1601,18 @@ module.exports = function (RED) {
             const device = this.metadata.devices[iface] && this.metadata.devices[iface][channel] && this.metadata.devices[iface][channel].PARENT;
             const ts = now();
             let change = false;
+            const valueStable = (additions && additions.working) ? this.values[datapointName].valueStable : payload;
 
             let description = {};
             if (this.metadata.devices[iface] && this.metadata.devices[iface][channel]) {
                 description = this.getParamsetDescription(iface, this.metadata.devices[iface][channel], 'VALUES', datapoint) || {};
             }
 
-            if (description.TYPE === 'ACTION' || this.values[datapointName].payload !== payload) {
+            if (
+                description.TYPE === 'ACTION' ||
+                this.values[datapointName].payload !== payload ||
+                this.values[datapointName].valueStable !== valueStable
+            ) {
                 change = true;
             }
 
@@ -1573,6 +1639,7 @@ module.exports = function (RED) {
                 value: payload,
                 valuePrevious: this.values[datapointName].value,
                 valueEnum: description.ENUM ? description.ENUM[Number(payload)] : undefined,
+                valueStable,
                 rooms: this.channelRooms[channel] || [],
                 room: this.channelRooms[channel] && this.channelRooms[channel].length === 1 ? this.channelRooms[channel][0] : undefined,
                 functions: this.channelFunctions[channel] || [],
@@ -1582,6 +1649,8 @@ module.exports = function (RED) {
                 lc: change ? ts : this.values[datapointName].lc,
                 change
             }, additions);
+
+            msg.stable = !msg.working;
 
             this.values[datapointName] = msg;
             return msg;
@@ -1599,7 +1668,7 @@ module.exports = function (RED) {
                 return;
             }
 
-            this.logger.debug('publishEvent', JSON.stringify(params));
+            //this.logger.trace('publishEvent', JSON.stringify(params));
 
             const msg = this.createMessage(iface, channel, datapoint, payload, {cache: false, working, direction});
 
@@ -1631,48 +1700,107 @@ module.exports = function (RED) {
             }
         }
 
-        callCallbacks(msg) {
-            this.logger.trace('callCallbacks', this.callbacks.length, JSON.stringify(msg));
-            Object.keys(this.callbacks).forEach(key => {
-                const {filter, callback} = this.callbacks[key];
+        callCallback(msg, id) {
+            if (this.callbackBlacklists[msg.datapointName].has(id)) {
+                //this.logger.trace('blacklistet ' + id + ' ' + msg.datapointName);
+                return false;
+            }
 
-                let match = true;
-                if (filter) {
-                    this.logger.trace('filter', JSON.stringify(filter));
-                    Object.keys(filter).forEach(attr => {
-                        if (filter[attr] === '') {
-                            return;
+            const {filter, callback} = this.callbacks[id];
+
+            let match = true;
+            let matchCache;
+            let matchChange;
+            let matchStable;
+
+            if (filter) {
+                //this.logger.trace('filter', JSON.stringify(filter));
+                const arrAttr = Object.keys(filter);
+
+                for (let i = 0, len = arrAttr.length; match && i < len; i++) {
+                    const attr = arrAttr[i];
+
+                    if (attr === 'cache') {
+                        // if filter.cache==true - Allow messages with msg.cache==true
+                        if (!filter.cache && msg.cache) {
+                            //this.logger.trace('cb mismatch cache ' + id + ' ' + filter.cache + ' ' + msg.cache);
+                            return false;
                         }
-                        if (attr === 'cache') {
-                            if (!filter.cache && msg.cache) {
-                                match = false;
-                            }
-                        } else if (attr === 'change') {
-                            if (filter.change && !msg.change) {
-                                match = false;
-                            }
-                        } else if (typeof msg[attr] === 'object') {
-                            if (filter[attr] instanceof RegExp) {
-                                match = false;
-                                msg[attr].forEach(item => {
-                                    if (filter[attr].test(item)) {
-                                        match = true;
-                                    }
-                                });
-                            } else if (msg[attr].indexOf(filter[attr]) === -1) {
-                                match = false;
-                            }
-                        } else if ((filter[attr] instanceof RegExp) && !filter[attr].test(msg[attr])) {
+                        matchCache = true;
+                        continue;
+                    }
+
+                    if (attr === 'change') {
+                        // if filter.change==true - Drop messages with msg.change==false - except they have msg.cache==true
+                        if (filter.change && !msg.change && !msg.cache) {
+                            //this.logger.trace('cb mismatch change ' + id + ' ' + filter.change + ' ' + msg.change + ' ' + msg.cache);
+                            return false;
+                        }
+                        matchChange = true;
+                        continue;
+                    }
+
+                    if (attr === 'stable') {
+                        // if filter.stable==true - Drop messages with msg.stable==false
+                        if (filter.stable && !msg.stable) {
+                            //this.logger.trace('cb mismatch stable ' + id + ' ' + filter.stable + ' ' + msg.stable);
+                            return false;
+                        }
+                        matchStable = true;
+                        continue;
+                    }
+
+                    if (this.callbackWhitelists[msg.datapointName].has(id)) {
+                        if (matchCache && matchChange && matchStable) {
+                            break;
+                        }
+                        continue;
+                    }
+
+                    if (filter[attr] === '') { // TODO rethink
+                        continue;
+                    }
+
+                    if (Array.isArray(msg[attr])) {
+                        if (filter[attr] instanceof RegExp) {
                             match = false;
-                        } else if ((typeof filter[attr] === 'string') && (filter[attr] !== msg[attr])) {
+                            msg[attr].forEach(item => {
+                                if (filter[attr].test(item)) {
+                                    match = true;
+                                }
+                            });
+                        } else if (!msg[attr].includes(filter[attr])) {
                             match = false;
                         }
-                    });
+                    } else if ((filter[attr] instanceof RegExp) && !filter[attr].test(msg[attr])) {
+                        match = false;
+                    } else if (filter[attr] !== msg[attr]) {
+                        //this.logger.trace('cb mismatch ' + id + ' ' +attr + ' ' + filter[attr] + ' ' + msg[attr]);
+                        match = false;
+                    }
                 }
-                this.logger.trace('match', match);
-                if (match) {
-                    callback(msg);
-                }
+            }
+            if (match) {
+                this.logger.trace('callCallback ' + id + ' ' + msg.datapointName + ' ' + msg.value);
+                callback(msg);
+                this.callbackWhitelists[msg.datapointName].add(id);
+            } else {
+                //this.logger.trace('add to blacklist ' + id + ' ' + msg.datapointName);
+                this.callbackBlacklists[msg.datapointName].add(id);
+            }
+            return match;
+        }
+
+        callCallbacks(msg) {
+            //this.logger.trace('callCallbacks', this.callbacks.length, JSON.stringify({datapointName: msg.datapointName, value: msg.value, change: msg.change, working: msg.working}));
+            if (!this.callbackBlacklists[msg.datapointName]) {
+                this.callbackBlacklists[msg.datapointName] = new Set();
+            }
+            if (!this.callbackWhitelists[msg.datapointName]) {
+                this.callbackWhitelists[msg.datapointName] = new Set();
+            }
+            Object.keys(this.callbacks).forEach(key => {
+                this.callCallback(msg, key);
             });
         }
 

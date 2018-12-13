@@ -15,9 +15,10 @@ module.exports = function (RED) {
             this.iface = config.iface;
 
             const filter = {
-                iface: config.iface,
                 cache: config.cache,
-                change: config.change
+                change: config.change,
+                stable: config.working,
+                iface: config.iface
             };
 
             this.ccu.register(this);
@@ -44,10 +45,8 @@ module.exports = function (RED) {
                 }
             });
             this.idSubscription = this.ccu.subscribe(filter, msg => {
-                if (!msg.working || !config.working) {
-                    msg.topic = this.ccu.topicReplace(config.topic, msg);
-                    this.send(msg);
-                }
+                msg.topic = this.ccu.topicReplace(config.topic, msg);
+                this.send(msg);
             });
             this.on('close', this._destructor);
         }
