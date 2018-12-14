@@ -317,6 +317,14 @@ module.exports = function (RED) {
                 host: this.host,
                 port: this.isLocal ? 8183 : 8181
             });
+
+            Object.keys(this.ifaceTypes).forEach(iface => {
+                const enabled = config[this.ifaceTypes[iface].conf + 'Enabled'];
+                if (enabled) {
+                    this.enabledIfaces.push(iface);
+                }
+            });
+
             if (config.regaEnabled) {
                 this.getRegaData()
                     .then(() => {
@@ -492,7 +500,8 @@ module.exports = function (RED) {
                             const ts = (new Date(dp.ts + ' UTC+' + (d.getTimezoneOffset() / -60))).getTime();
                             const [iface, channel, datapoint] = dp.name.split('.');
                             if (this.enabledIfaces.includes(iface) && datapoint && !datapoint.startsWith('PRESS_')) {
-                                const msg = this.createMessage(iface, channel, datapoint, dp.value, {cache: true, ts, lc: ts});
+                                const msg = this.createMessage(iface, channel, datapoint, dp.value, {cache: true, change: false, working: false, ts, lc: ts});
+                                this.values[msg.datapointName] = msg;
                                 this.callCallbacks(msg);
                             }
                         });
@@ -1530,7 +1539,7 @@ module.exports = function (RED) {
             //this.logger.trace('subscribe', id, JSON.stringify(filter));
             this.callbacks[id] = {filter, callback};
 
-            if (filter.cache) {
+            if (filter.cache && this.cachedValuesReceived) {
                 Object.keys(this.values).forEach(dp => {
                     const msg = Object.assign({}, this.values[dp]);
                     msg.cache = true;
@@ -1601,6 +1610,7 @@ module.exports = function (RED) {
             const device = this.metadata.devices[iface] && this.metadata.devices[iface][channel] && this.metadata.devices[iface][channel].PARENT;
             const ts = now();
             let change = false;
+
             const valueStable = (additions && additions.working) ? this.values[datapointName].valueStable : payload;
 
             let description = {};
@@ -1615,6 +1625,8 @@ module.exports = function (RED) {
             ) {
                 change = true;
             }
+
+            this.logger.trace('createMessage', channel, datapoint, payload, 'change=' + change);
 
             const msg = Object.assign({
                 topic: '',
@@ -1652,7 +1664,6 @@ module.exports = function (RED) {
 
             msg.stable = !msg.working;
 
-            this.values[datapointName] = msg;
             return msg;
         }
 
@@ -1693,9 +1704,11 @@ module.exports = function (RED) {
                             msg.direction = activityState;
                         }
                     }
+                    this.values[msg.datapointName] = msg;
                     this.callCallbacks(msg);
                 }, 300);
             } else {
+                this.values[msg.datapointName] = msg;
                 this.callCallbacks(msg);
             }
         }
@@ -1721,7 +1734,7 @@ module.exports = function (RED) {
                     const attr = arrAttr[i];
 
                     if (attr === 'cache') {
-                        // if filter.cache==true - Allow messages with msg.cache==true
+                        // if filter.cache==false - Drop messages with msg.cache==true
                         if (!filter.cache && msg.cache) {
                             //this.logger.trace('cb mismatch cache ' + id + ' ' + filter.cache + ' ' + msg.cache);
                             return false;
@@ -1731,8 +1744,8 @@ module.exports = function (RED) {
                     }
 
                     if (attr === 'change') {
-                        // if filter.change==true - Drop messages with msg.change==false - except they have msg.cache==true
-                        if (filter.change && !msg.change && !msg.cache) {
+                        // if filter.change==true - Drop messages with msg.change==false - except msg.cache==true && filter.cache==true
+                        if ((filter.change && !msg.change) && !(filter.cache && msg.cache)) {
                             //this.logger.trace('cb mismatch change ' + id + ' ' + filter.change + ' ' + msg.change + ' ' + msg.cache);
                             return false;
                         }
@@ -1792,7 +1805,7 @@ module.exports = function (RED) {
         }
 
         callCallbacks(msg) {
-            //this.logger.trace('callCallbacks', this.callbacks.length, JSON.stringify({datapointName: msg.datapointName, value: msg.value, change: msg.change, working: msg.working}));
+            //this.logger.trace('callCallbacks', this.callbacks.length, JSON.stringify({datapointName: msg.datapointName, value: msg.value, cache: msg.cache, change: msg.change, stable: msg.stable}));
             if (!this.callbackBlacklists[msg.datapointName]) {
                 this.callbackBlacklists[msg.datapointName] = new Set();
             }
