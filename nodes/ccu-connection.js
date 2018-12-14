@@ -1714,12 +1714,13 @@ module.exports = function (RED) {
         }
 
         callCallback(msg, id) {
+            const {filter, callback} = this.callbacks[id];
+            //this.logger.trace('filter', JSON.stringify(filter));
+
             if (this.callbackBlacklists[msg.datapointName].has(id)) {
                 //this.logger.trace('blacklistet ' + id + ' ' + msg.datapointName);
                 return false;
             }
-
-            const {filter, callback} = this.callbacks[id];
 
             let match = true;
             let matchCache;
@@ -1727,7 +1728,6 @@ module.exports = function (RED) {
             let matchStable;
 
             if (filter) {
-                //this.logger.trace('filter', JSON.stringify(filter));
                 const arrAttr = Object.keys(filter);
 
                 for (let i = 0, len = arrAttr.length; match && i < len; i++) {
@@ -1777,24 +1777,29 @@ module.exports = function (RED) {
                     if (Array.isArray(msg[attr])) {
                         if (filter[attr] instanceof RegExp) {
                             match = false;
+                            this.logger.trace('cb test regex array', id, attr, filter[attr], msg[attr]);
                             msg[attr].forEach(item => {
                                 if (filter[attr].test(item)) {
                                     match = true;
                                 }
                             });
                         } else if (!msg[attr].includes(filter[attr])) {
+                            this.logger.trace('cb mismatch array', id, attr, filter[attr], msg[attr]);
                             match = false;
                         }
-                    } else if ((filter[attr] instanceof RegExp) && !filter[attr].test(msg[attr])) {
-                        match = false;
+                    } else if (filter[attr] instanceof RegExp) {
+                        if (!filter[attr].test(msg[attr])) {
+                            this.logger.trace('cb mismatch regex', id, attr, filter[attr], msg[attr]);
+                            match = false;
+                        }
                     } else if (filter[attr] !== msg[attr]) {
-                        //this.logger.trace('cb mismatch ' + id + ' ' +attr + ' ' + filter[attr] + ' ' + msg[attr]);
+                        this.logger.trace('cb mismatch misc ' + id + ' ' + attr + ' ' + filter[attr] + ' ' + msg[attr]);
                         match = false;
                     }
                 }
             }
             if (match) {
-                this.logger.trace('callCallback ' + id + ' ' + msg.datapointName + ' ' + msg.value);
+                //this.logger.trace('callCallback ' + id + ' ' + msg.datapointName + ' ' + msg.value);
                 callback(msg);
                 this.callbackWhitelists[msg.datapointName].add(id);
             } else {
