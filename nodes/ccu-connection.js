@@ -1712,6 +1712,7 @@ module.exports = function (RED) {
                             msg.direction = activityState;
                         }
                     }
+                    msg.stable = !msg.working;
                     this.values[msg.datapointName] = msg;
                     this.callCallbacks(msg);
                 }, 300);
