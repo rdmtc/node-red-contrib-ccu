@@ -152,7 +152,8 @@ module.exports = function (RED) {
                         sysvar: config.sysvar,
                         program: config.program,
                         channelRooms: config.channelRooms,
-                        channelFunctions: config.channelFunctions
+                        channelFunctions: config.channelFunctions,
+                        enabledIfaces: config.enabledIfaces
                     }));
             }
         } else {
@@ -264,6 +265,7 @@ module.exports = function (RED) {
             this.regaEnabled = config.regaEnabled;
             this.regaPollEnabled = config.regaPoll;
             this.regaInterval = parseInt(config.regaInterval, 10);
+            this.hadTimeout = new Set();
 
             this.enabledIfaces = [];
 
@@ -318,6 +320,7 @@ module.exports = function (RED) {
                 port: this.isLocal ? 8183 : 8181
             });
 
+            this.enabledIfaces = [];
             Object.keys(this.ifaceTypes).forEach(iface => {
                 const enabled = config[this.ifaceTypes[iface].conf + 'Enabled'];
                 if (enabled) {
@@ -891,12 +894,15 @@ module.exports = function (RED) {
                 const enabled = config[this.ifaceTypes[iface].conf + 'Enabled'];
                 this.ifaceTypes[iface].enabled = enabled;
                 if (enabled) {
-                    this.enabledIfaces.push(iface);
                     this.setIfaceStatus(iface, false);
                     this.createClient(iface)
                         .then(() => {
                             if (this.ifaceTypes[iface].init) {
-                                return this.rpcInit(iface);
+                                return this.rpcInit(iface).then(() => {
+                                    this.setIfaceStatus(iface, true);
+                                });
+                            } else {
+                                this.setIfaceStatus(iface, true);
                             }
                         })
                         .catch(() => {});
@@ -935,7 +941,6 @@ module.exports = function (RED) {
                 this.methodCall(iface, 'init', [initUrl, 'nr_' + (Math.round(Math.random() * 65535)).toString(16) + '_' + iface])
                     .then(() => {
                         this.lastEvent[iface] = now();
-                        this.setIfaceStatus(iface, true);
                         if (this.ifaceTypes[iface].ping) {
                             this.rpcCheckInit(iface);
                         }
@@ -1005,6 +1010,7 @@ module.exports = function (RED) {
             const elapsed = Math.round((now() - this.lastEvent[iface]) / 1000);
             this.logger.debug('rpcCheckInit', iface, elapsed, pingTimeout);
             if (elapsed > pingTimeout) {
+                this.hadTimeout.add(iface);
                 this.setIfaceStatus(iface, false);
                 this.logger.warn('ping timeout', iface, elapsed);
                 this.rpcInit(iface);
@@ -1672,7 +1678,9 @@ module.exports = function (RED) {
             const iface = idInit.replace(/^nr_[0-9a-f]*_?/, '');
 
             this.lastEvent[iface] = now();
-            this.setIfaceStatus(iface, true);
+            if (this.hadTimeout.has(iface)) {
+                this.setIfaceStatus(iface, true);
+            }
 
             if (channel.includes('CENTRAL') && datapoint === 'PONG') {
                 this.logger.debug('    < ' + iface + ' PONG ' + payload);
