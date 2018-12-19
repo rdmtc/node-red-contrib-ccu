@@ -1,6 +1,6 @@
 {
   "name": "node-red-contrib-ccu",
-  "version": "1.10.2",
+  "version": "1.10.3",
   "description": "Node-RED Nodes for the Homematic CCU",
   "repository": "https://github.com/hobbyquaker/node-red-contrib-ccu",
   "keywords": [
@@ -34,6 +34,7 @@
       "ccu-value": "nodes/ccu-value.js",
       "ccu-rpc-event": "nodes/ccu-rpc-event.js",
       "ccu-set-value": "nodes/ccu-set-value.js",
+      "ccu-get-value": "nodes/ccu-get-value.js",
       "ccu-rpc": "nodes/ccu-rpc.js",
       "ccu-signal": "nodes/ccu-signal.js",
       "ccu-display": "nodes/ccu-display.js",
