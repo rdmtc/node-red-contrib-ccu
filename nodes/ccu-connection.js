@@ -900,6 +900,10 @@ module.exports = function (RED) {
                             if (this.ifaceTypes[iface].init) {
                                 return this.rpcInit(iface).then(() => {
                                     this.setIfaceStatus(iface, true);
+                                }).catch(error => {
+                                    this.logger.error('init', iface, error);
+                                    this.hadTimeout.add(iface);
+                                    this.setIfaceStatus(iface, false);
                                 });
                             } else {
                                 this.setIfaceStatus(iface, true);
