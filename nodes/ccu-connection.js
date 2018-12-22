@@ -340,6 +340,8 @@ module.exports = function (RED) {
                 this.initIfaces(config);
             }
 
+            this.stats(true);
+
             this.on('close', this.destructor);
         }
 
@@ -380,6 +382,23 @@ module.exports = function (RED) {
         deregister(node, done) {
             delete node.users[node.id];
             return done();
+        }
+
+        stats(enable) {
+            if (!enable) {
+                clearInterval(this.statsInterval);
+                return;
+            }
+            const [firstLogger] = Object.keys(RED.settings.logging);
+            if (RED.settings.logging[firstLogger].level !== 'debug' && RED.settings.logging[firstLogger].level !== 'trace') {
+                return;
+            }
+
+            this.statsInterval = setInterval(() => {
+                this.logger.debug('stats rpc rx: ' + JSON.stringify(this.rxCounters) + ' tx: ' + JSON.stringify(this.txCounters));
+                this.logger.debug('stats rpc subscribers ' + Object.keys(this.callbacks).length);
+                this.logger.debug('stats rega subscribers ' + (Object.keys(this.programCallbacks).length + Object.keys(this.sysvarCallbacks).length));
+            }, 60000);
         }
 
         setIfaceStatus(iface, connected) {
@@ -452,6 +471,7 @@ module.exports = function (RED) {
 
         destructor(done) {
             this.logger.debug('ccu-connection destructor');
+            this.stats(false);
 
             this.logger.debug('clear regaPollTimeout');
             this.cancelRegaPoll = true;
@@ -658,7 +678,8 @@ module.exports = function (RED) {
                     clearTimeout(this.setVariableQueueTimeout[name]);
                     this.setVariableQueue[name] = value;
                     this.setVariableQueueTimeout[name] = setTimeout(() => {
-                        delete setVariableQueue[name];
+                        this.logger.error('setVariable failed. variables still not known after timeout');
+                        delete this.setVariableQueue[name];
                     }, 30000);
                     return;
                 }
@@ -852,7 +873,7 @@ module.exports = function (RED) {
                             Object.keys(this.setVariableQueueTimeout).forEach(name => clearTimeout(this.setVariableQueueTimeout[name]));
                             Object.keys(this.setVariableQueue).reduce((p, name) =>
                                 p.then(_ => this.setVariable(name, this.setVariableQueue[name])),
-                                Promise.resolve()
+                            Promise.resolve()
                             );
                         }
                         resolve();
