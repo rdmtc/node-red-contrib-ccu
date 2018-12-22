@@ -296,6 +296,8 @@ module.exports = function (RED) {
 
             this.sysvar = {};
             this.program = {};
+            this.setVariableQueue = {};
+            this.setVariableQueueTimeout = {};
 
             this.values = {};
             this.links = {};
@@ -651,7 +653,17 @@ module.exports = function (RED) {
          */
         setVariable(name, value) {
             return new Promise((resolve, reject) => {
+                if (!this.hasRegaVariables) {
+                    this.logger.debug('variables not yet known. defer setVariable ' + name);
+                    clearTimeout(this.setVariableQueueTimeout[name]);
+                    this.setVariableQueue[name] = value;
+                    this.setVariableQueueTimeout[name] = setTimeout(() => {
+                        delete setVariableQueue[name];
+                    }, 30000);
+                    return;
+                }
                 const sysvar = this.sysvar[name];
+                delete this.setVariableQueue[name];
                 if (sysvar) {
                     switch (sysvar.valueType) {
                         case 'boolean':
@@ -826,6 +838,7 @@ module.exports = function (RED) {
                 this.rega.getVariables((err, res) => {
                     if (err) {
                         reject(err);
+                        this.hadTimeout.add('ReGaHSS');
                         this.setIfaceStatus('ReGaHSS', false);
                     } else {
                         const d = new Date();
@@ -834,6 +847,14 @@ module.exports = function (RED) {
                             sysvar.ts = sysvar.ts ? (new Date(sysvar.ts + ' UTC+' + (d.getTimezoneOffset() / -60))).getTime() : d.getTime();
                             this.updateRegaVariable(sysvar);
                         });
+                        if (!this.hasRegaVariables) {
+                            this.hasRegaVariables = true;
+                            Object.keys(this.setVariableQueueTimeout).forEach(name => clearTimeout(this.setVariableQueueTimeout[name]));
+                            Object.keys(this.setVariableQueue).reduce((p, name) =>
+                                p.then(_ => this.setVariable(name, this.setVariableQueue[name])),
+                                Promise.resolve()
+                            );
+                        }
                         resolve();
                         this.setIfaceStatus('ReGaHSS', true);
                     }
@@ -851,6 +872,7 @@ module.exports = function (RED) {
                 this.rega.getPrograms((err, res) => {
                     if (err) {
                         reject(err);
+                        this.hadTimeout.add('ReGaHSS');
                         this.setIfaceStatus('ReGaHSS', false);
                     } else {
                         const d = new Date();
@@ -905,9 +927,8 @@ module.exports = function (RED) {
                                     this.hadTimeout.add(iface);
                                     this.setIfaceStatus(iface, false);
                                 });
-                            } else {
-                                this.setIfaceStatus(iface, true);
                             }
+                            this.setIfaceStatus(iface, true);
                         })
                         .catch(() => {});
                 }
