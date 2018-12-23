@@ -162,9 +162,15 @@
                     }
                     if (c.datapoints.includes('RAMP_TIME')) {
                         $('.RAMP_TIME').show();
+                    } else {
+                        $('#node-input-ramp').typedInput('type', 'undefined');
+                        $('#node-input-ramp').val('');
                     }
                     if (c.datapoints.includes('ON_TIME')) {
                         $('.ON_TIME').show();
+                    } else {
+                        $('#node-input-on').typedInput('type', 'undefined');
+                        $('#node-input-on').val('');
                     }
                 }
             }
@@ -211,6 +217,12 @@
         },
 
         oneditsave() {
+            if ($('#ON_TIME').is(':hidden')) {
+                this.onType = 'undefined';
+            }
+            if ($('#RAMP_TIME').is(':hidden')) {
+                this.rampType = 'undefined';
+            }
             if (this.onType === 'undefined') {
                 this.on = 0;
             }
