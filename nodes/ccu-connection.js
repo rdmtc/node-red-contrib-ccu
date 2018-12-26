@@ -487,7 +487,7 @@ module.exports = function (RED) {
                     this.logger.debug('rpc close done');
                     done();
                 }).catch(err => {
-                    this.logger.error(err);
+                    this.logger.warn(err);
                     done();
                 });
 
