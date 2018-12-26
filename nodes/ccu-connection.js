@@ -1086,7 +1086,7 @@ module.exports = function (RED) {
                 if (this.servers.binrpc && this.servers.binrpc.server) {
                     timeout = setTimeout(() => {
                         reject(new Error('binrpc server close timeout'));
-                    }, 1000);
+                    }, 2000);
                     this.servers.binrpc.server.close(() => {
                         clearTimeout(timeout);
                         this.logger.info('binrpc server closed');
@@ -1104,7 +1104,7 @@ module.exports = function (RED) {
                     timeout = setTimeout(() => {
                         delete this.servers.http;
                         reject(new Error('xmlrpc server close timeout'));
-                    }, 1000);
+                    }, 2000);
                     this.logger.debug('xmlrpc server closing');
                     this.servers.http.close(() => {
                         clearTimeout(timeout);
