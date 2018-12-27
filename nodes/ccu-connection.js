@@ -14,7 +14,7 @@ const pkg = require(path.join(__dirname, '..', 'package.json'));
 // https://stackoverflow.com/a/37837872
 function isIterable(obj) {
     // eslint-disable-next-line eqeqeq, no-eq-null
-    return obj != null && typeof obj[Symbol.iterator] === 'function';
+    return obj != null && typeof obj[Symbol.iterator] === 'function' && typeof obj.forEach === 'function';
 }
 
 module.exports = function (RED) {
@@ -1424,46 +1424,50 @@ module.exports = function (RED) {
                     let working;
                     let direction;
                     let pong = true;
-                    params[0].forEach(call => {
-                        if (call.methodName === 'event') {
-                            queue.push(call);
-                            const [idInit, , datapoint, value] = call.params;
-                            if (datapoint !== 'PONG') {
-                                pong = false;
-                            }
+                    if (isIterable(params[0])) {
+                        params[0].forEach(call => {
+                            if (call && call.methodName === 'event') {
+                                queue.push(call);
+                                if (isIterable(call.params)) {
+                                    const [idInit, , datapoint, value] = call.params;
+                                    if (datapoint !== 'PONG') {
+                                        pong = false;
+                                    }
 
-                            if (datapoint === 'WORKING') {
-                                working = value;
-                            } else if (datapoint === 'PROCESS') {
-                                working = Boolean(value);
-                            } else if (datapoint === 'DIRECTION') {
-                                direction = value;
-                            } else if (datapoint === 'ACTIVITY_STATE') {
-                                if (value === 3) {
-                                    direction = 0;
-                                } else if (value === 0) {
-                                    direction = 3;
+                                    if (datapoint === 'WORKING') {
+                                        working = value;
+                                    } else if (datapoint === 'PROCESS') {
+                                        working = Boolean(value);
+                                    } else if (datapoint === 'DIRECTION') {
+                                        direction = value;
+                                    } else if (datapoint === 'ACTIVITY_STATE') {
+                                        if (value === 3) {
+                                            direction = 0;
+                                        } else if (value === 0) {
+                                            direction = 3;
+                                        } else {
+                                            direction = value;
+                                        }
+                                    }
+                                    iface = idInit.replace(/^nr_[0-9a-f]*_?/, '');
+                                }
+                                result.push('');
+                            } else if (call && this.rpcMethods[call.methodName]) {
+                                pong = false;
+                                if (isIterable(call.params)) {
+                                    this.rpcMethods[call.methodName](call.methodName, call.params, res => result.push(res));
                                 } else {
-                                    direction = value;
+                                    this.logger.error('rpc <', call.methodName, 'params not iterable', JSON.stringify(call.params));
                                 }
                             }
-                            iface = idInit.replace(/^nr_[0-9a-f]*_?/, '');
-                            result.push('');
-                        } else if (this.rpcMethods[call.methodName]) {
-                            pong = false;
-                            if (isIterable(call.params)) {
-                                this.rpcMethods[call.methodName](call.params || [], res => result.push(res));
-                            } else {
-                                this.logger.error('rpc <', call.methodName, 'params not iterable', JSON.stringify(call.params));
-                            }
-                        }
-                    });
-                    queue.forEach(call => {
-                        this.publishEvent(call.params, working, direction);
-                    });
+                        });
+                        queue.forEach(call => {
+                            this.publishEvent(call.params, working, direction);
+                        });
+                    }
                     this.logger.debug('    >', iface, 'system.multicall', JSON.stringify(result));
 
-                    if (!pong) {
+                    if (!pong && iface) {
                         if (this.rxCounters[iface]) {
                             this.rxCounters[iface] += 1;
                         } else {
