@@ -484,7 +484,7 @@ module.exports = function (RED) {
 
             this.rpcClose()
                 .then(() => {
-                    this.logger.debug('rpc close done');
+                    this.logger.info('rpc close done');
                     done();
                 }).catch(err => {
                     this.logger.warn(err);
@@ -984,7 +984,9 @@ module.exports = function (RED) {
         rpcInit(iface) {
             return new Promise((resolve, reject) => {
                 const initUrl = this.rpcServer(iface);
-                this.methodCall(iface, 'init', [initUrl, 'nr_' + (Math.round(Math.random() * 65535)).toString(16) + '_' + iface])
+                const initId = 'nr_' + (Math.round(Math.random() * 65535)).toString(16) + '_' + iface;
+                this.logger.info('init ' + iface + ' ' + initUrl + ' ' + initId);
+                this.methodCall(iface, 'init', [initUrl, initId])
                     .then(() => {
                         this.lastEvent[iface] = now();
                         if (this.ifaceTypes[iface].ping) {
@@ -1076,48 +1078,72 @@ module.exports = function (RED) {
             const calls = [];
             Object.keys(this.clients).forEach(iface => {
                 if (this.ifaceTypes[iface].init) {
-                    calls.push(this.methodCall(iface, 'init', [this.initUrl(iface), '']));
+                    this.logger.debug('queue de-init ' + iface + ' ' + this.initUrl(iface));
+                    calls.push(() => {
+                        return new Promise(resolve => {
+                        this.logger.debug('de-init ' + iface + ' ' + this.initUrl(iface));
+                            this.methodCall(iface, 'init', [this.initUrl(iface), ''])
+                                .then(() => {
+                                    this.logger.info('de-init ' + iface + ' ' + this.initUrl(iface) + ' done');
+                                    resolve();
+                                })
+                                .catch(error => {
+                                    this.logger.error('de-init ' + iface + ' ' + this.initUrl(iface) + ' failed ' + error);
+                                    resolve();
+                                });
+                        })
+                    });
                 }
             });
 
-            calls.push(new Promise((resolve, reject) => {
-                this.logger.debug('binrpc server closing');
-                let timeout;
-                if (this.servers.binrpc && this.servers.binrpc.server) {
-                    timeout = setTimeout(() => {
-                        reject(new Error('binrpc server close timeout'));
-                    }, 2000);
-                    this.servers.binrpc.server.close(() => {
+            this.logger.debug('queue binrpc server closing');
+            calls.push(() => {
+                return new Promise((resolve, reject) => {
+                    this.logger.debug('binrpc server closing');
+                    let timeout;
+                    if (this.servers.binrpc && this.servers.binrpc.server) {
+                        timeout = setTimeout(() => {
+                            this.logger.error('binrpc server close timeout');
+                            resolve();
+                        }, 2000);
+                        this.servers.binrpc.server.close(() => {
+                            clearTimeout(timeout);
+                            this.logger.info('binrpc server closed');
+                            resolve();
+                        });
+                    } else {
                         clearTimeout(timeout);
-                        this.logger.info('binrpc server closed');
                         resolve();
-                    });
-                } else {
-                    clearTimeout(timeout);
-                    resolve();
-                }
-            }));
+                    }
+                })
+            });
 
-            calls.push(new Promise((resolve, reject) => {
-                let timeout;
-                if (this.servers.http && this.servers.http.close) {
-                    timeout = setTimeout(() => {
-                        delete this.servers.http;
-                        reject(new Error('xmlrpc server close timeout'));
-                    }, 2000);
+            this.logger.debug('xmlrpc binrpc server closing');
+            calls.push(() => {
+                return new Promise((resolve, reject) => {
                     this.logger.debug('xmlrpc server closing');
-                    this.servers.http.close(() => {
+                    let timeout;
+                    if (this.servers.http && this.servers.http.close) {
+                        timeout = setTimeout(() => {
+                            delete this.servers.http;
+                            this.logger.error('xmlrpc server close timeout');
+                            resolve();
+                        }, 2000);
+                        this.logger.debug('xmlrpc server closing');
+                        this.servers.http.close(() => {
+                            clearTimeout(timeout);
+                            this.logger.info('xmlrpc server closed');
+                            resolve();
+                        });
+                    } else {
                         clearTimeout(timeout);
-                        this.logger.info('xmlrpc server closed');
                         resolve();
-                    });
-                } else {
-                    clearTimeout(timeout);
-                    resolve();
-                }
-            }));
+                    }
+                })
+            });
 
-            return Promise.all(calls);
+            this.logger.debug('shutdown tasks: ' + calls.length);
+            return calls.reduce((p, task) => p.then(task), Promise.resolve());
         }
 
         initUrl(iface) {
@@ -1146,6 +1172,7 @@ module.exports = function (RED) {
                             this.rpcMethods[method](err, params, callback);
                         } else {
                             this.logger.error('rpc <', protocol, 'method', method, 'params not iterable', JSON.stringify(params));
+                            callback(null, '');
                         }
                     });
                 });
@@ -1890,7 +1917,7 @@ module.exports = function (RED) {
                             this.logger.error('    <', iface, method, err);
                             reject(err);
                         } else if (res && res.faultCode) {
-                            this.logger.debug('    <', iface, method, JSON.stringify(res));
+                            this.logger.error('    <', iface, method, JSON.stringify(res));
                             reject(new Error(res.faultString));
                         } else {
                             this.logger.debug('    <', iface, method, JSON.stringify(res));
