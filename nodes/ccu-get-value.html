@@ -51,7 +51,11 @@
                 }
                 $nodeSetProp.typedInput({
                     default: this.setPropType,
-                    types: ['msg', 'flow', 'global'],
+                    types: [{
+                        value: 'cmsg',
+                        label: 'msg',
+                        hasValue: false
+                    }, 'msg', 'flow', 'global'],
                     typeField: $nodeSetPropType
                 });
 

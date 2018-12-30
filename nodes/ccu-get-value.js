@@ -18,24 +18,30 @@ module.exports = function (RED) {
                 } else {
                     const address = config.iface + '.' + config.channel.split(' ')[0] + '.' + config.datapoint;
                     value = this.ccu.values[address];
+                }
+
+                if (config.setPropType === 'cmsg') {
+                    Object.assign(msg, value);
+                    this.send(msg);
+                } else {
                     if (config.datapointProperty !== 'all') {
                         value = value[config.datapointProperty];
                     }
-                }
 
-                if (config.setPropType === 'msg') {
-                    RED.util.setMessageProperty(msg, config.setProp, value);
-                    this.send(msg);
-                } else if ((this.setPropType === 'flow') || (this.setPropType === 'global')) {
-                    const context = RED.util.parseContextStore(this.setProp);
-                    const target = this.context()[this.setPropType];
-                    target.set(context.key, value, context.store, err => {
-                        if (err) {
-                            this.error(err, msg);
-                        } else {
-                            this.send(msg);
-                        }
-                    });
+                    if (config.setPropType === 'msg') {
+                        RED.util.setMessageProperty(msg, config.setProp, value);
+                        this.send(msg);
+                    } else if ((this.setPropType === 'flow') || (this.setPropType === 'global')) {
+                        const context = RED.util.parseContextStore(this.setProp);
+                        const target = this.context()[this.setPropType];
+                        target.set(context.key, value, context.store, err => {
+                            if (err) {
+                                this.error(err, msg);
+                            } else {
+                                this.send(msg);
+                            }
+                        });
+                    }
                 }
             });
         }
