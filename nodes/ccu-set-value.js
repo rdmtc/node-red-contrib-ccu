@@ -25,7 +25,19 @@ module.exports = function (RED) {
             this.channelType = config.channelType;
             this.channelName = config.channelName;
             this.datapoint = config.datapoint;
+            this.roomsRx = config.roomsRx;
+            this.functionsRx = config.functionsRx;
+            this.deviceRx = config.deviceRx;
+            this.deviceTypeRx = config.deviceTypeRx;
+            this.deviceNameRx = config.deviceNameRx;
+            this.channelRx = config.channelRx;
+            this.channelTypeRx = config.channelTypeRx;
+            this.channelNameRx = config.channelNameRx;
+            this.datapointRx = config.datapointRx;
             this.delay = config.delay;
+
+            this.blacklist = new Set();
+            this.whitelist = new Set();
 
             this.on('input', msg => {
                 this.shiftQueue(this.createQueue(msg));
@@ -53,57 +65,156 @@ module.exports = function (RED) {
                     return;
                 }
                 Object.keys(this.ccu.metadata.devices[iface]).forEach(address => {
+                    if (this.blacklist.has(address)) {
+                        return;
+                    }
                     const channel = this.ccu.metadata.devices[iface][address];
+
                     if (!channel.PARENT) {
+                        this.blacklist.add(address);
                         return;
-                    }
-                    const device = this.ccu.metadata.devices[iface][channel.PARENT];
-                    if (this.device && this.device !== channel.PARENT) {
-                        return;
-                    }
-                    if (this.deviceType && this.deviceType !== device.TYPE) {
-                        return;
-                    }
-                    if (this.deviceName) {
-                        if (!this.ccu.channelNames[address] || this.ccu.channelNames[channel.PARENT] !== this.deviceName) {
-                            return;
-                        }
-                    }
-                    if (this.channel && this.channel !== address) {
-                        return;
-                    }
-                    if (this.channelType && this.channelType !== channel.TYPE) {
-                        return;
-                    }
-                    if (this.channelName) {
-                        if (!this.ccu.channelNames[address] || this.ccu.channelNames[address] !== this.channelName) {
-                            return;
-                        }
                     }
 
-                    if (this.rooms) {
-                        if (!this.ccu.channelRooms[address] || !this.ccu.channelRooms[address].includes(this.rooms)) {
-                            return;
+                    if (!this.whitelist.has(address)) {
+                        const device = this.ccu.metadata.devices[iface][channel.PARENT];
+                        if (this.device) {
+                            if (this.deviceRx === 'str' && this.device !== channel.PARENT) {
+                                this.blacklist.add(address);
+                                return;
+                            }
+                            if (this.deviceRx === 're' && !channel.PARENT.match(new RegExp(this.device))) {
+                                this.blacklist.add(address);
+                                return;
+                            }
                         }
-                    }
+                        if (this.deviceType) {
+                            if (this.deviceTypeRx === 'str' && this.deviceType !== device.TYPE) {
+                                this.blacklist.add(address);
+                                return;
+                            }
+                            if (this.deviceTypeRx === 're' && !device.TYPE.match(new RegExp(this.deviceType))) {
+                                this.blacklist.add(address);
+                                return;
+                            }
+                        }
+                        if (this.deviceName) {
+                            if (!this.ccu.channelNames[address]) {
+                                this.blacklist.add(address);
+                                return;
+                            }
+                            if (this.deviceNameRx === 'str' && this.ccu.channelNames[channel.PARENT] !== this.deviceName) {
+                                this.blacklist.add(address);
+                                return;
+                            }
+                            if (this.deviceNameRx === 're' && !this.ccu.channelNames[channel.PARENT].match(new RegExp(this.deviceName))) {
+                                this.blacklist.add(address);
+                                return;
+                            }
+                        }
+                        if (this.channel) {
+                            if (this.channelRx === 'str' && this.channel !== address) {
+                                this.blacklist.add(address);
+                                return;
+                            }
+                            if (this.channelRx === 're' && !address.match(new RegExp(this.channel))) {
+                                this.blacklist.add(address);
+                                return;
+                            }
+                        }
+                        if (this.channelType) {
+                            if (this.channelTypeTx === 'str' && this.channelType !== channel.TYPE) {
+                                this.blacklist.add(address);
+                                return;
+                            }
+                            if (this.channelTypeTx === 'str' && !this.channelType.match(new RegExp(channel.TYPE))) {
+                                this.blacklist.add(address);
+                                return;
+                            }
+                        }
+                        if (this.channelName) {
+                            if (!this.ccu.channelNames[address]) {
+                                this.blacklist.add(address);
+                                return;
+                            }
+                            if (this.channelNameRx === 'str' && this.ccu.channelNames[address] !== this.channelName) {
+                                this.blacklist.add(address);
+                                return;
+                            }
+                            if (this.channelNameRx === 're' && !this.ccu.channelNames[address].match(new RegExp(this.channelName))) {
+                                this.blacklist.add(address);
+                                return;
+                            }
+                        }
 
-                    if (this.functions) {
-                        if (!this.ccu.channelFunctions[address] || !this.ccu.channelFunctions[address].includes(this.functions)) {
-                            return;
+                        if (this.rooms) {
+                            if (!this.ccu.channelRooms[address]) {
+                                this.blacklist.add(address);
+                                return;
+                            }
+                            if (this.roomsRx === 'str' && !this.ccu.channelRooms[address].includes(this.rooms)) {
+                                this.blacklist.add(address);
+                                return;
+                            }
+                            if (this.roomsRx === 're') {
+                                let match = false;
+                                this.ccu.channelRooms[address].forEach(room => {
+                                    if (room.match(new RegExp(this.rooms))) {
+                                        match = true;
+                                    }
+                                });
+                                if (!match) {
+                                    this.blacklist.add(address);
+                                    return;
+                                }
+                            }
                         }
+
+                        if (this.functions) {
+                            if (!this.ccu.channelFunctions[address]) {
+                                this.blacklist.add(address);
+                                return;
+                            }
+                            if (this.functionsRx === 'str' && !this.ccu.channelFunctions[address].includes(this.functions)) {
+                                this.blacklist.add(address);
+                                return;
+                            }
+                            if (this.functionsRx === 're') {
+                                let match = false;
+                                this.ccu.channelFunctions[address].forEach(func => {
+                                    if (func.match(new RegExp(this.functions))) {
+                                        match = true;
+                                    }
+                                });
+                                if (!match) {
+                                    this.blacklist.add(address);
+                                    return;
+                                }
+                            }
+                        }
+
+                        this.whitelist.add(address);
                     }
 
                     const psKey = this.ccu.paramsetName(iface, channel, 'VALUES');
-
-                    if (this.ccu.paramsetDescriptions[psKey] && Object.keys(this.ccu.paramsetDescriptions[psKey]).includes(this.datapoint)) {
-                        const datapointName = iface + '.' + address + '.' + this.datapoint;
-                        const currentValue = this.ccu.values[datapointName] && this.ccu.values[datapointName].value;
-                        if (this.datapoint.startsWith('PRESS_') || typeof currentValue === 'undefined' || currentValue !== msg.payload) {
-                            queue.push({iface, params: [address, this.datapoint, msg.payload]});
-                        }
+                    if (this.ccu.paramsetDescriptions[psKey]) {
+                        const rx = new RegExp(this.datapoint);
+                        Object.keys(this.ccu.paramsetDescriptions[psKey]).forEach(dp => {
+                            if (this.datapointRx === 'str' && dp !== this.datapoint) {
+                                return;
+                            }
+                            if (this.datapointRx === 're' && !dp.match(rx)) {
+                                return;
+                            }
+                            const datapointName = iface + '.' + address + '.' + dp;
+                            const currentValue = this.ccu.values[datapointName] && this.ccu.values[datapointName].value;
+                            if (dp.startsWith('PRESS_') || typeof currentValue === 'undefined' || currentValue !== msg.payload) {
+                                queue.push({iface, params: [address, dp, msg.payload]});
+                            }
+                        });
                     }
                 });
             });
+            this.status({fill: 'green', shape: 'ring', text: String(queue.length) + ' datapoints'});
             return queue;
         }
 
