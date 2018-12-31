@@ -30,6 +30,7 @@ module.exports = function (RED) {
             this.idSubscription = this.ccu.subscribeSysvar({name: this.name, cache: config.cache, change: config.change}, msg => {
                 msg.topic = this.ccu.topicReplace(config.topic, msg);
                 this.send(msg);
+                this.status({fill: 'green', shape: 'ring', text: String(msg.payload)});
             });
 
             this.on('input', this._input);
@@ -41,7 +42,7 @@ module.exports = function (RED) {
             const val = msg.payload;
             this.ccu.setVariable(name, val)
                 .then(() => {
-                    this.status({fill: 'green', shape: 'dot', text: 'connected'});
+                    this.status({fill: 'green', shape: 'ring', text: String(val)});
                 })
                 .catch(err => {
                     this.error(err.message);
