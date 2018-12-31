@@ -1081,7 +1081,7 @@ module.exports = function (RED) {
                     this.logger.debug('queue de-init ' + iface + ' ' + this.initUrl(iface));
                     calls.push(() => {
                         return new Promise(resolve => {
-                        this.logger.debug('de-init ' + iface + ' ' + this.initUrl(iface));
+                            this.logger.debug('de-init ' + iface + ' ' + this.initUrl(iface));
                             this.methodCall(iface, 'init', [this.initUrl(iface), ''])
                                 .then(() => {
                                     this.logger.info('de-init ' + iface + ' ' + this.initUrl(iface) + ' done');
@@ -1091,14 +1091,14 @@ module.exports = function (RED) {
                                     this.logger.error('de-init ' + iface + ' ' + this.initUrl(iface) + ' failed ' + error);
                                     resolve();
                                 });
-                        })
+                        });
                     });
                 }
             });
 
             this.logger.debug('queue binrpc server closing');
             calls.push(() => {
-                return new Promise((resolve, reject) => {
+                return new Promise(resolve => {
                     this.logger.debug('binrpc server closing');
                     let timeout;
                     if (this.servers.binrpc && this.servers.binrpc.server) {
@@ -1115,12 +1115,12 @@ module.exports = function (RED) {
                         clearTimeout(timeout);
                         resolve();
                     }
-                })
+                });
             });
 
             this.logger.debug('xmlrpc binrpc server closing');
             calls.push(() => {
-                return new Promise((resolve, reject) => {
+                return new Promise(resolve => {
                     this.logger.debug('xmlrpc server closing');
                     let timeout;
                     if (this.servers.http && this.servers.http.close) {
@@ -1139,7 +1139,7 @@ module.exports = function (RED) {
                         clearTimeout(timeout);
                         resolve();
                     }
-                })
+                });
             });
 
             this.logger.debug('shutdown tasks: ' + calls.length);
