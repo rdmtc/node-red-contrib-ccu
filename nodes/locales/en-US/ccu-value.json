@@ -3,7 +3,7 @@
     "tip1": "Omit Interface, Channel and/or Datapoint if you want to supply them via",
     "tip2": "and",
     "tip3": "Alternatively you can supply all 3 via",
-    "tip4": "(seperated through dots) e.g.",
+    "tip4": "(separated through dots) e.g.",
     "tip5": "Mind that this node only emits messages if Interface, Channel und Datapoint are set. To receive events from multiple actuators please use the \"rpc event\" node.",
     "change": "Emit changed values only",
     "cache": "Emit cached value on start",
