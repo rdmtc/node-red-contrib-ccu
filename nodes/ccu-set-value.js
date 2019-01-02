@@ -60,6 +60,7 @@ module.exports = function (RED) {
 
         createQueue(msg) {
             const queue = [];
+            let count = 0;
             Object.keys(this.ccu.metadata.devices).forEach(iface => {
                 if (this.iface && iface !== this.iface) {
                     return;
@@ -207,6 +208,7 @@ module.exports = function (RED) {
                             }
                             const datapointName = iface + '.' + address + '.' + dp;
                             const currentValue = this.ccu.values[datapointName] && this.ccu.values[datapointName].value;
+                            count += 1;
                             if (dp.startsWith('PRESS_') || typeof currentValue === 'undefined' || currentValue !== msg.payload) {
                                 queue.push({iface, params: [address, dp, msg.payload]});
                             }
@@ -214,7 +216,7 @@ module.exports = function (RED) {
                     }
                 });
             });
-            this.status({fill: 'green', shape: 'ring', text: String(queue.length) + ' datapoints'});
+            this.status({fill: 'green', shape: 'ring', text: String(count) + ' datapoints'});
             return queue;
         }
 
