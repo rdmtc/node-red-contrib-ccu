@@ -46,6 +46,7 @@ module.exports = function (RED) {
                 })
                 .catch(err => {
                     this.error(err.message);
+                    this.currentStatus = 'red';
                     this.status({fill: 'red', shape: 'dot', text: 'error'});
                 });
         }
