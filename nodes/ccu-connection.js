@@ -294,6 +294,8 @@ module.exports = function (RED) {
             this.channelRooms = {};
             this.channelFunctions = {};
 
+            this.groups = {};
+
             this.sysvar = {};
             this.program = {};
             this.setVariableQueue = {};
@@ -505,11 +507,34 @@ module.exports = function (RED) {
             }
         }
 
+        getGroupsData() {
+            return new Promise(resolve => {
+                this.logger.debug('virtualdevices get groups');
+                this.rega.exec(`
+                    var stdoutGroups;
+                    var stderrGroups;
+                    system.Exec("cat /etc/config/groups.gson", &stdoutGroups, &stderrGroups);         
+                `, (err, stdout, objects) => {
+                    if (!err && objects && objects.stderrGroups === 'null') {
+                        try {
+                            const {groups} = JSON.parse(objects.stdoutGroups);
+                            groups.forEach(group => {
+                                this.groups[group.id] = group;
+                            });
+
+                        } catch (error) {}
+                    }
+                    resolve();
+                });
+            });
+        }
+
         getRegaData() {
             return this.getRegaChannels()
                 .then(() => this.getRegaRooms())
                 .then(() => this.getRegaFunctions())
                 .then(() => this.getRegaValues())
+                .then(() => this.getGroupsData())
                 .catch(this.logger.error);
         }
 
