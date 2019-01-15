@@ -1,7 +1,9 @@
 const os = require('os');
 const path = require('path');
 const fs = require('fs');
+const crypto = require('crypto');
 
+const base62 = require('buffer-base62').toBase62;
 const stringSimilarity = require('string-similarity');
 const nextport = require('nextport');
 const hmDiscover = require('hm-discover');
@@ -1009,7 +1011,10 @@ module.exports = function (RED) {
         rpcInit(iface) {
             return new Promise((resolve, reject) => {
                 const initUrl = this.rpcServer(iface);
-                const initId = 'nr_' + (Math.round(Math.random() * 65535)).toString(16) + '_' + iface;
+                let initId;
+                const hash = base62(crypto.createHash('sha1').update(initUrl).digest()).slice(0, 6);
+                initId = 'nr_' + hash + '_' + iface;
+
                 this.logger.info('init ' + iface + ' ' + initUrl + ' ' + initId);
                 this.methodCall(iface, 'init', [initUrl, initId])
                     .then(() => {
@@ -1187,9 +1192,9 @@ module.exports = function (RED) {
                 Object.keys(this.rpcMethods).forEach(method => {
                     this.servers[protocol].on(method, (err, params, callback) => {
                         if (err) {
-                            this.logger.error('rpc <', iface, method, err);
+                            this.logger.error('rpc <', protocol, method, err);
                         }
-                        this.logger.debug('rpc <', iface, method, JSON.stringify(params));
+                        this.logger.debug('rpc <', protocol, method, JSON.stringify(params));
                         if (method === 'event') {
                             method = 'eventSingle';
                         }
@@ -1380,42 +1385,47 @@ module.exports = function (RED) {
             }
         }
 
+        getIfaceFromIdInit(idInit) {
+            const match = idInit.match(/^nr_[0-9a-zA-Z]{6}_([a-zA-Z-]+)$/);
+            return match && match[1];
+        }
+
         get rpcMethods() {
             return {
                 'system.listMethods': (_, params, callback) => {
                     const [idInit] = params;
-                    const iface = idInit.replace(/^nr_[0-9a-f]*_?/, '');
+                    const iface = this.getIfaceFromIdInit(idInit);
                     const res = Object.keys(this.rpcMethods);
                     this.logger.debug('    >', iface, 'system.listMethods', JSON.stringify(res));
                     callback(null, res);
                 },
                 setReadyConfig: (_, params, callback) => {
                     const [idInit] = params;
-                    const iface = idInit.replace(/^nr_[0-9a-f]*_?/, '');
+                    const iface = this.getIfaceFromIdInit(idInit);
                     this.logger.debug('    >', iface, 'setReadyConfig ""');
                     callback(null, '');
                 },
                 updateDevice: (_, params, callback) => {
                     const [idInit] = params;
-                    const iface = idInit.replace(/^nr_[0-9a-f]*_?/, '');
+                    const iface = this.getIfaceFromIdInit(idInit);
                     this.logger.debug('    >', iface, 'updateDevice ""');
                     callback(null, '');
                 },
                 replaceDevice: (_, params, callback) => {
                     const [idInit] = params;
-                    const iface = idInit.replace(/^nr_[0-9a-f]*_?/, '');
+                    const iface = this.getIfaceFromIdInit(idInit);
                     this.logger.debug('    >', iface, 'replaceDevice ""');
                     callback(null, '');
                 },
                 readdedDevice: (_, params, callback) => {
                     const [idInit] = params;
-                    const iface = idInit.replace(/^nr_[0-9a-f]*_?/, '');
+                    const iface = this.getIfaceFromIdInit(idInit);
                     this.logger.debug('    >', iface, 'readdedDevice ""');
                     callback(null, '');
                 },
                 newDevices: (_, params, callback) => {
                     const [idInit, devices] = params;
-                    const iface = idInit.replace(/^nr_[0-9a-f]*_?/, '');
+                    const iface = this.getIfaceFromIdInit(idInit);
 
                     devices.forEach(device => {
                         this.newDevice(iface, device);
@@ -1428,7 +1438,7 @@ module.exports = function (RED) {
                 },
                 deleteDevices: (_, params, callback) => {
                     const [idInit, devices] = params;
-                    const iface = idInit.replace(/^nr_[0-9a-f]*_?/, '');
+                    const iface = this.getIfaceFromIdInit(idInit);
 
                     devices.forEach(device => {
                         this.deleteDevice(iface, device);
@@ -1441,21 +1451,21 @@ module.exports = function (RED) {
                 },
                 listDevices: (_, params, callback) => {
                     const [idInit] = params;
-                    const iface = idInit.replace(/^nr_[0-9a-f]*_?/, '');
+                    const iface = this.getIfaceFromIdInit(idInit);
                     const res = this.listDevices(iface) || [];
                     this.logger.debug('    >', iface, 'listDevices', JSON.stringify(res));
                     callback(null, res);
                 },
                 event: (_, params, callback) => {
                     const [idInit] = params;
-                    const iface = idInit.replace(/^nr_[0-9a-f]*_?/, '');
+                    const iface = this.getIfaceFromIdInit(idInit);
                     this.logger.debug('    >', iface, 'event ""');
                     this.publishEvent(params);
                     callback(null, '');
                 },
                 eventSingle: (_, params, callback) => {
                     const [idInit] = params;
-                    const iface = idInit.replace(/^nr_[0-9a-f]*_?/, '');
+                    const iface = this.getIfaceFromIdInit(idInit);
                     this.logger.debug('    >', iface, 'event ""');
                     this.publishEvent(params);
 
@@ -1486,7 +1496,7 @@ module.exports = function (RED) {
                                         pong = false;
                                     }
 
-                                    if (datapoint === 'WORKING') {
+                                    if (datapoint === 'WORKING' || datapoint === 'WORKING_SLATS') {
                                         working = value;
                                     } else if (datapoint === 'PROCESS') {
                                         working = Boolean(value);
@@ -1501,7 +1511,7 @@ module.exports = function (RED) {
                                             direction = value;
                                         }
                                     }
-                                    iface = idInit.replace(/^nr_[0-9a-f]*_?/, '');
+                                    iface = this.getIfaceFromIdInit(idInit);
                                 }
                                 result.push('');
                             } else if (call && this.rpcMethods[call.methodName]) {
@@ -1557,7 +1567,7 @@ module.exports = function (RED) {
          */
         unsubscribeSysvar(id) {
             if (this.sysvarCallbacks[id]) {
-                this.logger.debug('unsubscribeSysvar', id);
+                this.logger.trace('unsubscribeSysvar', id);
                 delete this.sysvarCallbacks[id];
                 return true;
             }
@@ -1591,7 +1601,7 @@ module.exports = function (RED) {
          */
         unsubscribeProgram(id) {
             if (this.programCallbacks[id]) {
-                this.logger.debug('unsubscribeProgram', id);
+                this.logger.trace('unsubscribeProgram', id);
                 delete this.programCallbacks[id];
                 return true;
             }
@@ -1667,7 +1677,7 @@ module.exports = function (RED) {
 
         unsubscribe(id) {
             if (this.callbacks[id]) {
-                this.logger.debug('unsubscribe', id);
+                this.logger.trace('unsubscribe', id);
                 delete this.callbacks[id];
 
                 Object.keys(this.callbackBlacklists).forEach(dp => {
@@ -1777,7 +1787,7 @@ module.exports = function (RED) {
 
         publishEvent(params, working, direction) {
             const [idInit, channel, datapoint, payload] = params;
-            const iface = idInit.replace(/^nr_[0-9a-f]*_?/, '');
+            const iface = this.getIfaceFromIdInit(idInit);
 
             this.lastEvent[iface] = now();
             if (this.hadTimeout.has(iface)) {
@@ -1793,12 +1803,15 @@ module.exports = function (RED) {
 
             const msg = this.createMessage(iface, channel, datapoint, payload, {cache: false, working, direction});
 
-            if (msg.channelType && msg.channelType.match(/BLIND|DIMMER/) && msg.datapoint === 'LEVEL' && !working) {
+            if (msg.channelType && msg.channelType.match(/BLIND|DIMMER|JALOUSIE/) && (msg.datapoint === 'LEVEL' || msg.datapoint === 'LEVEL_SLATS') && !working) {
                 clearTimeout(this.workingTimeout[msg.datapointName]);
                 this.workingTimeout[msg.datapointName] = setTimeout(() => {
                     const datapointNamePrefix = iface + '.' + channel + '.';
                     if (this.values[datapointNamePrefix + 'WORKING']) {
                         msg.working = this.values[datapointNamePrefix + 'WORKING'].value;
+                        if (this.values[datapointNamePrefix + 'WORKING_SLATS']) {
+                            msg.working = this.values[datapointNamePrefix + 'WORKING'].value || this.values[datapointNamePrefix + 'WORKING_SLATS'].value;
+                        }
                     } else if (this.values[datapointNamePrefix + 'PROCESS']) {
                         msg.working = Boolean(this.values[datapointNamePrefix + 'PROCESS'].value);
                     }
@@ -1984,10 +1997,12 @@ module.exports = function (RED) {
                 //    Resolve();
                 // });
             } else {
-                this.setValueTimers[id] = setTimeout(() => {
-                    delete this.setValueTimers[id];
-                    this.setValueDeferred(id);
-                }, this.setValueThrottle);
+                if (iface === 'BidCos-RF') {
+                    this.setValueTimers[id] = setTimeout(() => {
+                        delete this.setValueTimers[id];
+                        this.setValueDeferred(id);
+                    }, this.setValueThrottle);
+                }
 
                 return new Promise((resolve, reject) => {
                     this.methodCall(iface, 'setValue', params).then(resolve).catch(err => {
