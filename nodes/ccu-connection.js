@@ -1385,6 +1385,9 @@ module.exports = function (RED) {
         }
 
         getIfaceFromIdInit(idInit) {
+            if (idInit === 'CUxD') {
+                return idInit;
+            }
             const match = idInit.match(/^nr_[0-9a-zA-Z]{6}_([a-zA-Z-]+)$/);
             return match && match[1];
         }
