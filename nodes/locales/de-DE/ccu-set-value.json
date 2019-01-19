@@ -1,0 +1,8 @@
+{
+    "ccu-get-value": {
+        "tip": "Tipp: ",
+        "change": "Nur geänderte Werte ausgeben",
+        "cache": "Beim Start letzten bekannten Wert ausgeben",
+        "working": "Während WORKING keine Werte ausgeben",
+    }
+}
