@@ -1010,9 +1010,8 @@ module.exports = function (RED) {
         rpcInit(iface) {
             return new Promise((resolve, reject) => {
                 const initUrl = this.rpcServer(iface);
-                let initId;
                 const hash = base62(crypto.createHash('sha1').update(initUrl).digest()).slice(0, 6);
-                initId = 'nr_' + hash + '_' + iface;
+                const initId = 'nr_' + hash + '_' + iface;
 
                 this.logger.info('init ' + iface + ' ' + initUrl + ' ' + initId);
                 this.methodCall(iface, 'init', [initUrl, initId])
