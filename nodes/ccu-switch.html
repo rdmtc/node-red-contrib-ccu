@@ -180,10 +180,18 @@
                     minLength: 0
                 });
 
+                $nodeInputChannel.on('focus', () => {
+                    $nodeInputChannel.autocomplete('search');
+                });
+
                 $nodeInputDatapoint.autocomplete({
                     source: [],
                     delay: 0,
                     minLength: 0
+                });
+
+                $nodeInputDatapoint.on('focus', () => {
+                    $nodeInputDatapoint.autocomplete('search');
                 });
 
                 $nodeInputChannel.on('blur', autocompleteDatapoint);

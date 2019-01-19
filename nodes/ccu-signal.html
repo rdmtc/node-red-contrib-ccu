@@ -144,6 +144,10 @@
                 minLength: 0
             });
 
+            $nodeInputChannel.on('focus', () => {
+                $nodeInputChannel.autocomplete('search');
+            });
+
             function autoCompleteChannel() {
                 const arr = [];
                 if (data) {

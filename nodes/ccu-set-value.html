@@ -73,6 +73,10 @@
                     minLength: 0
                 });
 
+                $input.on('focus', () => {
+                    $input.autocomplete('search');
+                });
+
                 $this.on('change', (type, value) => {
                     if (value === 're') {
                         $input.autocomplete('disable');

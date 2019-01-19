@@ -523,7 +523,6 @@ module.exports = function (RED) {
                             groups.forEach(group => {
                                 this.groups[group.id] = group;
                             });
-
                         } catch (error) {}
                     }
                     resolve();
