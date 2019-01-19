@@ -150,22 +150,7 @@
             <option value="">none</option>
         </select>
     </div>
-    <script type="text/x-red" data-help-name="ccu-connection" lang="en-US">
-        <p>The <i>Init address</i> normally equals the <i>Listen address</i>, the address under which the host running
-        Node-Red is reachable for the CCU. You can leave it empty.</p>
-        <p>For advanced users: when listening on all interfaces (address 0.0.0.0) or if Node-RED runs inside a
-        (e.g. docker) container with NAT'd network or in other more special network environments, setting <i>init
-        address</i> to something else then <i>listen address</i> is required.</p>
-    </script>
-    <script type="text/x-red" data-help-name="ccu-connection" lang="de-DE">
-        <p><i>Init address</i> entspricht normalerweise <i>Listen address</i>, Die Adresse unter der Node-RED von der
-        CCU aus erreichbar ist. Das Eingabefeld kann leer gelassen werden.</p>
-        <p>Für fortgeschrittene User: Wenn auf allen Interfaces gelauscht wird (Adresse 0.0.0.0) oder wenn Node-RED in
-        einem Container (z.B. Docker) mit NAT-Netzwerk läuft oder in anderen spezielleren Netzwerkumgebungen kann es
-        notwendig sein <i>Init address</i> und <i>Listen Address</i> auf unterschiedliche Werte zu setzen.</p>
-    </script>
-
-    <style>
+        <style>
         .ccu-checkbox {
           width: auto !important;
         }
@@ -174,4 +159,62 @@
             margin-top: -3px;
         }
     </style>
+</script>
+
+
+
+
+<script type="text/x-red" data-help-name="ccu-connection" lang="de-DE">
+        <p>Im Connection Node wird die Verbindung zu den CCU Schnittstellenprozessen und zur Logikschicht verwaltet.</p>
+        <h3>Konfiguration</h3>
+            <ul>
+                <li><b>Name</b>: Frei wählbarer Name für die aktuelle CCU-Konfiguration. Er dient zur Unterscheidung falls mehrere CCUs an RedMatic angebunden werden und erscheint in allen anderen CCU Nodes.</li>
+            </ul>
+            <ul>
+                <li><b>CCU Address</b>: Die IP-Adresse oder der Hostname der CCU. Wird das CCU-Addon RedMatic genutzt, läuft Node-RED auf dem selben Server weshalb die Loopback-Adresse <code>localhost</code> bzw. <code>127.0.0.1</code> gewählt werden kann.</li>
+            </ul>
+            <ul>
+                <li><b>Listen Address</b>: Die IP-Adresse des Netzwerk-Interfaces auf welchem die RedMatic RPC Server "lauschen" sollen. Läuft RedMatic auf der CCU wird hier ebenfalls <code>localhost</code> bzw. <code>127.0.0.1</code> verwendet. Um auf allen Interfaces zu lauschen kann <code>0.0.0.0</code> verwendet werden.</li>
+            </ul>
+            <ul>
+                <li><b>Init Address</b>: entspricht normalerweise <i>Listen address</i>, Die Adresse unter der Node-RED von der
+        CCU aus erreichbar ist. Das Eingabefeld kann leer gelassen werden.</p>
+        <p>Für fortgeschrittene User: Wenn auf allen Interfaces gelauscht wird (Adresse 0.0.0.0) oder wenn Node-RED in
+        einem Container (z.B. Docker) mit NAT-Netzwerk läuft oder in anderen spezielleren Netzwerkumgebungen kann es
+        notwendig sein <i>Init address</i> und <i>Listen Address</i> auf unterschiedliche Werte zu setzen.</li>
+            </ul>
+<ul>
+                <li><b>BinRPC Port</b>: Der Port des RedMatic BinRPC Dienstes an den die CCU Events schickt. Werden Verbindungen zu mehreren CCUs hergestellt (mehrere instanzen des ccu-configuration Node) braucht jede Verbindung einen exklusiven Port.</li>
+            </ul>
+<ul>
+                <li><b>XMLRPC Port</b>: Der Port des RedMatic XMLRPC Dienstes an den die CCU Events schickt. Werden Verbindungen zu mehreren CCUs hergestellt braucht jede Verbindung einen exklusiven Port.</li>
+            </ul>
+            <ul>
+                <li><b>Interfaces</b>: Hier können die zu verwendenden Schnittstellen angegeben werden. Nutzt man Beispielsweise keinen CUxD oder HmIP Geräte, kann der Haken entfernt werden was die entsprechenden ungenutzten Komponenten deaktiviert.
+                    <ul>
+                        <li>ReGaHSS: Die Logikschicht der CCU, verwaltet CCU-Programme und CCU-Systemvariablen</li>
+                        <li>BidCos-RF: Homematic Funk</li>
+                        <li>BidCos-Wired: Homematic Wired</li>
+                        <li>HmIP-RF: Homematic-IP Funk</li>
+                        <li>VirtualDevices: Heizungsgruppen, in CCU eingebundene Systeme wie Osram Lightify</li>
+                        <li>CUxD</li>
+                    </ul>
+
+                </li>
+            </ul>
+            <ul>
+                <li><b>RPC Ping-Timeout</b>: Zeitinterval in Sekunden in dem die Verbindung zu den Schnittstellenprozessen geprüft wird.</li>
+            </ul>
+            <ul>
+                <li><b>ReGaHSS Polling</b>: Änderungen von CCU-Systemvariablen werden nicht automatisch an RedMatic übermittelt. Mit aktiviertem Polling fragt RedMatic die Variablen und deren Werte in den per Poll-Interval eingestellten Zeitintervallen ab.</li>
+            </ul>
+            <ul>
+                <li><b>ReGaHSS Poll-Interval</b>:
+Das Zeitintervall in Sekunden um die Systemvariablen von der CCU zu lesen.</li>
+            </ul>
+<ul>
+                <li><b>Context-Store</b>: Hier wird der Node-RED Context-Store festgelegt in dem RedMatic die Zustände aller Geräte/Variablen vorhält.
+
+Weiteres unter <a target="_blank" href="https://nodered.org/docs/user-guide/context">Working</a> with context in der Node-RED Dokumentation.</li>
+            </ul>
 </script>
