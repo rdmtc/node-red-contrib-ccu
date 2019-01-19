@@ -38,7 +38,7 @@
     <p>Führt einen sofortigen Poll von ReGaHSS Systemvariablen durch.</p>
     <p>Dieser Node ist dazu vorgesehen die Änderung von Systemvariablen mit möglichst geringer Verzögerung zu empfangen.
       Hierzu kann man ein Programm auf der CCU anlegen dass bei Änderung von Variablen einen virtuellen Taster betätigt.
-      In Node-RED wird dann ein <i>ccu event</i> oder <i>ccu value</i> Node so konfiguriert dass er diese
+      In Node-RED wird dann ein <i>rpc event</i> oder <i>value</i> Node so konfiguriert dass er diese
       "Tastenbetätigungen" empfängt und über den <i>ccu poll</i> Node eine Aktualisierung der Variablenwerte auslöst.
     </p>
 </script>
@@ -47,6 +47,6 @@
     <p>Triggers an immediate polling of Sysvars from ReGaHSS.</p>
     <p>This node is intended to receive changes of variables with lower latency. You can create a CCU Program that
     reacts to variable changes by pressing a virtual button, this virtual button presses can then be received by a
-    <i>ccu value</i> or <i>ccu rpc event</i> node that triggers an update of the variables through the <i>ccu poll</i>
+    <i>value</i> or <i>rpc event</i> node that triggers an update of the variables through the <i>ccu poll</i>
     node.</p>
 </script>

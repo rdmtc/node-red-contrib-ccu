@@ -387,7 +387,7 @@
     <p>
         Für den Input des Value Node wird <code>msg.payload</code> als der Wert verwendet der in den Datenpunkt geschrieben wird.
 
-        Die Bestimmung des Datenpunkts sowie des Kanals und der Schnittstellen können hier dynamisch sein. Dazu werden die entsprechenden Node-Attribute leer gelassen und über msg gesetzt.
+        Die Bestimmung des Datenpunkts sowie des Kanals und der Schnittstellen können hier dynamisch sein. Dazu werden die Eingabefelder leer gelassen und über die eingehende <code>msg</code> gesetzt.
     </p>
     <b>Option 1</b>: Interface, Channel und Datapoint können in der msg als Properties angegeben werden:
     <code>
@@ -399,7 +399,7 @@
 }</pre>
     </code>
 
-    <b>Option 2</b>: Der Datenpunkt kann über <code>msg.topic</code> angegeben werden wobei Interfacce, Channel und Datapoint mit Punkt getrennt werden:
+    <b>Option 2</b>: Der Datenpunkt kann über <code>msg.topic</code> angegeben werden wobei Interface, Channel und Datapoint mit Punkt getrennt werden:
     <code>
 <pre>{
   "topic": "BidCos-RF.OEQ1868878:1.STATE",
