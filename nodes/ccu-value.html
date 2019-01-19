@@ -345,7 +345,72 @@
 
 
 <script type="text/x-red" data-help-name="ccu-value" lang="de-DE">
-    <p>Setzen und lesen von Kanal-Datenpunkten.</p>
+    <p>Geräte steuern und/oder Events von einem Gerät empfangen.</p>
+    <h3>Konfiguration</h3>
+    <ul>
+        <li><b>CCU:</b> Die zu verwendende CCU-Konfiguration.</li>
+        <li><b>Topic:</b> <code>msg.topic</code></li>
+        <li><b>Interface</b>: Hier wird das Interface gewählt, über welches das gewüschnte Geräte angebunden ist.</li>
+        <li><b>Channel</b>: Der Kanal dessen Datenpunkte verwendet werden sollen. Er besteht aus der Serien- sowie der Kanalnummer. Eine Autovervollständigung hilft bei der Auswahl anhand der Klarnamen.</li>
+        <li><b>Datapoint</b>: Der Datenpunkt des Kanals, auch hier wird über eine Autovervollständigung die Auswahl vereinfacht.</li>
+        <li><b>ON_TIME</b>:
+            Zeit in Sekunden nach der ein Schaltaktor/Dimmer nach dem anschalten wieder ausgeschaltet werden soll.<br>
+            Dabei ist:
+            <ul>
+                <li><code>undefined</code> Keine automatische Ausschaltung</li>
+                <li><code>number</code> Eine feste Verzögerung in Sekunden</li>
+                <li><code>global</code>, <code>flow</code> Die Verzögerung in Sekunden wird aus einer Context-Variablen übernommen</li>
+                <li><code>msg</code> Die Verzögerung in Sekunden wird kann über eine msg property übergeben werden</li>
+            </ul>
+
+        </li>
+        <li><b>set Mode</b>:
+            Eine Erweiterung für Geräte, die sowohl den rx_mode BURST als auch WAKEUP unterstützen wie z.B.:
+            Batterie-Schaltaktoren oder Rauchmelder mit Sirenenfunktion. Mit dem Parameter kann in diesem Fall angegeben
+            werden, ob der übergebene Wert über BURST oder WAKEUP übertragen werden soll.
+            <ul>
+                <li><b>WAKEUP</b> - Überträgt den Wert sobald sich der entsprechende Empfänger bei der Zentrale meldet.</li>
+                <li><b>BURST</b> - Versucht alle BURST-Empfänger für die Übertragung aufzuwecken was sich negativ auf den DutyCycle und die Batterielaufzeit aller Burst-Empfänger auswirkt.</li>
+            </ul>
+        </li>
+        <li><b>Flags</b>:
+            <ul>
+                <li><b>Nur geänderte Werte ausgeben</b> - Ein Event wird nur dann erzeugt, wenn sich der Wert seit dem letztn Event verändert hat.</li>
+                <li><b>Während WORKING keine Werte ausgeben</b> - Es gibt Aktoren, z.B. Dimmer oder Rolladen, die während einer Rampe (Öffnen/Schließen eines Rollladen, Dimmen einer Lampe) fortwährend den aktuellen Zustand ausgeben. Um nur den End-Status auszugeben kann diese Option benutzt werden. Gebräuchlich auch bei Verwendung mit Dashboard-Nodes um "springende" Slider zu verhindern.</li>
+                <li><b>Beim Start letzten bekannten Wert ausgeben</b> - Wenn Node-RED gestartet wird, dann wird der letzte Wert (sofern in der ReGaHSS bekannt) ausgegeben. Z.B. um beim Start einen korrekten Wert an das Dashboard zu übergeben. <b>Achtung:</b> Wird durch die ausgegebene Nachricht im weiteren Verlauf des Flows ein Homematic Wert gesetzt wirkt sich jedes (Full-)Deployment negativ auf den DutyCycle aus.</li>
+            </ul>
+
+        </li>
+    </ul>
+
+    <h3>Input</h3>
+    <p>
+        Für den Input des Value Node wird <code>msg.payload</code> als der Wert verwendet der in den Datenpunkt geschrieben wird.
+
+        Die Bestimmung des Datenpunkts sowie des Kanals und der Schnittstellen können hier dynamisch sein. Dazu werden die entsprechenden Node-Attribute leer gelassen und über msg gesetzt.
+    </p>
+    <b>Option 1</b>: Interface, Channel und Datapoint können in der msg als Properties angegeben werden:
+    <code>
+<pre>{
+  "interface": "BidCos-RF",
+  "channel": "OEQ1868878:1",
+  "datapoint": "STATE",
+  "payload": true
+}</pre>
+    </code>
+
+    <b>Option 2</b>: Der Datenpunkt kann über <code>msg.topic</code> angegeben werden wobei Interfacce, Channel und Datapoint mit Punkt getrennt werden:
+    <code>
+<pre>{
+  "topic": "BidCos-RF.OEQ1868878:1.STATE",
+  "payload": true
+}</pre>
+    </code>
+
+
+    <h3>Output</h3>
+    <p>Der Value Node gibt nur Events aus, wenn Interface, Channel und Datapoint gesetzt sind.</p>
+
 </script>
 
 <script type="text/x-red" data-help-name="ccu-value" lang="en-US">
