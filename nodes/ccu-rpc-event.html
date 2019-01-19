@@ -577,11 +577,21 @@
     <p>Gibt RPC Events aus.</p>
     <h3>Konfiguration</h3>
     <ul>
-        <li><b></b>: </li>
-        <li><b></b>: </li>
-        <li><b></b>: </li>
-        <li><b></b>: </li>
-        <li><b></b>: </li>
+        <li><b>CCU</b>: Die zu verwendende CCU-Konfiguration.</li>
+        <li><b>topic</b>: <code>msg.topic</code> ausgehender Nachrichten. Kann mit Platzhaltern konfiguriert werden.</li>
+        <li><b>interface</b>: Die Schnittstelle über welche die gewüschten Geräte angebunden sind. <code>*</code> erlaubt Events aller verbundenen Schnittstellen.</li>
+        <li><b>room</b>: Raum Filter. Beispiel: <code>Wohnzimmer</code>.</li>
+        <li><b>function</b>: Gewerk Filter. Beispiel: <code>Taster</code></li>
+        <li><b>device</b>: Die Seriennummer der Homematic Komponente. Beispiel: <code>OEQ1662328</code></li>
+        <li><b>deviceName</b>: Der in der CCU vergebene Name der Homematic Komponente. Beispiel: <code>Rauchmelder Arbeitszimmer</code>; alle Rauchemelder über RegEx: <code>Rauchmelder.*</code></li>
+        <li><b>deviceType</b>: Die Typen-Bezeichnung der Homematic Komponente. Beispiel: <code>HM-Sec-SD-2</code></li>
+        <li><b>channel</b>: Die Kanaladresse bestehend aus Serien- und Kanalnummer. Beispiel: <code>OEQ1245312:4</code></li>
+        <li><b>channelName</b>: Der in der CCU vergebene Kanalname. Beispiel: <code>Bad Lichte Decke PIR</code></li>
+        <li><b>channelType</b>: Der Typ des Kanals. Beispiel: <code>VIRTUAL_KEY</code> oder <code>DIMMER</code></li>
+        <li><b>datapoint</b>: Der Datenpunkt des Kanals. Beispiel: <code>PRESS_SHORT</code> oder <code>ACTUAL_TEMPERATURE</code>.</li>
+        <li><b>Nur geänderte Werte ausgeben</b> - Ein Event wird nur dann erzeugt, wenn sich der Wert seit dem letztn Event verändert hat.</li>
+        <li><b>Während WORKING keine Werte ausgeben</b> - Es gibt Aktoren, z.B. Dimmer oder Rolladen, die während einer Rampe (Öffnen/Schließen eines Rollladen, Dimmen einer Lampe) fortwährend den aktuellen Zustand ausgeben. Um nur den End-Status auszugeben kann diese Option benutzt werden. Gebräuchlich auch bei Verwendung mit Dashboard-Nodes um "springende" Slider zu verhindern.</li>
+        <li><b>Beim Start letzten bekannten Wert ausgeben</b> - Wenn Node-RED gestartet wird, dann wird der letzte Wert (sofern in der ReGaHSS bekannt) ausgegeben. Z.B. um beim Start einen korrekten Wert an das Dashboard zu übergeben. <b>Achtung:</b> Wird durch die ausgegebene Nachricht im weiteren Verlauf des Flows ein Homematic Wert gesetzt wirkt sich jedes (Full-)Deployment negativ auf den DutyCycle aus.</li>
     </ul>
 
     <h3>Output</h3>
