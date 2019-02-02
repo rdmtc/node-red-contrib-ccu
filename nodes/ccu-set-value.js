@@ -34,7 +34,7 @@ module.exports = function (RED) {
             this.channelTypeRx = config.channelTypeRx;
             this.channelNameRx = config.channelNameRx;
             this.datapointRx = config.datapointRx;
-            this.delay = config.delay;
+            this.force = config.force;
 
             this.blacklist = new Set();
             this.whitelist = new Set();
@@ -209,7 +209,7 @@ module.exports = function (RED) {
                             const currentValue = this.ccu.values[datapointName] && this.ccu.values[datapointName].value;
                             count += 1;
                             if (dp.startsWith('PRESS_') || typeof currentValue === 'undefined' || currentValue !== msg.payload) {
-                                this.ccu.setValueQueued(iface, address, dp, msg.payload);
+                                this.ccu.setValueQueued(iface, address, dp, msg.payload, false, this.force);
                             }
                         });
                     }
