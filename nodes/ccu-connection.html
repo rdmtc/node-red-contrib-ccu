@@ -21,6 +21,9 @@
             rpcBinPort: {value: '', required: true},
             rpcXmlPort: {value: '', required: true},
 
+            queueTimeout: {value: 5000, required: true},
+            queuePause: {value: 250, required: true},
+
             contextStore: {value: ''}
         },
         label() {
@@ -32,6 +35,13 @@
             const $nodeConfigInputName = $('#node-config-input-name');
             const $nodeConfigInputRpcServerHost = $('#node-config-input-rpcServerHost');
             const $nodeInputContextStore = $('#node-config-input-contextStore');
+
+            if (typeof this.queueTimeout === 'undefined') {
+                $('#node-input-queueTimeout').val(5000);
+            }
+            if (typeof this.queuePause === 'undefined') {
+                $('#node-input-queuePause').val(250);
+            }
 
             RED.settings.context.stores.forEach(store => {
                 $nodeInputContextStore.append('<option value="' + store + '"' + (this.contextStore === store ? ' selected' : '') + '>' + store + '</option>');
@@ -131,7 +141,7 @@
         </div>
     </div>
     <div class="form-row">
-        <label for="node-input-rpcPingTimeout"><i class="icon-tag"></i> RPC ping timeout</label>
+        <label for="node-input-rpcPingTimeout"><i class="icon-tag"></i> RPC ping timeout (s)</label>
         <input type="text" id="node-config-input-rpcPingTimeout">
     </div>
     <div class="form-row">
@@ -141,8 +151,16 @@
         </div>
     </div>
     <div class="form-row">
-        <label for="node-input-regaInterval"><i class="icon-tag"></i> Rega poll interval</label>
+        <label for="node-input-regaInterval"><i class="icon-tag"></i> Rega poll interval (s)</label>
         <input type="text" id="node-config-input-regaInterval">
+    </div>
+    <div class="form-row">
+        <label for="node-input-queueTimeout"><i class="icon-tag"></i> Queue timeout (ms)</label>
+        <input type="text" id="node-config-input-queueTimeout">
+    </div>
+    <div class="form-row">
+        <label for="node-input-queuePause"><i class="icon-tag"></i> Queue Pause (ms)</label>
+        <input type="text" id="node-config-input-queuePause">
     </div>
     <div class="form-row">
         <label for="node-input-contextStore"><i class="icon-tag"></i> Context Store</label>

@@ -261,6 +261,8 @@ module.exports = function (RED) {
             this.rpcPingTimeout = parseInt(config.rpcPingTimeout, 10) || 60;
             this.rpcPingTimer = {};
             this.ifaceStatus = {};
+            this.queueTimeout = parseInt(config.queueTimeout, 10) || 5000;
+            this.queuePause = parseInt(config.queuePause, 10) || 0;
 
             this.methodCallQueue = {};
 
@@ -2015,7 +2017,7 @@ module.exports = function (RED) {
                 reject(new Error('setValueQueued timeout'));
                 this.setValuePending = false;
                 this.setValueShiftQueue();
-            }, 5000);
+            }, this.queueTimeout);
 
             this.setValue(iface, address, datapoint, value, burst)
                 .then(() => {
@@ -2034,7 +2036,7 @@ module.exports = function (RED) {
                         this.setValuePending = false;
                         setTimeout(() => {
                             this.setValueShiftQueue();
-                        }, 200);
+                        }, this.queuePause);
                     }
                 });
         }
