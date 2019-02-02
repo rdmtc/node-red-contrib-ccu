@@ -37,10 +37,10 @@
             const $nodeInputContextStore = $('#node-config-input-contextStore');
 
             if (typeof this.queueTimeout === 'undefined') {
-                $('#node-input-queueTimeout').val(5000);
+                $('#node-config-input-queueTimeout').val(5000);
             }
             if (typeof this.queuePause === 'undefined') {
-                $('#node-input-queuePause').val(250);
+                $('#node-config-input-queuePause').val(250);
             }
 
             RED.settings.context.stores.forEach(store => {
@@ -106,27 +106,27 @@
 
 <script type="text/x-red" data-template-name="ccu-connection">
     <div class="form-row">
-        <label for="node-input-name"><i class="icon-tag"></i> CCU name</label>
+        <label for="node-config-input-name"><i class="icon-tag"></i> CCU name</label>
         <input type="text" id="node-config-input-name">
     </div>
     <div class="form-row">
-        <label for="node-input-host"><i class="icon-tag"></i> CCU address</label>
+        <label for="node-config-input-host"><i class="icon-tag"></i> CCU address</label>
         <input type="text" id="node-config-input-host">
     </div>
     <div class="form-row">
-        <label for="node-input-rpcServerHost"><i class="icon-tag"></i> Listen address</label>
+        <label for="node-config-input-rpcServerHost"><i class="icon-tag"></i> Listen address</label>
         <select id="node-config-input-rpcServerHost"></select>
     </div>
     <div class="form-row">
-        <label for="node-input-rpcInitAddress"><i class="icon-tag"></i> Init address</label>
+        <label for="node-config-input-rpcInitAddress"><i class="icon-tag"></i> Init address</label>
         <input type="text" id="node-config-input-rpcInitAddress">
     </div>
     <div class="form-row">
-        <label for="node-input-rpcBinPort"><i class="icon-tag"></i> BINRPC listening port</label>
+        <label for="node-config-input-rpcBinPort"><i class="icon-tag"></i> BINRPC listening port</label>
         <input type="text" id="node-config-input-rpcBinPort">
     </div>
     <div class="form-row">
-        <label for="node-input-rpcXmlPort"><i class="icon-tag"></i> XMLRPC listening port</label>
+        <label for="node-config-input-rpcXmlPort"><i class="icon-tag"></i> XMLRPC listening port</label>
         <input type="text" id="node-config-input-rpcXmlPort">
     </div>
     <div class="form-row">
@@ -141,25 +141,25 @@
         </div>
     </div>
     <div class="form-row">
-        <label for="node-input-rpcPingTimeout"><i class="icon-tag"></i> RPC ping timeout (s)</label>
+        <label for="node-config-input-rpcPingTimeout"><i class="icon-tag"></i> RPC ping timeout (s)</label>
         <input type="text" id="node-config-input-rpcPingTimeout">
     </div>
     <div class="form-row">
-        <label for="node-input-regaPoll"><i class="icon-tag"></i> Rega poll</label>
+        <label for="node-config-input-regaPoll"><i class="icon-tag"></i> Rega poll</label>
         <div style="width: 70%; display: inline-block; vertical-align: text-top;">
             <label class="ccu-checkbox"><input type="checkbox" id="node-config-input-regaPoll"> Enabled</label><br>
         </div>
     </div>
     <div class="form-row">
-        <label for="node-input-regaInterval"><i class="icon-tag"></i> Rega poll interval (s)</label>
+        <label for="node-config-input-regaInterval"><i class="icon-tag"></i> Rega poll interval (s)</label>
         <input type="text" id="node-config-input-regaInterval">
     </div>
     <div class="form-row">
-        <label for="node-input-queueTimeout"><i class="icon-tag"></i> Queue timeout (ms)</label>
+        <label for="node-config-input-queueTimeout"><i class="icon-tag"></i> Queue timeout (ms)</label>
         <input type="text" id="node-config-input-queueTimeout">
     </div>
     <div class="form-row">
-        <label for="node-input-queuePause"><i class="icon-tag"></i> Queue Pause (ms)</label>
+        <label for="node-config-input-queuePause"><i class="icon-tag"></i> Queue Pause (ms)</label>
         <input type="text" id="node-config-input-queuePause">
     </div>
     <div class="form-row">
