@@ -40,7 +40,7 @@ module.exports = function (RED) {
             this.whitelist = new Set();
 
             this.on('input', msg => {
-                this.shiftQueue(this.createQueue(msg));
+                this.setValues(msg);
             });
 
             this.on('close', this._destructor);
@@ -58,8 +58,7 @@ module.exports = function (RED) {
             statusHelper(this, data);
         }
 
-        createQueue(msg) {
-            const queue = [];
+        setValues(msg) {
             let count = 0;
             Object.keys(this.ccu.metadata.devices).forEach(iface => {
                 if (this.iface && iface !== this.iface) {
@@ -210,25 +209,13 @@ module.exports = function (RED) {
                             const currentValue = this.ccu.values[datapointName] && this.ccu.values[datapointName].value;
                             count += 1;
                             if (dp.startsWith('PRESS_') || typeof currentValue === 'undefined' || currentValue !== msg.payload) {
-                                queue.push({iface, params: [address, dp, msg.payload]});
+                                this.ccu.setValueQueued(iface, address, dp, msg.payload);
                             }
                         });
                     }
                 });
             });
             this.status({fill: 'green', shape: 'ring', text: String(count) + ' datapoints'});
-            return queue;
-        }
-
-        shiftQueue(queue) {
-            if (queue.length > 0) {
-                const {iface, params} = queue.shift();
-                const [address, datapoint, value] = params;
-                this.ccu.setValue(iface, address, datapoint, value);
-                setTimeout(() => {
-                    this.shiftQueue(queue);
-                }, this.delay);
-            }
         }
     }
 
