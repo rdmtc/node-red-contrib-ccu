@@ -1346,7 +1346,7 @@ module.exports = function (RED) {
         listDevicesAnswer(iface, device) {
             switch (iface) {
                 case 'HmIP-RF':
-                    // fallthrough by intention
+                // fallthrough by intention
                 case 'VirtualDevices':
                     const d = { // eslint-disable-line no-case-declarations
                         ADDRESS: device.ADDRESS,
@@ -1984,13 +1984,21 @@ module.exports = function (RED) {
             });
         }
 
-        setValueQueued(iface, address, datapoint, value, burst) {
+        setValueQueued(iface, address, datapoint, value, burst, force) {
             return new Promise((resolve, reject) => {
                 this.setValueQueue = this.setValueQueue.filter(el => {
                     return el.iface !== iface || el.address !== address || el.datapoint !== datapoint;
                 });
-                this.setValueQueue.push({iface, address, datapoint, value, burst, resolve, reject});
-                this.setValueShiftQueue();
+                const datapointName = iface + '.' + address + '.' + datapoint;
+                const currentValue = this.values[datapointName] && this.values[datapointName].value;
+                if (force || (value !== currentValue) || datapoint.startsWith('PRESS_')) {
+                    this.setValueQueue.push({iface, address, datapoint, value, burst, resolve, reject});
+                    this.setValueShiftQueue();
+                } else {
+                    setTimeout(() => {
+                        resolve();
+                    }, 100);
+                }
             });
         }
 
@@ -2007,7 +2015,7 @@ module.exports = function (RED) {
                 reject(new Error('setValueQueued timeout'));
                 this.setValuePending = false;
                 this.setValueShiftQueue();
-            }, 7500);
+            }, 5000);
 
             this.setValue(iface, address, datapoint, value, burst)
                 .then(() => {
@@ -2026,7 +2034,7 @@ module.exports = function (RED) {
                         this.setValuePending = false;
                         setTimeout(() => {
                             this.setValueShiftQueue();
-                        }, 750);
+                        }, 200);
                     }
                 });
         }
