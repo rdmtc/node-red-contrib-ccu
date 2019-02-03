@@ -1810,7 +1810,7 @@ module.exports = function (RED) {
             let waitForWorking = false;
 
             if (msg.channelType && !working) {
-                if (msg.datapoint === 'STATE' && msg.channelType.match(/SIGNAL|SWITCH|RAINDETECTOR_HEAT/)) {
+                if (msg.datapoint === 'STATE' && msg.channelType.match(/SIGNAL|SWITCH|RAINDETECTOR_HEAT|ALARMACTUATOR/)) {
                     waitForWorking = true;
                 } else if (msg.datapoint === 'ARMSTATE' && msg.channelType === 'ARMING') {
                     waitForWorking = true;
