@@ -1807,10 +1807,23 @@ module.exports = function (RED) {
 
             const msg = this.createMessage(iface, channel, datapoint, payload, {cache: false, working, direction});
 
-            if (msg.channelType && msg.channelType.match(/DIMMER|DUAL_WHITE|SIGNAL|BLIND|SHUTTER|JALOUSIE|WINMATIC|KEYMATIC/) && (msg.datapoint.startsWith('LEVEL')) && !working) {
+            let waitForWorking = false;
+
+            if (msg.channelType && !working) {
+                if (msg.datapoint === 'STATE' && msg.channelType.match(/SIGNAL|SWITCH|RAINDETECTOR_HEAT/)) {
+                    waitForWorking = true;
+                } else if (msg.datapoint === 'ARMSTATE' && msg.channelType === 'ARMING') {
+                    waitForWorking = true;
+                } else if (msg.datapoint.startsWith('LEVEL') && msg.channelType.match(/DIMMER|DUAL_WHITE|BLIND|SHUTTER|JALOUSIE|WINMATIC|KEYMATIC/)) {
+                    waitForWorking = true;
+                }
+            }
+
+            if (waitForWorking) {
                 clearTimeout(this.workingTimeout[msg.datapointName]);
                 this.workingTimeout[msg.datapointName] = setTimeout(() => {
                     const datapointNamePrefix = iface + '.' + channel + '.';
+
                     if (this.values[datapointNamePrefix + 'WORKING'] || this.values[datapointNamePrefix + 'WORKING_SLATS']) {
                         msg.working = this.values[datapointNamePrefix + 'WORKING'] && this.values[datapointNamePrefix + 'WORKING'].value;
                         msg.working = msg.working || (this.values[datapointNamePrefix + 'WORKING_SLATS'] && this.values[datapointNamePrefix + 'WORKING_SLATS'].value);
@@ -1818,6 +1831,7 @@ module.exports = function (RED) {
                     } else if (this.values[datapointNamePrefix + 'PROCESS']) {
                         msg.working = Boolean(this.values[datapointNamePrefix + 'PROCESS'].value);
                     }
+
                     if (this.values[datapointNamePrefix + 'DIRECTION']) {
                         msg.direction = this.values[datapointNamePrefix + 'DIRECTION'].value;
                     } else if (this.values[datapointNamePrefix + 'ACTIVITY_STATE']) {
@@ -1830,6 +1844,7 @@ module.exports = function (RED) {
                             msg.direction = activityState;
                         }
                     }
+
                     msg.stable = !msg.working;
                     this.values[msg.datapointName] = msg;
                     this.callCallbacks(msg);
