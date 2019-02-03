@@ -1811,11 +1811,10 @@ module.exports = function (RED) {
                 clearTimeout(this.workingTimeout[msg.datapointName]);
                 this.workingTimeout[msg.datapointName] = setTimeout(() => {
                     const datapointNamePrefix = iface + '.' + channel + '.';
-                    if (this.values[datapointNamePrefix + 'WORKING']) {
-                        msg.working = this.values[datapointNamePrefix + 'WORKING'].value;
-                        if (this.values[datapointNamePrefix + 'WORKING_SLATS']) {
-                            msg.working = this.values[datapointNamePrefix + 'WORKING'].value || this.values[datapointNamePrefix + 'WORKING_SLATS'].value;
-                        }
+                    if (this.values[datapointNamePrefix + 'WORKING'] || this.values[datapointNamePrefix + 'WORKING_SLATS']) {
+                        msg.working = this.values[datapointNamePrefix + 'WORKING'] && this.values[datapointNamePrefix + 'WORKING'].value;
+                        msg.working = msg.working || (this.values[datapointNamePrefix + 'WORKING_SLATS'] && this.values[datapointNamePrefix + 'WORKING_SLATS'].value);
+                        msg.working = Boolean(msg.working);
                     } else if (this.values[datapointNamePrefix + 'PROCESS']) {
                         msg.working = Boolean(this.values[datapointNamePrefix + 'PROCESS'].value);
                     }
