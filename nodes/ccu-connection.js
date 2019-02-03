@@ -1807,7 +1807,7 @@ module.exports = function (RED) {
 
             const msg = this.createMessage(iface, channel, datapoint, payload, {cache: false, working, direction});
 
-            if (msg.channelType && msg.channelType.match(/BLIND|DIMMER|JALOUSIE/) && (msg.datapoint === 'LEVEL' || msg.datapoint === 'LEVEL_SLATS') && !working) {
+            if (msg.channelType && msg.channelType.match(/DIMMER|DUAL_WHITE|SIGNAL|BLIND|SHUTTER|JALOUSIE|WINMATIC|KEYMATIC/) && (msg.datapoint.startsWith('LEVEL')) && !working) {
                 clearTimeout(this.workingTimeout[msg.datapointName]);
                 this.workingTimeout[msg.datapointName] = setTimeout(() => {
                     const datapointNamePrefix = iface + '.' + channel + '.';
