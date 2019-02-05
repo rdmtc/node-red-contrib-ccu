@@ -877,12 +877,10 @@ module.exports = function (RED) {
          * @returns {String|null}
          */
         findIface(channel) {
-            let found;
+            let found = null;
             Object.keys(this.metadata.devices).forEach(iface => {
-                if (!found) {
-                    if (this.metadata.devices[iface][channel]) {
-                        found = iface;
-                    }
+                if (this.metadata.devices[iface][channel]) {
+                    found = iface;
                 }
             });
             return found;
