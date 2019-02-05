@@ -2091,11 +2091,6 @@ module.exports = function (RED) {
             const {filter, callback} = this.callbacks[id];
             //this.logger.trace('filter', JSON.stringify(filter));
 
-            if (this.callbackBlacklists[msg.datapointName].has(id)) {
-                //this.logger.trace('blacklistet ' + id + ' ' + msg.datapointName);
-                return false;
-            }
-
             let match = true;
             let matchCache;
             let matchChange;
@@ -2104,7 +2099,7 @@ module.exports = function (RED) {
             if (filter) {
                 const arrAttr = Object.keys(filter);
 
-                for (let i = 0, len = arrAttr.length; match && i < len; i++) {
+                for (let i = 0, len = arrAttr.length; match && (i < len); i++) {
                     const attr = arrAttr[i];
 
                     if (attr === 'cache') {
@@ -2196,6 +2191,10 @@ module.exports = function (RED) {
                 this.callbackWhitelists[msg.datapointName] = new Set();
             }
             Object.keys(this.callbacks).forEach(key => {
+                if (this.callbackBlacklists[msg.datapointName].has(key)) {
+                    //this.logger.trace('blacklistet ' + key + ' ' + msg.datapointName);
+                    return;
+                }
                 this.callCallback(msg, key);
             });
         }
