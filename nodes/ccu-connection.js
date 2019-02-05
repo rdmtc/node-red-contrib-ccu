@@ -13,7 +13,12 @@ const binrpc = require('binrpc');
 
 const pkg = require(path.join(__dirname, '..', 'package.json'));
 
-// https://stackoverflow.com/a/37837872
+/**
+ * check if an object is iterable
+ * @link https://stackoverflow.com/a/37837872
+ * @param obj
+ * @returns {boolean}
+ */
 function isIterable(obj) {
     // eslint-disable-next-line eqeqeq, no-eq-null
     return obj != null && typeof obj[Symbol.iterator] === 'function' && typeof obj.forEach === 'function';
@@ -24,6 +29,11 @@ module.exports = function (RED) {
 
     const ccu = {network: {listen: [], ports: []}};
 
+    /**
+     *
+     * @param start
+     * @returns {Promise<any>}
+     */
     function findport(start) {
         return new Promise((resolve, reject) => {
             nextport(start, port => {
@@ -167,11 +177,19 @@ module.exports = function (RED) {
         }
     });
 
+    /**
+     *
+     * @returns {number}
+     */
     function now() {
         return (new Date()).getTime();
     }
 
     class CcuConnectionNode {
+        /**
+         *
+         * @param config
+         */
         constructor(config) {
             RED.nodes.createNode(this, config);
 
@@ -372,6 +390,9 @@ module.exports = function (RED) {
             };
         }
 
+        /**
+         *
+         */
         setContext() {
             if (this.contextStore) {
                 this.globalContext.set('ccu-' + this.host, {
@@ -382,15 +403,29 @@ module.exports = function (RED) {
             }
         }
 
+        /**
+         *
+         * @param node
+         */
         register(node) {
             this.users[node.id] = node;
         }
 
+        /**
+         *
+         * @param node
+         * @param done
+         * @returns {*}
+         */
         deregister(node, done) {
             delete node.users[node.id];
             return done();
         }
 
+        /**
+         *
+         * @param enable
+         */
         stats(enable) {
             if (!enable) {
                 clearInterval(this.statsInterval);
@@ -408,6 +443,11 @@ module.exports = function (RED) {
             }, 60000);
         }
 
+        /**
+         *
+         * @param iface
+         * @param connected
+         */
         setIfaceStatus(iface, connected) {
             if (this.ifaceStatus[iface] !== connected) {
                 if (typeof this.ifaceStatus[iface] !== 'undefined') {
@@ -422,6 +462,10 @@ module.exports = function (RED) {
             }
         }
 
+        /**
+         *
+         * @returns {Promise<any>}
+         */
         saveMetadata() {
             return new Promise(resolve => {
                 fs.writeFileSync(this.metadataFile, JSON.stringify(this.metadata));
@@ -430,6 +474,10 @@ module.exports = function (RED) {
             });
         }
 
+        /**
+         *
+         * @returns {Promise<any>}
+         */
         loadMetadata() {
             return new Promise(resolve => {
                 try {
@@ -447,6 +495,10 @@ module.exports = function (RED) {
             });
         }
 
+        /**
+         *
+         * @returns {Promise<any>}
+         */
         saveParamsets() {
             return new Promise(resolve => {
                 fs.writeFileSync(this.paramsetFile, JSON.stringify(this.paramsetDescriptions, null, '  '));
@@ -455,6 +507,10 @@ module.exports = function (RED) {
             });
         }
 
+        /**
+         *
+         * @returns {Promise<any>}
+         */
         loadParamsets() {
             return new Promise(resolve => {
                 const load = file => {
@@ -476,6 +532,10 @@ module.exports = function (RED) {
             });
         }
 
+        /**
+         *
+         * @param done
+         */
         destructor(done) {
             this.logger.debug('ccu-connection destructor');
             this.stats(false);
@@ -501,6 +561,13 @@ module.exports = function (RED) {
             this.setContext();
         }
 
+        /**
+         *
+         * @param data
+         * @param key
+         * @param val
+         * @returns {*}
+         */
         getEntry(data, key, val) {
             if (!data) {
                 return {};
@@ -512,6 +579,10 @@ module.exports = function (RED) {
             }
         }
 
+        /**
+         *
+         * @returns {Promise<any>}
+         */
         getGroupsData() {
             return new Promise(resolve => {
                 this.logger.debug('virtualdevices get groups');
@@ -533,6 +604,10 @@ module.exports = function (RED) {
             });
         }
 
+        /**
+         *
+         * @returns {Promise<any | never>}
+         */
         getRegaData() {
             return this.getRegaChannels()
                 .then(() => this.getRegaRooms())
@@ -542,6 +617,10 @@ module.exports = function (RED) {
                 .catch(this.logger.error);
         }
 
+        /**
+         *
+         * @returns {Promise<any>}
+         */
         getRegaValues() {
             return new Promise((resolve, reject) => {
                 this.logger.debug('rega getValues');
@@ -566,6 +645,10 @@ module.exports = function (RED) {
             });
         }
 
+        /**
+         *
+         * @returns {Promise<any>}
+         */
         getRegaChannels() {
             return new Promise((resolve, reject) => {
                 this.logger.debug('rega getChannels');
@@ -584,6 +667,10 @@ module.exports = function (RED) {
             });
         }
 
+        /**
+         *
+         * @returns {Promise<any>}
+         */
         getRegaRooms() {
             return new Promise((resolve, reject) => {
                 this.logger.debug('rega getRooms');
@@ -612,6 +699,10 @@ module.exports = function (RED) {
             });
         }
 
+        /**
+         *
+         * @returns {Promise<any>}
+         */
         getRegaFunctions() {
             return new Promise((resolve, reject) => {
                 this.logger.debug('rega getFunctions');
@@ -780,6 +871,11 @@ module.exports = function (RED) {
             }
         }
 
+        /**
+         * Find interface of a given channel
+         * @param channel
+         * @returns {String|null}
+         */
         findIface(channel) {
             let found;
             Object.keys(this.metadata.devices).forEach(iface => {
@@ -792,6 +888,11 @@ module.exports = function (RED) {
             return found;
         }
 
+        /**
+         * Find channel by name
+         * @param name
+         * @returns {String|null}
+         */
         findChannel(name) {
             let found;
             Object.keys(this.channelNames).forEach(n => {
@@ -804,6 +905,10 @@ module.exports = function (RED) {
             return found;
         }
 
+        /**
+         *
+         * @param sysvar
+         */
         updateRegaVariable(sysvar) {
             //this.logger.trace('updateRegaVariable', JSON.stringify(sysvar));
             let isNew = false;
@@ -961,6 +1066,10 @@ module.exports = function (RED) {
             });
         }
 
+        /**
+         *
+         * @param config
+         */
         initIfaces(config) {
             Object.keys(this.ifaceTypes).forEach(iface => {
                 const enabled = config[this.ifaceTypes[iface].conf + 'Enabled'];
@@ -986,6 +1095,11 @@ module.exports = function (RED) {
             this.logger.info('Interfaces:', this.enabledIfaces.join(', '));
         }
 
+        /**
+         *
+         * @param iface
+         * @returns {Promise<any>}
+         */
         createClient(iface) {
             return new Promise(resolve => {
                 const {rpc, port, path, protocol} = this.ifaceTypes[iface];
@@ -1010,6 +1124,11 @@ module.exports = function (RED) {
             });
         }
 
+        /**
+         *
+         * @param iface
+         * @returns {Promise<any>}
+         */
         rpcInit(iface) {
             return new Promise((resolve, reject) => {
                 const initUrl = this.rpcServer(iface);
@@ -1037,6 +1156,13 @@ module.exports = function (RED) {
             });
         }
 
+        /**
+         * Returns the links of a specific channel
+         * @param {String} iface
+         * @param {String} address
+         * @param {Boolean} receiver direction: true=RECEIVER, false=SENDER
+         * @returns {Array}
+         */
         getLinks(iface, address, receiver) {
             const links = [];
             if (this.links[iface]) {
@@ -1049,6 +1175,11 @@ module.exports = function (RED) {
             return links;
         }
 
+        /**
+         *
+         * @param iface
+         * @returns {Promise<any>}
+         */
         getDevices(iface) {
             return new Promise((resolve, reject) => {
                 this.methodCall(iface, 'listDevices', []).then(devices => {
@@ -1080,6 +1211,10 @@ module.exports = function (RED) {
             });
         }
 
+        /**
+         *
+         * @param iface
+         */
         rpcCheckInit(iface) {
             if (!this.metadata.devices[iface] || !Object.keys(this.metadata.devices[iface]).length > 0) {
                 return;
@@ -1104,6 +1239,10 @@ module.exports = function (RED) {
             }, pingTimeout * 250);
         }
 
+        /**
+         *
+         * @returns {*}
+         */
         rpcClose() {
             this.logger.debug('rpcClose');
             const calls = [];
@@ -1177,12 +1316,22 @@ module.exports = function (RED) {
             return calls.reduce((p, task) => p.then(task), Promise.resolve());
         }
 
+        /**
+         *
+         * @param iface
+         * @returns {string}
+         */
         initUrl(iface) {
             const {protocol} = this.ifaceTypes[iface];
             const port = (protocol === 'binrpc' ? this.rpcBinPort : this.rpcXmlPort);
             return protocol + '://' + (this.rpcInitAddress || this.rpcServerHost) + ':' + port;
         }
 
+        /**
+         *
+         * @param iface
+         * @returns {string}
+         */
         rpcServer(iface) {
             const url = this.initUrl(iface);
             const {rpc, protocol} = this.ifaceTypes[iface];
@@ -1214,6 +1363,13 @@ module.exports = function (RED) {
             return url;
         }
 
+        /**
+         *
+         * @param iface
+         * @param device
+         * @param paramset
+         * @returns {string}
+         */
         paramsetName(iface, device, paramset) {
             let cType = '';
             let d;
@@ -1230,6 +1386,11 @@ module.exports = function (RED) {
             }
         }
 
+        /**
+         *
+         * @param iface
+         * @param device
+         */
         paramsetQueuePush(iface, device) {
             if (device.PARAMSETS) {
                 device.PARAMSETS.forEach(paramset => {
@@ -1250,6 +1411,9 @@ module.exports = function (RED) {
             }
         }
 
+        /**
+         *
+         */
         paramsetQueueShift() {
             if (!this.paramsetPending) {
                 this.paramsetPending = true;
@@ -1295,6 +1459,14 @@ module.exports = function (RED) {
             }
         }
 
+        /**
+         *
+         * @param iface
+         * @param device
+         * @param paramset
+         * @param param
+         * @returns {*}
+         */
         getParamsetDescription(iface, device, paramset, param) {
             const name = this.paramsetName(iface, device, paramset);
             if (this.paramsetDescriptions[name]) {
@@ -1307,6 +1479,11 @@ module.exports = function (RED) {
             return {};
         }
 
+        /**
+         *
+         * @param iface
+         * @param device
+         */
         newDevice(iface, device) {
             this.logger.debug('newDevice', iface, device.ADDRESS);
             if (!this.metadata.devices[iface]) {
@@ -1329,11 +1506,21 @@ module.exports = function (RED) {
             this.paramsetQueuePush(iface, device);
         }
 
+        /**
+         *
+         * @param iface
+         * @param device
+         */
         deleteDevice(iface, device) {
             this.logger.debug('deleteDevice', iface, device);
             delete this.metadata.devices[iface][device];
         }
 
+        /**
+         *
+         * @param iface
+         * @returns {Array}
+         */
         listDevices(iface) {
             const result = [];
             if (this.metadata.devices[iface]) {
@@ -1345,6 +1532,12 @@ module.exports = function (RED) {
             return result;
         }
 
+        /**
+         *
+         * @param iface
+         * @param device
+         * @returns {*}
+         */
         listDevicesAnswer(iface, device) {
             switch (iface) {
                 case 'HmIP-RF':
@@ -1386,6 +1579,11 @@ module.exports = function (RED) {
             }
         }
 
+        /**
+         *
+         * @param idInit
+         * @returns {*}
+         */
         getIfaceFromIdInit(idInit) {
             if (idInit === 'CUxD') {
                 return idInit;
@@ -1613,6 +1811,12 @@ module.exports = function (RED) {
             return false;
         }
 
+        /**
+         *
+         * @param filter
+         * @param callback
+         * @returns {*}
+         */
         subscribe(filter, callback) {
             if (typeof callback !== 'function') {
                 this.logger.error('subscribe called without callback');
@@ -1679,6 +1883,11 @@ module.exports = function (RED) {
             return id;
         }
 
+        /**
+         *
+         * @param id
+         * @returns {boolean}
+         */
         unsubscribe(id) {
             if (this.callbacks[id]) {
                 this.logger.trace('unsubscribe', id);
@@ -1698,6 +1907,12 @@ module.exports = function (RED) {
             return false;
         }
 
+        /**
+         *
+         * @param topic
+         * @param msg
+         * @returns {*}
+         */
         topicReplace(topic, msg) {
             if (!topic || typeof msg !== 'object') {
                 return topic;
@@ -1723,6 +1938,15 @@ module.exports = function (RED) {
             return topic;
         }
 
+        /**
+         *
+         * @param iface
+         * @param channel
+         * @param datapoint
+         * @param payload
+         * @param additions
+         * @returns {*}
+         */
         createMessage(iface, channel, datapoint, payload, additions) {
             const datapointName = iface + '.' + channel + '.' + datapoint;
             if (!this.values[datapointName]) {
@@ -1789,6 +2013,12 @@ module.exports = function (RED) {
             return msg;
         }
 
+        /**
+         *
+         * @param params
+         * @param working
+         * @param direction
+         */
         publishEvent(params, working, direction) {
             const [idInit, channel, datapoint, payload] = params;
             const iface = this.getIfaceFromIdInit(idInit);
@@ -1855,6 +2085,12 @@ module.exports = function (RED) {
             }
         }
 
+        /**
+         * Call a subscription callback if filters match
+         * @param msg
+         * @param id
+         * @returns {boolean}
+         */
         callCallback(msg, id) {
             const {filter, callback} = this.callbacks[id];
             //this.logger.trace('filter', JSON.stringify(filter));
@@ -1951,6 +2187,10 @@ module.exports = function (RED) {
             return match;
         }
 
+        /**
+         * Apply msg to callCallback() for all (not blacklisted) callbacks
+         * @param msg
+         */
         callCallbacks(msg) {
             //this.logger.trace('callCallbacks', this.callbacks.length, JSON.stringify({datapointName: msg.datapointName, value: msg.value, cache: msg.cache, change: msg.change, stable: msg.stable}));
             if (!this.callbackBlacklists[msg.datapointName]) {
@@ -1964,6 +2204,13 @@ module.exports = function (RED) {
             });
         }
 
+        /**
+         * Call a RPC method on an interface process
+         * @param iface
+         * @param method
+         * @param params
+         * @returns {Promise<any>}
+         */
         methodCall(iface, method, params) {
             return new Promise((resolve, reject) => {
                 if (this.clients[iface]) {
@@ -2000,6 +2247,16 @@ module.exports = function (RED) {
             });
         }
 
+        /**
+         * Call setValue on interface process. Queues all calls
+         * @param iface
+         * @param address
+         * @param datapoint
+         * @param value
+         * @param burst
+         * @param force
+         * @returns {Promise<any>}
+         */
         setValueQueued(iface, address, datapoint, value, burst, force) {
             return new Promise((resolve, reject) => {
                 this.setValueQueue = this.setValueQueue.filter(el => {
@@ -2018,6 +2275,9 @@ module.exports = function (RED) {
             });
         }
 
+        /**
+         *
+         */
         setValueShiftQueue() {
             if (this.setValuePending || this.setValueQueue.length === 0) {
                 return;
@@ -2055,6 +2315,15 @@ module.exports = function (RED) {
                 });
         }
 
+        /**
+         * Call setValue on interface process. Defers/overwrites calls to the same datapoint
+         * @param iface
+         * @param address
+         * @param datapoint
+         * @param value
+         * @param burst
+         * @returns {Promise<any>}
+         */
         setValue(iface, address, datapoint, value, burst) {
             return new Promise((resolve, reject) => {
                 const id = `${iface}.${address}.${datapoint}`;
@@ -2085,6 +2354,11 @@ module.exports = function (RED) {
             });
         }
 
+        /**
+         *
+         * @param id
+         * @returns {Promise<any | never>}
+         */
         setValueDeferred(id) {
             if (this.setValueCache[id]) {
                 this.logger.debug('setValueDeferred', id, this.setValueCache[id].params);
@@ -2098,6 +2372,15 @@ module.exports = function (RED) {
             }
         }
 
+        /**
+         * Cast a param to type given by corresponding paramsetDescription
+         * @param iface
+         * @param address
+         * @param psName
+         * @param datapoint
+         * @param value
+         * @returns {*}
+         */
         paramCast(iface, address, psName, datapoint, value) {
             const device = this.metadata.devices[iface] && this.metadata.devices[iface][address];
             const psKey = this.paramsetName(iface, device, psName);
@@ -2157,6 +2440,11 @@ module.exports = function (RED) {
             return value;
         }
 
+        /**
+         * Execute a ReGaHss script
+         * @param script
+         * @returns {Promise<any>}
+         */
         script(script) {
             return new Promise((resolve, reject) => {
                 this.rega.exec(script, (err, payload, objects) => {
