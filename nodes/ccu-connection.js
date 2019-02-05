@@ -2169,7 +2169,7 @@ module.exports = function (RED) {
             }
             if (match) {
                 //this.logger.trace('callCallback ' + id + ' ' + msg.datapointName + ' ' + msg.value);
-                callback(msg);
+                callback(RED.util.cloneMessage(msg));
                 this.callbackWhitelists[msg.datapointName].add(id);
             } else {
                 //this.logger.trace('add to blacklist ' + id + ' ' + msg.datapointName);
