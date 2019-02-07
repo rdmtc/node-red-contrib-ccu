@@ -14,6 +14,7 @@ module.exports = function (RED) {
             }
 
             this.iface = config.iface;
+            this.queue = config.queue;
 
             this.ccu.register(this);
 
@@ -91,7 +92,7 @@ module.exports = function (RED) {
                 on = parseFloat(on);
 
                 if (!ramp && !on) {
-                    this.ccu.setValue(iface, channel, datapoint, msg.payload, config.burst);
+                    this.ccu[this.queue ? 'setValueQueued' : 'setValue'](iface, channel, datapoint, msg.payload, config.burst);
                 } else {
                     const params = {};
                     if (on) {
@@ -101,6 +102,7 @@ module.exports = function (RED) {
                         params.RAMP_TIME = this.ccu.paramCast(iface, channel, 'VALUES', 'RAMP_TIME', ramp);
                     }
                     params[datapoint] = this.ccu.paramCast(iface, channel, 'VALUES', datapoint, msg.payload);
+                    // Todo queue
                     this.ccu.methodCall(iface, 'putParamset', [channel, 'VALUES', params]);
                 }
             });

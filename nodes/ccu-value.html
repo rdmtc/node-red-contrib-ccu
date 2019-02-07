@@ -11,6 +11,7 @@
             start: {value: true},
             change: {value: true},
             cache: {value: false},
+            queue: {value: false},
             on: {value: ''},
             onType: {value: 'undefined'},
             ramp: {value: ''},
@@ -286,9 +287,19 @@
     </div>
 
     <div class="form-row">
-     <label for="node-input-change"><i class="icon-bookmark"></i> </label>
+        <label for="node-input-queue"><i class="icon-bookmark"></i> </label>
         <div style="width: 70%; display: inline-block; vertical-align: text-top;">
-             <label class="ccu-checkbox" for="node-input-change">
+            <label class="ccu-checkbox" for="node-input-queue">
+                <input type="checkbox" id="node-input-queue">
+                <span data-i18n="ccu-value.queue"></span>
+            </label>
+        </div>
+    </div>
+
+    <div class="form-row">
+        <label for="node-input-change"><i class="icon-bookmark"></i> </label>
+        <div style="width: 70%; display: inline-block; vertical-align: text-top;">
+            <label class="ccu-checkbox" for="node-input-change">
                 <input type="checkbox" id="node-input-change">
                 <span data-i18n="ccu-value.change"></span>
             </label>

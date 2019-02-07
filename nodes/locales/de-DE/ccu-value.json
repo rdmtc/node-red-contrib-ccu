@@ -7,6 +7,7 @@
     "tip5": "Es ist zu beachten dass dieser Node nur dann Nachrichten ausgibt wenn Interface, Channel und Datapoint gesetzt sind. Um Events von mehreren Aktoren zu empfangen bitte den \"rpc event\" Node nutzen.",
     "change": "Nur geänderte Werte ausgeben",
     "cache": "Beim Start letzten bekannten Wert ausgeben",
-    "working": "Während WORKING keine Werte ausgeben"
+    "working": "Während WORKING keine Werte ausgeben",
+    "queue": "Queue"
   }
 }

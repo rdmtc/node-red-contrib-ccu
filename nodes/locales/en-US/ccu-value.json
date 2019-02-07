@@ -7,6 +7,7 @@
     "tip5": "Mind that this node only emits messages if Interface, Channel und Datapoint are set. To receive events from multiple actuators please use the \"rpc event\" node.",
     "change": "Emit changed values only",
     "cache": "Emit cached value on start",
-    "working": "Don't emit values while actuator is in WORKING state"
+    "working": "Don't emit values while actuator is in WORKING state",
+    "queue": "Queue Commands"
   }
 }
