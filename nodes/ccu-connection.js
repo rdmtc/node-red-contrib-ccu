@@ -892,13 +892,15 @@ module.exports = function (RED) {
          * @returns {String|null}
          */
         findChannel(name) {
-            const arrChannelNames = Object.keys(this.channelNames);
-            for (let i = 0, len = arrChannelNames.length; i++; i < len) {
-                if (this.channelNames[arrChannelNames[i]] === name) {
-                    return arrChannelNames[i];
+            let found;
+            Object.keys(this.channelNames).forEach(n => {
+                if (!found) {
+                    if (this.channelNames[n] === name) {
+                        found = n;
+                    }
                 }
-            }
-            return null;
+            });
+            return found;
         }
 
         /**
