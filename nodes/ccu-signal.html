@@ -37,6 +37,10 @@
             signal: {value: ''},
             channelType: {value: ''},
             led: {value: ''},
+            acoustic_alarm_selection: {value: 'DISABLE_ACOUSTIC_SIGNAL'},
+            duration_unit: {value: 'S'},
+            duration_value: {value: 3},
+            optical_alarm_selection: {value: 'DISABLE_OPTICAL_SIGNAL'},
             ccuConfig: {value: 'localhost', type: 'ccu-connection', required: true}
         },
         inputs: 1,
@@ -223,6 +227,8 @@
                 commands.forEach(cmd => {
                     $('#node-input-led-container').editableList('addItem', {cmd});
                 });
+            } else if (this.channelType === 'ALARM_SWITCH_VIRTUAL_RECEIVER') {
+                // ...
             } else {
                 console.error('unknown channelType', this.channelType);
             }
@@ -278,8 +284,10 @@
     <div class="form-row">
         <label for="node-input-channelType"><i class="icon-tags"></i> Typ</label>
         <select id="node-input-channelType">
-            <option value="SIGNAL_CHIME">SIGNAL_CHIME</option>
-            <option value="SIGNAL_LED">SIGNAL_LED</option>
+            <option value="SIGNAL_CHIME">SIGNAL_CHIME (HM-OU-*)</option>
+            <option value="SIGNAL_LED">SIGNAL_LED (HM-OU-*)</option>
+            <option value="ALARM_SWITCH_VIRTUAL_RECEIVER">ALARM (HmIP-ASIR)</option>
+
         </select>
     </div>
 
@@ -302,6 +310,57 @@
         <label for="node-input-led"><i class="icon-envelope"></i> Kommandos</label>
         <ol id="node-input-led-container"></ol>
     </div>
+
+
+    <div class="form-row SUBMIT ALARM_SWITCH_VIRTUAL_RECEIVER">
+        <label for="node-input-acoustic_alarm_selection"><i class=""></i> Akustisch</label>
+        <select id="node-input-acoustic_alarm_selection">
+            <option value="DISABLE_ACOUSTIC_SIGNAL">Kein akustisches Signal</option>
+            <option value="FREQUENCY_RISING">Freq. steigend</option>
+            <option value="FREQUENCY_FALLING">Freq. fallend</option>
+            <option value="FREQUENCY_RISING_AND_FALLING">Freq. steigend/fallend</option>
+            <option value="FREQUENCY_ALTERNATING_LOW_HIGH">Freq. tief/hoch</option>
+            <option value="FREQUENCY_ALTERNATING_LOW_MID_HIGH">Freq. tief/mittel/hoch</option>
+            <option value="FREQUENCY_HIGHON_OFF">Freq. hoch ein/aus</option>
+            <option value="FREQUENCY_HIGHON_LONGOFF">Freq. hoch ein, lang aus</option>
+            <option value="FREQUENCY_LOWON_OFF_HIGHON_OFF">req. tief ein/aus, hoch ein/aus</option>
+            <option value="FREQUENCY_LOWON_LONGOFF_HIGHON_LONGOFF">Freq. tief ein - lang aus, hoch ein - lang aus</option>
+            <option value="LOW_BATTERY">Batterie leer</option>
+            <option value="DISARMED">Unscharf</option>
+            <option value="INTERNALLY_ARMED">Intern scharf</option>
+            <option value="EXTERNALLY_ARMED">Extern scharf</option>
+            <option value="DELAYED_INTERNALLY_ARMED">Verzögert intern scharf</option>
+            <option value="DELAYED_EXTERNALLY_ARMED">Verzögert extern scharf</option>
+            <option value="EVENT">Alarm Ereignis</option>
+            <option value="ERROR">Fehler</option>
+        </select>
+    </div>
+
+    <div class="form-row SUBMIT ALARM_SWITCH_VIRTUAL_RECEIVER">
+        <label for="node-input-optical_alarm_selection"><i class=""></i> Optisch</label>
+        <select id="node-input-optical_alarm_selection">
+            <option value="DISABLE_OPTICAL_SIGNAL">Kein optisches Signal</option>
+            <option value="BLINKING_ALTERNATELY_REPEATING">Abwechselndes, langsames Blinken</option>
+            <option value="BLINKING_BOTH_REPEATING">Gleichzeitigs langsames Blinken</option>
+            <option value="DOUBLE_FLASHING_REPEATING">Gleichzeitiges schnelles Blinken</option>
+            <option value="FLASHING_BOTH_REPEATING">Gleichzeitiges kurzes Blinken</option>
+            <option value="CONFIRMATION_SIGNAL_0">Bestätigungssignal 0 - lang lang</option>
+            <option value="CONFIRMATION_SIGNAL_1">Bestätigungssignal 1 - lang kurz</option>
+            <option value="CONFIRMATION_SIGNAL_2">Bestätigungssignal 2 - lang kurz kurz</option>
+        </select>
+    </div>
+
+    <div class="form-row SUBMIT ALARM_SWITCH_VIRTUAL_RECEIVER">
+        <label for="node-input-duration_unit"><i class=""></i> Dauer </label>
+        <select id="node-input-duration_unit" style="width: calc(35% - 5px)">
+            <option value="S">Sekunden</option>
+            <option value="M">Minuten</option>
+            <option value="H">Stunden</option>
+        </select>
+        <input id="node-input-duration_value" type="number" style="width: 35%">
+    </div>
+
+
     <div class="form-row">
         <label for="node-input-name"><i class="icon-globe"></i> Name</label>
         <input type="text" id="node-input-name">

@@ -22,14 +22,23 @@ module.exports = function (RED) {
                 switch (config.channelType) {
                     case 'SIGNAL_CHIME':
                         payload = config.chime;
+                        this.ccu.setValue(config.iface, config.channel, 'SUBMIT', payload);
                         break;
                     case 'SIGNAL_LED':
                         payload = config.led;
+                        this.ccu.setValue(config.iface, config.channel, 'SUBMIT', payload);
+                        break;
+                    case 'ALARM_SWITCH_VIRTUAL_RECEIVER':
+                        this.ccu.methodCall(config.iface, 'putParamset', [config.channel, 'VALUES', {
+                            ACOUSTIC_ALARM_SELECTION: config.acoustic_alarm_selection,
+                            DURATION_UNIT: config.duration_unit,
+                            DURATION_VALUE: parseInt(config.duration_value, 10) || 0,
+                            OPTICAL_ALARM_SELECTION: config.optical_alarm_selection
+                        }]);
                         break;
                     default:
                         console.error('channelType', config.channelType, 'unknown');
                 }
-                this.ccu.setValue(config.iface, config.channel, 'SUBMIT', payload);
             });
         }
 
