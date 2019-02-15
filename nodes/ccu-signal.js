@@ -19,6 +19,7 @@ module.exports = function (RED) {
 
             this.on('input', () => {
                 let payload;
+                this.debug(config.channelType);
                 switch (config.channelType) {
                     case 'SIGNAL_CHIME':
                         payload = config.chime;
@@ -35,6 +36,24 @@ module.exports = function (RED) {
                             DURATION_VALUE: parseInt(config.duration_value, 10) || 0,
                             OPTICAL_ALARM_SELECTION: config.optical_alarm_selection
                         }]);
+                        break;
+                    case 'DIMMER_VIRTUAL_RECEIVER':
+                        const params = {
+                            LEVEL: config.dimmer_level / 100,
+                            RAMP_TIME_UNIT: config.ramp_time_unit,
+                            RAMP_TIME_VALUE: Number(config.ramp_time_value),
+                            DURATION_UNIT: config.duration_unit,
+                            DURATION_VALUE: parseInt(config.duration_value, 10) || 0,
+                            REPETITIONS: Number(config.repetitions),
+                            OUTPUT_SELECT_SIZE: config.dimmer_list.length
+                        };
+                        for (let index = 0; index < config.dimmer_list.length; index++) {
+                            const item = config.dimmer_list[index] || {color: 0, ontime: 0};
+                            params['COLOR_LIST_' + (index + 1)] = Number(item.color);
+                            params['ON_TIME_LIST_' + (index + 1)] = Number(item.ontime);
+                        }
+                        this.debug(params);
+                        this.ccu.methodCall(config.iface, 'putParamset', [config.channel, 'VALUES', params]);
                         break;
                     default:
                         console.error('channelType', config.channelType, 'unknown');

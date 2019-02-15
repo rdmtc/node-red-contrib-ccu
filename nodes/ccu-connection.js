@@ -123,7 +123,20 @@ module.exports = function (RED) {
                     const devices = config.metadata.devices[req.query.iface];
                     if (devices) {
                         Object.keys(devices).forEach(addr => {
-                            if (['SIGNAL_CHIME', 'SIGNAL_LED', 'ALARM_SWITCH_VIRTUAL_RECEIVER'].includes(devices[addr].TYPE)) {
+                            if ([
+                                'SIGNAL_CHIME',
+                                'SIGNAL_LED',
+                                'ALARM_SWITCH_VIRTUAL_RECEIVER'
+                            ].includes(devices[addr].TYPE)) {
+                                obj[addr] = {
+                                    name: config.channelNames[addr],
+                                    type: devices[addr].TYPE
+                                };
+                            }
+                            if (devices[addr].PARENT_TYPE === 'HmIP-MP3P' && [
+                                'ACOUSTIC_SIGNAL_VIRTUAL_RECEIVER',
+                                'DIMMER_VIRTUAL_RECEIVER'
+                            ].includes(devices[addr].TYPE)) {
                                 obj[addr] = {
                                     name: config.channelNames[addr],
                                     type: devices[addr].TYPE
