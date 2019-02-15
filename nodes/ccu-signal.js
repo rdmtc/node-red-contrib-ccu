@@ -37,7 +37,7 @@ module.exports = function (RED) {
                             OPTICAL_ALARM_SELECTION: config.optical_alarm_selection
                         }]);
                         break;
-                    case 'DIMMER_VIRTUAL_RECEIVER':
+                    case 'DIMMER_VIRTUAL_RECEIVER': {
                         const params = {
                             LEVEL: config.dimmer_level / 100,
                             RAMP_TIME_UNIT: config.ramp_time_unit,
@@ -54,6 +54,24 @@ module.exports = function (RED) {
                         });
                         this.ccu.methodCall(config.iface, 'putParamset', [config.channel, 'VALUES', params]);
                         break;
+                    }
+                    case 'ACOUSTIC_SIGNAL_VIRTUAL_RECEIVER': {
+                        const params = {
+                            LEVEL: config.sound_level / 100,
+                            RAMP_TIME_UNIT: config.ramp_time_unit,
+                            RAMP_TIME_VALUE: Number(config.ramp_time_value),
+                            DURATION_UNIT: config.duration_unit,
+                            DURATION_VALUE: parseInt(config.duration_value, 10) || 0,
+                            REPETITIONS: Number(config.repetitions),
+                            OUTPUT_SELECT_SIZE: config.sound_list.length
+                        };
+                        config.sound_list.forEach((item, i) => {
+                            const index = i + 1;
+                            params['SOUNDFILE_LIST_' + index] = Number(item.sound);
+                        });
+                        this.ccu.methodCall(config.iface, 'putParamset', [config.channel, 'VALUES', params]);
+                        break;
+                    }
                     default:
                         console.error('channelType', config.channelType, 'unknown');
                 }
