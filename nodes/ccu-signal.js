@@ -47,12 +47,11 @@ module.exports = function (RED) {
                             REPETITIONS: Number(config.repetitions),
                             OUTPUT_SELECT_SIZE: config.dimmer_list.length
                         };
-                        for (let index = 0; index < config.dimmer_list.length; index++) {
-                            const item = config.dimmer_list[index] || {color: 0, ontime: 0};
-                            params['COLOR_LIST_' + (index + 1)] = Number(item.color);
-                            params['ON_TIME_LIST_' + (index + 1)] = Number(item.ontime);
-                        }
-                        this.debug(params);
+                        config.dimmer_list.forEach((item, i) => {
+                            const index = i + 1;
+                            params['COLOR_LIST_' + index] = Number(item.color);
+                            params['ON_TIME_LIST_' + index] = Number(item.ontime);
+                        });
                         this.ccu.methodCall(config.iface, 'putParamset', [config.channel, 'VALUES', params]);
                         break;
                     default:
