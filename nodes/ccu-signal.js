@@ -55,6 +55,17 @@ module.exports = function (RED) {
                         this.ccu.methodCall(config.iface, 'putParamset', [config.channel, 'VALUES', params]);
                         break;
                     }
+                    case 'BSL_DIMMER_VIRTUAL_RECEIVER': {
+                        this.ccu.methodCall(config.iface, 'putParamset', [config.channel, 'VALUES', {
+                            LEVEL: config.dimmer_level / 100,
+                            RAMP_TIME_UNIT: config.ramp_time_unit,
+                            RAMP_TIME_VALUE: Number(config.ramp_time_value),
+                            DURATION_UNIT: config.duration_unit,
+                            DURATION_VALUE: parseInt(config.duration_value, 10) || 0,
+                            COLOR: Number(config.dimmer_color)
+                        }]);
+                        break;
+                    }
                     case 'ACOUSTIC_SIGNAL_VIRTUAL_RECEIVER': {
                         const params = {
                             LEVEL: config.sound_level / 100,

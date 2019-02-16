@@ -85,11 +85,11 @@
             ramp_time_unit: {value: 'S'},
             ramp_time_value: {value: 0},
             repetitions: {value: 0},
+            dimmer_color: {value: 0},
             dimmer_level: {value: 100},
             dimmer_list: {value: []},
             sound_level: {value: 50},
             sound_list: {value: []},
-            acoustic_level: {value: 50},
             optical_alarm_selection: {value: 'DISABLE_OPTICAL_SIGNAL'},
             ccuConfig: {value: 'localhost', type: 'ccu-connection', required: true}
         },
@@ -188,7 +188,11 @@
                     const channel = n.shift();
                     $nodeInputChannel.val(channel);
                     if (data && data[channel]) {
-                        $nodeInputChannelType.val(data[channel].type).trigger('change');
+                        let {type, deviceType} = data[channel];
+                        if (deviceType === 'HmIP-BSL') {
+                            type = 'BSL_' + type;
+                        }
+                        $nodeInputChannelType.val(type).trigger('change');
                     }
                     if (!$nodeInputName.val()) {
                         $nodeInputName.val(n.join(' '));
@@ -326,6 +330,8 @@
                 this.dimmer_list.forEach(item => {
                     $('#node-input-dimmer-container').editableList('addItem', item);
                 });
+            } else if (this.channelType === 'BSL_DIMMER_VIRTUAL_RECEIVER') {
+                // ...
             } else {
                 console.error('unknown channelType', this.channelType);
             }
@@ -412,6 +418,7 @@
             <option value="ALARM_SWITCH_VIRTUAL_RECEIVER">ALARM (HmIP-ASIR)</option>
             <option value="ACOUSTIC_SIGNAL_VIRTUAL_RECEIVER">ACOUSTIC_SIGNAL (HmIP-MP3P)</option>
             <option value="DIMMER_VIRTUAL_RECEIVER">DIMMER (HmIP-MP3P)</option>
+            <option value="BSL_DIMMER_VIRTUAL_RECEIVER">DIMMER (HmIP-BSL)</option>
         </select>
     </div>
 
@@ -511,13 +518,27 @@
         <input id="node-input-sound_level" type="number" min="0" max="100">
     </div>
 
-    <div class="form-row SUBMIT DIMMER_VIRTUAL_RECEIVER ">
+    <div class="form-row SUBMIT BSL_DIMMER_VIRTUAL_RECEIVER">
+        <label for="node-input-dimmer_color"><i class=""></i> Farbe </label>
+        <select id="node-input-dimmer_color">
+            <option value="0">Aus</option>
+            <option value="1">Blau</option>
+            <option value="2">Grün</option>
+            <option value="3">Türkis</option>
+            <option value="4">Rot</option>
+            <option value="5">Violett</option>
+            <option value="6">Gelb</option>
+            <option value="7">Weiss</option>
+        </select>
+    </div>
+
+    <div class="form-row SUBMIT DIMMER_VIRTUAL_RECEIVER BSL_DIMMER_VIRTUAL_RECEIVER">
         <label for="node-input-dimmer_level"><i class=""></i> Helligkeit </label>
         <input id="node-input-dimmer_level" type="number" min="0" max="100">
     </div>
 
 
-    <div class="form-row SUBMIT ACOUSTIC_SIGNAL_VIRTUAL_RECEIVER DIMMER_VIRTUAL_RECEIVER">
+    <div class="form-row SUBMIT ACOUSTIC_SIGNAL_VIRTUAL_RECEIVER DIMMER_VIRTUAL_RECEIVER BSL_DIMMER_VIRTUAL_RECEIVER">
         <label for="node-input-ramp_time_unit"><i class=""></i> Rampenzeit </label>
         <select id="node-input-ramp_time_unit" style="width: calc(35% - 5px)">
             <option value="S">Sekunden</option>
@@ -528,7 +549,7 @@
     </div>
 
 
-    <div class="form-row SUBMIT ALARM_SWITCH_VIRTUAL_RECEIVER ACOUSTIC_SIGNAL_VIRTUAL_RECEIVER DIMMER_VIRTUAL_RECEIVER">
+    <div class="form-row SUBMIT ALARM_SWITCH_VIRTUAL_RECEIVER ACOUSTIC_SIGNAL_VIRTUAL_RECEIVER DIMMER_VIRTUAL_RECEIVER BSL_DIMMER_VIRTUAL_RECEIVER">
         <label for="node-input-duration_unit"><i class=""></i> Dauer </label>
         <select id="node-input-duration_unit" style="width: calc(35% - 5px)">
             <option value="S">Sekunden</option>

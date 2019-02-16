@@ -130,16 +130,21 @@ module.exports = function (RED) {
                             ].includes(devices[addr].TYPE)) {
                                 obj[addr] = {
                                     name: config.channelNames[addr],
-                                    type: devices[addr].TYPE
+                                    type: devices[addr].TYPE,
+                                    deviceType: devices[addr].PARENT_TYPE
                                 };
                             }
-                            if (devices[addr].PARENT_TYPE === 'HmIP-MP3P' && [
+                            if ([
+                                'HmIP-MP3P',
+                                'HmIP-BSL'
+                            ].includes(devices[addr].PARENT_TYPE) && [
                                 'ACOUSTIC_SIGNAL_VIRTUAL_RECEIVER',
                                 'DIMMER_VIRTUAL_RECEIVER'
                             ].includes(devices[addr].TYPE)) {
                                 obj[addr] = {
                                     name: config.channelNames[addr],
-                                    type: devices[addr].TYPE
+                                    type: devices[addr].TYPE,
+                                    deviceType: devices[addr].PARENT_TYPE
                                 };
                             }
                         });
