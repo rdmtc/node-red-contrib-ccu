@@ -31,23 +31,23 @@ module.exports = function (RED) {
                         break;
                     case 'ALARM_SWITCH_VIRTUAL_RECEIVER':
                         this.ccu.methodCall(config.iface, 'putParamset', [config.channel, 'VALUES', {
-                            ACOUSTIC_ALARM_SELECTION: config.acoustic_alarm_selection,
-                            DURATION_UNIT: config.duration_unit,
-                            DURATION_VALUE: parseInt(config.duration_value, 10) || 0,
-                            OPTICAL_ALARM_SELECTION: config.optical_alarm_selection
+                            ACOUSTIC_ALARM_SELECTION: config.acousticAlarmSelection,
+                            DURATION_UNIT: config.durationUnit,
+                            DURATION_VALUE: parseInt(config.durationValue, 10) || 0,
+                            OPTICAL_ALARM_SELECTION: config.opticalAlarmSelection
                         }]);
                         break;
                     case 'DIMMER_VIRTUAL_RECEIVER': {
                         const params = {
-                            LEVEL: config.dimmer_level / 100,
-                            RAMP_TIME_UNIT: config.ramp_time_unit,
-                            RAMP_TIME_VALUE: Number(config.ramp_time_value),
-                            DURATION_UNIT: config.duration_unit,
-                            DURATION_VALUE: parseInt(config.duration_value, 10) || 0,
+                            LEVEL: config.dimmerLevel / 100,
+                            RAMP_TIME_UNIT: config.rampTimeUnit,
+                            RAMP_TIME_VALUE: Number(config.rampTimeValue),
+                            DURATION_UNIT: config.durationUnit,
+                            DURATION_VALUE: parseInt(config.durationValue, 10) || 0,
                             REPETITIONS: Number(config.repetitions),
-                            OUTPUT_SELECT_SIZE: config.dimmer_list.length
+                            OUTPUT_SELECT_SIZE: config.dimmerList.length
                         };
-                        config.dimmer_list.forEach((item, i) => {
+                        config.dimmerList.forEach((item, i) => {
                             const index = i + 1;
                             params['COLOR_LIST_' + index] = Number(item.color);
                             params['ON_TIME_LIST_' + index] = Number(item.ontime);
@@ -57,26 +57,26 @@ module.exports = function (RED) {
                     }
                     case 'BSL_DIMMER_VIRTUAL_RECEIVER': {
                         this.ccu.methodCall(config.iface, 'putParamset', [config.channel, 'VALUES', {
-                            LEVEL: config.dimmer_level / 100,
-                            RAMP_TIME_UNIT: config.ramp_time_unit,
-                            RAMP_TIME_VALUE: Number(config.ramp_time_value),
-                            DURATION_UNIT: config.duration_unit,
-                            DURATION_VALUE: parseInt(config.duration_value, 10) || 0,
-                            COLOR: Number(config.dimmer_color)
+                            LEVEL: config.dimmerLevel / 100,
+                            RAMP_TIME_UNIT: config.rampTimeUnit,
+                            RAMP_TIME_VALUE: Number(config.rampTimeValue),
+                            DURATION_UNIT: config.durationUnit,
+                            DURATION_VALUE: parseInt(config.durationValue, 10) || 0,
+                            COLOR: Number(config.dimmerColor)
                         }]);
                         break;
                     }
                     case 'ACOUSTIC_SIGNAL_VIRTUAL_RECEIVER': {
                         const params = {
-                            LEVEL: config.sound_level / 100,
-                            RAMP_TIME_UNIT: config.ramp_time_unit,
-                            RAMP_TIME_VALUE: Number(config.ramp_time_value),
-                            DURATION_UNIT: config.duration_unit,
-                            DURATION_VALUE: parseInt(config.duration_value, 10) || 0,
+                            LEVEL: config.soundLevel / 100,
+                            RAMP_TIME_UNIT: config.rampTimeUnit,
+                            RAMP_TIME_VALUE: Number(config.rampTimeValue),
+                            DURATION_UNIT: config.durationUnit,
+                            DURATION_VALUE: parseInt(config.durationValue, 10) || 0,
                             REPETITIONS: Number(config.repetitions),
-                            OUTPUT_SELECT_SIZE: config.sound_list.length
+                            OUTPUT_SELECT_SIZE: config.soundList.length
                         };
-                        config.sound_list.forEach((item, i) => {
+                        config.soundList.forEach((item, i) => {
                             const index = i + 1;
                             params['SOUNDFILE_LIST_' + index] = Number(item.sound);
                         });
