@@ -1541,6 +1541,11 @@ module.exports = function (RED) {
             const result = [];
             if (this.metadata.devices[iface]) {
                 Object.keys(this.metadata.devices[iface]).forEach(addr => {
+                    const dev = this.metadata.devices[iface][addr];
+                    if (dev.TYPE === 'HmIP-RCV-50' || dev.PARENT_TYPE === 'HmIP-RCV-50') {
+                        // Würgaround for Firmware 3.43.15
+                        return;
+                    }
                     this.paramsetQueuePush(iface, this.metadata.devices[iface][addr]);
                     result.push(this.listDevicesAnswer(iface, this.metadata.devices[iface][addr]));
                 });
@@ -1583,12 +1588,16 @@ module.exports = function (RED) {
                         TEAM_TAG: device.TEAM_TAG,
                         TYPE: device.TYPE
                     };
-                    // Würgaround https://github.com/eq-3/occu/issues/83
                     Object.keys(d).forEach(k => {
-                        if (!d[k]) {
+                        if (typeof d[k] === 'undefined') {
+                            delete d[k];
+                        }
+                        if (d[k] === '') {
+                            // Würgaround https://github.com/eq-3/occu/issues/83
                             delete d[k];
                         }
                     });
+
                     return d;
                 default:
                     return {ADDRESS: device.ADDRESS, VERSION: device.VERSION};
