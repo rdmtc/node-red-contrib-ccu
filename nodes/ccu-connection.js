@@ -355,7 +355,7 @@ module.exports = function (RED) {
             this.rxCounters = {};
             this.txCounters = {};
 
-            this.metadataFile = path.join(RED.settings.userDir, 'ccu_' + this.host + '.json');
+            this.metadataFile = path.join(RED.settings.userDir || (__dirname + '/..'), 'ccu_' + this.host + '.json');
             this.loadMetadata();
 
             this.setContext();
