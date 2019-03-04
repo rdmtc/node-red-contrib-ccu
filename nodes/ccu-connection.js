@@ -314,7 +314,11 @@ module.exports = function (RED) {
 
             this.newParamsetDescriptionCount = 0;
             this.paramsetQueue = [];
-            this.paramsetFile = path.join(RED.settings.userDir, 'ccu_paramsets_v2.json');
+            console.log(314, RED.settings)
+
+            this.paramsetFile = path.join(RED.settings.userDir || (__dirname + '/..'), 'ccu_paramsets_v2.json');
+
+
             this.loadParamsets();
 
             this.callbacks = {};
