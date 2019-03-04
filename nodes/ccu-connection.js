@@ -942,7 +942,6 @@ module.exports = function (RED) {
                     valueType: sysvar.type,
                     valueEnum: sysvar.enum[Number(sysvar.val)],
                     unit: sysvar.unit,
-                    ts: sysvar.ts,
                     enum: sysvar.enum,
                     id: sysvar.id,
                     cache: isNew
@@ -975,7 +974,7 @@ module.exports = function (RED) {
                     valueEnumPrevious: this.sysvar[sysvar.name].valueEnum,
                     ts: sysvar.ts,
                     tsPrevious: this.sysvar[sysvar.name].ts,
-                    lc: sysvar.ts,
+                    lc: this.sysvar[sysvar.name].value !== sysvar.val && !isNew ? sysvar.ts : this.sysvar[sysvar.name].lc,
                     lcPrevious: this.sysvar[sysvar.name].lc,
                     change: isNew ? false : this.sysvar[sysvar.name].value !== sysvar.val,
                     cache: isNew
