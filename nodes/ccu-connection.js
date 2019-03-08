@@ -235,9 +235,9 @@ module.exports = function (RED) {
                 },
                 'BidCos-RF': {
                     conf: 'bcrf',
-                    rpc: this.isLocal ? binrpc : xmlrpc,
+                    rpc: (this.isLocal || config.bcrfBinRpc) ? binrpc : xmlrpc,
                     port: this.isLocal ? 32001 : 2001,
-                    protocol: this.isLocal ? 'binrpc' : 'http',
+                    protocol: (this.isLocal || config.bcrfBinRpc) ? 'binrpc' : 'http',
                     init: true,
                     ping: true
                 },
@@ -315,8 +315,7 @@ module.exports = function (RED) {
             this.newParamsetDescriptionCount = 0;
             this.paramsetQueue = [];
 
-            this.paramsetFile = path.join(RED.settings.userDir || (__dirname + '/..'), 'ccu_paramsets_v2.json');
-
+            this.paramsetFile = path.join(RED.settings.userDir || path.join(__dirname, '..'), 'paramsets.json');
 
             this.loadParamsets();
 
