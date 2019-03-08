@@ -1,0 +1,637 @@
+[
+    {
+        "id": 1011,
+        "address": "BidCoS-RF",
+        "name": "HM-RCV-50"
+    },
+    {
+        "id": 1012,
+        "address": "BidCoS-RF:0",
+        "name": "HM-RCV-50:0"
+    },
+    {
+        "id": 1014,
+        "address": "BidCoS-RF:1",
+        "name": "HM-RCV-50:1"
+    },
+    {
+        "id": 1018,
+        "address": "BidCoS-RF:2",
+        "name": "HM-RCV-50:2"
+    },
+    {
+        "id": 1022,
+        "address": "BidCoS-RF:3",
+        "name": "HM-RCV-50:3"
+    },
+    {
+        "id": 1026,
+        "address": "BidCoS-RF:4",
+        "name": "HM-RCV-50:4"
+    },
+    {
+        "id": 1030,
+        "address": "BidCoS-RF:5",
+        "name": "HM-RCV-50:5"
+    },
+    {
+        "id": 1034,
+        "address": "BidCoS-RF:6",
+        "name": "HM-RCV-50:6"
+    },
+    {
+        "id": 1038,
+        "address": "BidCoS-RF:7",
+        "name": "HM-RCV-50:7"
+    },
+    {
+        "id": 1042,
+        "address": "BidCoS-RF:8",
+        "name": "HM-RCV-50:8"
+    },
+    {
+        "id": 1046,
+        "address": "BidCoS-RF:9",
+        "name": "HM-RCV-50:9"
+    },
+    {
+        "id": 1050,
+        "address": "BidCoS-RF:10",
+        "name": "HM-RCV-50:10"
+    },
+    {
+        "id": 1054,
+        "address": "BidCoS-RF:11",
+        "name": "HM-RCV-50:11"
+    },
+    {
+        "id": 1058,
+        "address": "BidCoS-RF:12",
+        "name": "HM-RCV-50:12"
+    },
+    {
+        "id": 1062,
+        "address": "BidCoS-RF:13",
+        "name": "HM-RCV-50:13"
+    },
+    {
+        "id": 1066,
+        "address": "BidCoS-RF:14",
+        "name": "HM-RCV-50:14"
+    },
+    {
+        "id": 1070,
+        "address": "BidCoS-RF:15",
+        "name": "HM-RCV-50:15"
+    },
+    {
+        "id": 1074,
+        "address": "BidCoS-RF:16",
+        "name": "HM-RCV-50:16"
+    },
+    {
+        "id": 1078,
+        "address": "BidCoS-RF:17",
+        "name": "HM-RCV-50:17"
+    },
+    {
+        "id": 1082,
+        "address": "BidCoS-RF:18",
+        "name": "HM-RCV-50:18"
+    },
+    {
+        "id": 1086,
+        "address": "BidCoS-RF:19",
+        "name": "HM-RCV-50:19"
+    },
+    {
+        "id": 1090,
+        "address": "BidCoS-RF:20",
+        "name": "HM-RCV-50:20"
+    },
+    {
+        "id": 1094,
+        "address": "BidCoS-RF:21",
+        "name": "HM-RCV-50:21"
+    },
+    {
+        "id": 1098,
+        "address": "BidCoS-RF:22",
+        "name": "HM-RCV-50:22"
+    },
+    {
+        "id": 1102,
+        "address": "BidCoS-RF:23",
+        "name": "HM-RCV-50:23"
+    },
+    {
+        "id": 1106,
+        "address": "BidCoS-RF:24",
+        "name": "HM-RCV-50:24"
+    },
+    {
+        "id": 1110,
+        "address": "BidCoS-RF:25",
+        "name": "HM-RCV-50:25"
+    },
+    {
+        "id": 1114,
+        "address": "BidCoS-RF:26",
+        "name": "HM-RCV-50:26"
+    },
+    {
+        "id": 1118,
+        "address": "BidCoS-RF:27",
+        "name": "HM-RCV-50:27"
+    },
+    {
+        "id": 1122,
+        "address": "BidCoS-RF:28",
+        "name": "HM-RCV-50:28"
+    },
+    {
+        "id": 1126,
+        "address": "BidCoS-RF:29",
+        "name": "HM-RCV-50:29"
+    },
+    {
+        "id": 1130,
+        "address": "BidCoS-RF:30",
+        "name": "HM-RCV-50:30"
+    },
+    {
+        "id": 1134,
+        "address": "BidCoS-RF:31",
+        "name": "HM-RCV-50:31"
+    },
+    {
+        "id": 1138,
+        "address": "BidCoS-RF:32",
+        "name": "HM-RCV-50:32"
+    },
+    {
+        "id": 1142,
+        "address": "BidCoS-RF:33",
+        "name": "HM-RCV-50:33"
+    },
+    {
+        "id": 1146,
+        "address": "BidCoS-RF:34",
+        "name": "HM-RCV-50:34"
+    },
+    {
+        "id": 1150,
+        "address": "BidCoS-RF:35",
+        "name": "HM-RCV-50:35"
+    },
+    {
+        "id": 1154,
+        "address": "BidCoS-RF:36",
+        "name": "HM-RCV-50:36"
+    },
+    {
+        "id": 1158,
+        "address": "BidCoS-RF:37",
+        "name": "HM-RCV-50:37"
+    },
+    {
+        "id": 1162,
+        "address": "BidCoS-RF:38",
+        "name": "HM-RCV-50:38"
+    },
+    {
+        "id": 1166,
+        "address": "BidCoS-RF:39",
+        "name": "HM-RCV-50:39"
+    },
+    {
+        "id": 1170,
+        "address": "BidCoS-RF:40",
+        "name": "HM-RCV-50:40"
+    },
+    {
+        "id": 1174,
+        "address": "BidCoS-RF:41",
+        "name": "HM-RCV-50:41"
+    },
+    {
+        "id": 1178,
+        "address": "BidCoS-RF:42",
+        "name": "HM-RCV-50:42"
+    },
+    {
+        "id": 1182,
+        "address": "BidCoS-RF:43",
+        "name": "HM-RCV-50:43"
+    },
+    {
+        "id": 1186,
+        "address": "BidCoS-RF:44",
+        "name": "HM-RCV-50:44"
+    },
+    {
+        "id": 1190,
+        "address": "BidCoS-RF:45",
+        "name": "HM-RCV-50:45"
+    },
+    {
+        "id": 1194,
+        "address": "BidCoS-RF:46",
+        "name": "HM-RCV-50:46"
+    },
+    {
+        "id": 1198,
+        "address": "BidCoS-RF:47",
+        "name": "HM-RCV-50:47"
+    },
+    {
+        "id": 1202,
+        "address": "BidCoS-RF:48",
+        "name": "HM-RCV-50:48"
+    },
+    {
+        "id": 1206,
+        "address": "BidCoS-RF:49",
+        "name": "HM-RCV-50:49"
+    },
+    {
+        "id": 1210,
+        "address": "BidCoS-RF:50",
+        "name": "HM-RCV-50:50"
+    },
+    {
+        "id": 1664,
+        "address": "MEQ1849910",
+        "name": "Test-MDIR-WM55"
+    },
+    {
+        "id": 1665,
+        "address": "MEQ1849910:0",
+        "name": "Test-MDIR-WM55:0"
+    },
+    {
+        "id": 1693,
+        "address": "MEQ1849910:1",
+        "name": "Test-MDIR-WM55:1"
+    },
+    {
+        "id": 1699,
+        "address": "MEQ1849910:2",
+        "name": "Test-MDIR-WM55:2"
+    },
+    {
+        "id": 1705,
+        "address": "MEQ1849910:3",
+        "name": "Test-MDIR-WM55:3"
+    },
+    {
+        "id": 1237,
+        "address": "001F58A9A728D4",
+        "name": "HmIP-RCV-50"
+    },
+    {
+        "id": 1238,
+        "address": "001F58A9A728D4:0",
+        "name": "HmIP-RCV-50:0"
+    },
+    {
+        "id": 1239,
+        "address": "001F58A9A728D4:1",
+        "name": "HmIP-RCV-50:1"
+    },
+    {
+        "id": 1242,
+        "address": "001F58A9A728D4:2",
+        "name": "HmIP-RCV-50:2"
+    },
+    {
+        "id": 1245,
+        "address": "001F58A9A728D4:3",
+        "name": "HmIP-RCV-50:3"
+    },
+    {
+        "id": 1248,
+        "address": "001F58A9A728D4:4",
+        "name": "HmIP-RCV-50:4"
+    },
+    {
+        "id": 1251,
+        "address": "001F58A9A728D4:5",
+        "name": "HmIP-RCV-50:5"
+    },
+    {
+        "id": 1254,
+        "address": "001F58A9A728D4:6",
+        "name": "HmIP-RCV-50:6"
+    },
+    {
+        "id": 1257,
+        "address": "001F58A9A728D4:7",
+        "name": "HmIP-RCV-50:7"
+    },
+    {
+        "id": 1260,
+        "address": "001F58A9A728D4:8",
+        "name": "HmIP-RCV-50:8"
+    },
+    {
+        "id": 1263,
+        "address": "001F58A9A728D4:9",
+        "name": "HmIP-RCV-50:9"
+    },
+    {
+        "id": 1266,
+        "address": "001F58A9A728D4:10",
+        "name": "HmIP-RCV-50:10"
+    },
+    {
+        "id": 1269,
+        "address": "001F58A9A728D4:11",
+        "name": "HmIP-RCV-50:11"
+    },
+    {
+        "id": 1272,
+        "address": "001F58A9A728D4:12",
+        "name": "HmIP-RCV-50:12"
+    },
+    {
+        "id": 1275,
+        "address": "001F58A9A728D4:13",
+        "name": "HmIP-RCV-50:13"
+    },
+    {
+        "id": 1278,
+        "address": "001F58A9A728D4:14",
+        "name": "HmIP-RCV-50:14"
+    },
+    {
+        "id": 1281,
+        "address": "001F58A9A728D4:15",
+        "name": "HmIP-RCV-50:15"
+    },
+    {
+        "id": 1284,
+        "address": "001F58A9A728D4:16",
+        "name": "HmIP-RCV-50:16"
+    },
+    {
+        "id": 1287,
+        "address": "001F58A9A728D4:17",
+        "name": "HmIP-RCV-50:17"
+    },
+    {
+        "id": 1290,
+        "address": "001F58A9A728D4:18",
+        "name": "HmIP-RCV-50:18"
+    },
+    {
+        "id": 1293,
+        "address": "001F58A9A728D4:19",
+        "name": "HmIP-RCV-50:19"
+    },
+    {
+        "id": 1296,
+        "address": "001F58A9A728D4:20",
+        "name": "HmIP-RCV-50:20"
+    },
+    {
+        "id": 1299,
+        "address": "001F58A9A728D4:21",
+        "name": "HmIP-RCV-50:21"
+    },
+    {
+        "id": 1302,
+        "address": "001F58A9A728D4:22",
+        "name": "HmIP-RCV-50:22"
+    },
+    {
+        "id": 1305,
+        "address": "001F58A9A728D4:23",
+        "name": "HmIP-RCV-50:23"
+    },
+    {
+        "id": 1308,
+        "address": "001F58A9A728D4:24",
+        "name": "HmIP-RCV-50:24"
+    },
+    {
+        "id": 1311,
+        "address": "001F58A9A728D4:25",
+        "name": "HmIP-RCV-50:25"
+    },
+    {
+        "id": 1314,
+        "address": "001F58A9A728D4:26",
+        "name": "HmIP-RCV-50:26"
+    },
+    {
+        "id": 1317,
+        "address": "001F58A9A728D4:27",
+        "name": "HmIP-RCV-50:27"
+    },
+    {
+        "id": 1320,
+        "address": "001F58A9A728D4:28",
+        "name": "HmIP-RCV-50:28"
+    },
+    {
+        "id": 1323,
+        "address": "001F58A9A728D4:29",
+        "name": "HmIP-RCV-50:29"
+    },
+    {
+        "id": 1326,
+        "address": "001F58A9A728D4:30",
+        "name": "HmIP-RCV-50:30"
+    },
+    {
+        "id": 1329,
+        "address": "001F58A9A728D4:31",
+        "name": "HmIP-RCV-50:31"
+    },
+    {
+        "id": 1332,
+        "address": "001F58A9A728D4:32",
+        "name": "HmIP-RCV-50:32"
+    },
+    {
+        "id": 1335,
+        "address": "001F58A9A728D4:33",
+        "name": "HmIP-RCV-50:33"
+    },
+    {
+        "id": 1338,
+        "address": "001F58A9A728D4:34",
+        "name": "HmIP-RCV-50:34"
+    },
+    {
+        "id": 1341,
+        "address": "001F58A9A728D4:35",
+        "name": "HmIP-RCV-50:35"
+    },
+    {
+        "id": 1344,
+        "address": "001F58A9A728D4:36",
+        "name": "HmIP-RCV-50:36"
+    },
+    {
+        "id": 1347,
+        "address": "001F58A9A728D4:37",
+        "name": "HmIP-RCV-50:37"
+    },
+    {
+        "id": 1350,
+        "address": "001F58A9A728D4:38",
+        "name": "HmIP-RCV-50:38"
+    },
+    {
+        "id": 1353,
+        "address": "001F58A9A728D4:39",
+        "name": "HmIP-RCV-50:39"
+    },
+    {
+        "id": 1356,
+        "address": "001F58A9A728D4:40",
+        "name": "HmIP-RCV-50:40"
+    },
+    {
+        "id": 1359,
+        "address": "001F58A9A728D4:41",
+        "name": "HmIP-RCV-50:41"
+    },
+    {
+        "id": 1362,
+        "address": "001F58A9A728D4:42",
+        "name": "HmIP-RCV-50:42"
+    },
+    {
+        "id": 1365,
+        "address": "001F58A9A728D4:43",
+        "name": "HmIP-RCV-50:43"
+    },
+    {
+        "id": 1368,
+        "address": "001F58A9A728D4:44",
+        "name": "HmIP-RCV-50:44"
+    },
+    {
+        "id": 1371,
+        "address": "001F58A9A728D4:45",
+        "name": "HmIP-RCV-50:45"
+    },
+    {
+        "id": 1374,
+        "address": "001F58A9A728D4:46",
+        "name": "HmIP-RCV-50:46"
+    },
+    {
+        "id": 1377,
+        "address": "001F58A9A728D4:47",
+        "name": "HmIP-RCV-50:47"
+    },
+    {
+        "id": 1380,
+        "address": "001F58A9A728D4:48",
+        "name": "HmIP-RCV-50:48"
+    },
+    {
+        "id": 1383,
+        "address": "001F58A9A728D4:49",
+        "name": "HmIP-RCV-50:49"
+    },
+    {
+        "id": 1386,
+        "address": "001F58A9A728D4:50",
+        "name": "HmIP-RCV-50:50"
+    },
+    {
+        "id": 1445,
+        "address": "001518A9A59D73",
+        "name": "Test-MP3P"
+    },
+    {
+        "id": 1446,
+        "address": "001518A9A59D73:0",
+        "name": "Test-MP3P:0"
+    },
+    {
+        "id": 1474,
+        "address": "001518A9A59D73:1",
+        "name": "Test-MP3P:1"
+    },
+    {
+        "id": 1482,
+        "address": "001518A9A59D73:2",
+        "name": "Test-MP3P:2"
+    },
+    {
+        "id": 1509,
+        "address": "001518A9A59D73:3",
+        "name": "Test-MP3P:3"
+    },
+    {
+        "id": 1520,
+        "address": "001518A9A59D73:4",
+        "name": "Test-MP3P:4"
+    },
+    {
+        "id": 1531,
+        "address": "001518A9A59D73:5",
+        "name": "Test-MP3P:5"
+    },
+    {
+        "id": 1540,
+        "address": "001518A9A59D73:6",
+        "name": "Test-MP3P:6"
+    },
+    {
+        "id": 1580,
+        "address": "001518A9A59D73:7",
+        "name": "Test-MP3P:7"
+    },
+    {
+        "id": 1620,
+        "address": "001518A9A59D73:8",
+        "name": "Test-MP3P:8"
+    },
+    {
+        "id": 1660,
+        "address": "001518A9A59D73:9",
+        "name": "Test-MP3P:9"
+    },
+    {
+        "id": 1390,
+        "address": "00131709AE37B4",
+        "name": "Test-WGC"
+    },
+    {
+        "id": 1391,
+        "address": "00131709AE37B4:0",
+        "name": "Test-WGC:0"
+    },
+    {
+        "id": 1419,
+        "address": "00131709AE37B4:1",
+        "name": "Test-WGC:1"
+    },
+    {
+        "id": 1422,
+        "address": "00131709AE37B4:2",
+        "name": "Test-WGC:2"
+    },
+    {
+        "id": 1427,
+        "address": "00131709AE37B4:3",
+        "name": "Test-WGC:3"
+    },
+    {
+        "id": 1433,
+        "address": "00131709AE37B4:4",
+        "name": "Test-WGC:4"
+    },
+    {
+        "id": 1439,
+        "address": "00131709AE37B4:5",
+        "name": "Test-WGC:5"
+    }
+]

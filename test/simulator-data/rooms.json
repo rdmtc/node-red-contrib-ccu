@@ -1,0 +1,71 @@
+[
+    {
+        "id": 1230,
+        "name": "Badezimmer",
+        "channels": [
+            1693,
+            1699,
+            1705
+        ]
+    },
+    {
+        "id": 1226,
+        "name": "Schlafzimmer",
+        "channels": [
+            1014
+        ]
+    },
+    {
+        "id": 1227,
+        "name": "Kinderzimmer 1",
+        "channels": [
+            1014
+        ]
+    },
+    {
+        "id": 1228,
+        "name": "Kinderzimmer 2",
+        "channels": []
+    },
+    {
+        "id": 1231,
+        "name": "Garage",
+        "channels": [
+            1419,
+            1427
+        ]
+    },
+    {
+        "id": 1233,
+        "name": "Garten",
+        "channels": []
+    },
+    {
+        "id": 1232,
+        "name": "Hauswirtschaftsraum",
+        "channels": []
+    },
+    {
+        "id": 1225,
+        "name": "Küche",
+        "channels": []
+    },
+    {
+        "id": 1224,
+        "name": "Wohnzimmer",
+        "channels": [
+            1482,
+            1540
+        ]
+    },
+    {
+        "id": 1229,
+        "name": "Büro",
+        "channels": []
+    },
+    {
+        "id": 1234,
+        "name": "Terrasse",
+        "channels": []
+    }
+]

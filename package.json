@@ -14,8 +14,10 @@
   ],
   "main": "none",
   "scripts": {
-    "test": "camo-purge; xo",
-    "lintfix": "xo --fix"
+    "test": "camo-purge; xo && nyc mocha \"test/**/*_spec.js\" --exit && nyc report --reporter=text-lcov | coveralls --force",
+    "lintfix": "xo --fix",
+    "testonly": "mocha \"test/**/*_spec.js\" --exit",
+    "testcov": "nyc mocha \"test/**/*_spec.js\" --exit"
   },
   "author": "Sebastian Raff <hobbyquaker@gmail.com>",
   "license": "MIT",
@@ -49,9 +51,16 @@
     }
   },
   "devDependencies": {
-    "camo-purge": "^1.0.2",
-    "eslint-plugin-html": "^5.0.0",
-    "xo": "^0.23.0"
+    "camo-purge": "latest",
+    "coveralls": "latest",
+    "eslint-plugin-html": "latest",
+    "hm-simulator": "latest",
+    "mocha": "latest",
+    "node-red": "latest",
+    "node-red-node-test-helper": "latest",
+    "nyc": "latest",
+    "should": "latest",
+    "xo": "latest"
   },
   "xo": {
     "space": 4,
@@ -69,7 +78,8 @@
       "camelcase": "warn",
       "capitalized-comments": 0,
       "spaced-comment": 0,
-      "unicorn/catch-error-name": 0
+      "unicorn/catch-error-name": 0,
+      "valid-jsdoc": 0
     },
     "ignore": [
       "nodes/ccu-switch.js",

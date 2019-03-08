@@ -1,0 +1,6 @@
+[
+    {"id":40,"name":"Alarmmeldungen","val":0,"min":0,"max":65000,"unit":"","type":"number","enum":[]},
+    {"id":41,"name":"Servicemeldungen","val":5,"min":0,"max":65000,"unit":"","type":"number","enum":[]},
+    {"id": 1235, "name": "%24%7BsysVarAlarmZone1%7D", "info": "%24%7BsysVarAlarmZone1Msg%7D", "val": false,"ts":"1970-01-01 01:00:00","min":null,"max":null,"unit":"", "type": "boolean", "enum": "%24%7BsysVarAlarmZone1NotTriggered%7D;%24%7BsysVarAlarmZone1Triggered%7D", "channel": "65535"},
+    {"id": 950, "name": "Anwesenheit", "info": "Anwesenheit", "val": false,"ts":"2019-03-05 22:48:40","min":null,"max":null,"unit":"", "type": "boolean", "enum": "nicht anwesend;anwesend", "channel": "65535"}
+]
