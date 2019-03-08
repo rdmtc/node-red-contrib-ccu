@@ -55,6 +55,7 @@ module.exports = function (RED) {
                         this.ccu.methodCall(config.iface, 'putParamset', [config.channel, 'VALUES', params]);
                         break;
                     }
+
                     case 'BSL_DIMMER_VIRTUAL_RECEIVER': {
                         this.ccu.methodCall(config.iface, 'putParamset', [config.channel, 'VALUES', {
                             LEVEL: config.dimmerLevel / 100,
@@ -66,6 +67,7 @@ module.exports = function (RED) {
                         }]);
                         break;
                     }
+
                     case 'ACOUSTIC_SIGNAL_VIRTUAL_RECEIVER': {
                         const params = {
                             LEVEL: config.soundLevel / 100,
@@ -83,6 +85,7 @@ module.exports = function (RED) {
                         this.ccu.methodCall(config.iface, 'putParamset', [config.channel, 'VALUES', params]);
                         break;
                     }
+
                     default:
                         console.error('channelType', config.channelType, 'unknown');
                 }

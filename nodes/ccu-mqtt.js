@@ -122,6 +122,7 @@ module.exports = function (RED) {
                         lc: msg.lc
                     };
                 }
+
                 case 'mqsh-extended': {
                     const payload = {
                         val: msg.payload,
@@ -135,10 +136,12 @@ module.exports = function (RED) {
 
                     return payload;
                 }
+
                 default: {
                     if (typeof msg.payload === 'boolean') {
                         return Number(msg.payload);
                     }
+
                     return msg.payload;
                 }
             }
@@ -172,6 +175,7 @@ module.exports = function (RED) {
                             patternArr[i] = parts[i];
                         }
                     }
+
                     const pattern = patternArr.join('/');
                     const match = mw(topic, pattern);
                     if (match && match.length === placeholders.length) {
@@ -193,6 +197,7 @@ module.exports = function (RED) {
                 } else {
                     filter.channel = this.ccu.findChannel(filter.channelNameOrAddress);
                 }
+
                 if (!filter.channel) {
                     this.error('channel ' + filter.channelNameOrAddress + ' not found');
                     return;
@@ -203,6 +208,7 @@ module.exports = function (RED) {
                 this.error('channel undefined');
                 return;
             }
+
             const iface = this.ccu.findIface(filter.channel);
 
             if (!iface) {
@@ -218,6 +224,7 @@ module.exports = function (RED) {
                 this.error('name undefined');
                 return;
             }
+
             if (this.ccu.sysvar[filter.name]) {
                 this.ccu.setVariable(filter.name, payload);
             } else if (this.ccu.program[filter.name]) {
@@ -238,6 +245,7 @@ module.exports = function (RED) {
                 } else {
                     filter.channel = this.ccu.findChannel(filter.channelNameOrAddress);
                 }
+
                 if (!filter.channel) {
                     this.error('channel ' + filter.channelNameOrAddress + ' not found');
                     return;
@@ -262,6 +270,7 @@ module.exports = function (RED) {
                 if (!(paramsetDescription[filter.param].OPERATIONS) && 2) {
                     this.error('param ' + filter.param + ' not writeable');
                 }
+
                 payload = this.paramCast(payload, paramsetDescription[filter.param]);
             } else {
                 this.warn('unknown paramset/param ' + filter.paramset + ' ' + filter.param);
@@ -286,6 +295,7 @@ module.exports = function (RED) {
                 } else {
                     filter.channel = this.ccu.findChannel(filter.channelNameOrAddress);
                 }
+
                 if (!filter.channel) {
                     this.error('channel ' + filter.channelNameOrAddress + ' not found');
                     return;
@@ -314,6 +324,7 @@ module.exports = function (RED) {
                     if (!(paramsetDescription[param].OPERATIONS) && 2) {
                         this.error('param ' + param + ' not writeable');
                     }
+
                     paramset[param] = this.paramCast(payload[param], paramsetDescription[filter.param]);
                 } else {
                     this.warn('unknown paramset/param ' + filter.paramset + ' ' + param);
@@ -328,7 +339,7 @@ module.exports = function (RED) {
         paramCast(val, paramset) {
             switch (paramset && paramset.TYPE) {
                 case 'BOOL':
-                // eslint-disable-line no-fallthrough
+                    // Fallthrough by intention
                 case 'ACTION':
                     // OMG this is so ugly...
                     if (val === 'false') {
@@ -336,6 +347,7 @@ module.exports = function (RED) {
                     } else if (!isNaN(val)) { // Make sure that the string "0" gets casted to boolean false
                         val = Number(val);
                     }
+
                     val = Boolean(val);
                     break;
                 case 'FLOAT':
@@ -345,6 +357,7 @@ module.exports = function (RED) {
                     } else if (val > paramset.MAX) {
                         val = paramset.MAX;
                     }
+
                     val = {explicitDouble: val};
                     break;
                 case 'ENUM':
@@ -353,7 +366,8 @@ module.exports = function (RED) {
                             val = paramset.ENUM.indexOf(val);
                         }
                     }
-                // eslint-disable-line no-fallthrough
+
+                    // Fallthrough by intention
                 case 'INTEGER':
                     val = parseInt(val, 10);
                     if (val < paramset.MIN) {
@@ -361,6 +375,7 @@ module.exports = function (RED) {
                     } else if (val > paramset.MAX) {
                         val = paramset.MAX;
                     }
+
                     break;
                 case 'STRING':
                     val = String(val);

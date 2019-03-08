@@ -46,9 +46,11 @@
                     this.setProp = 'payload';
                     $nodeSetProp.val('payload');
                 }
+
                 if (!this.setPropType) {
                     this.setPropType = 'msg';
                 }
+
                 $nodeSetProp.typedInput({
                     default: this.setPropType,
                     types: [{
@@ -66,6 +68,7 @@
                     if (ifacesPending) {
                         return;
                     }
+
                     ifacesPending = true;
                     console.log('loadIfaces()');
 
@@ -102,6 +105,7 @@
                     if (!ifacesLoaded) {
                         return;
                     }
+
                     console.log('loadConfig()');
                     const nodeId = $nodeInputCcuConfig.val();
                     const url = 'ccu?config=' + nodeId + '&type=channels&iface=' + $nodeInputIface.val();
@@ -148,12 +152,14 @@
                     if (!data) {
                         return;
                     }
+
                     const arr = [];
                     Object.keys(data).forEach(addr => {
                         if (addr.match(/:\d+$/)) {
                             if (data[addr].name) {
                                 addr += ' ' + data[addr].name;
                             }
+
                             arr.push(addr);
                         }
                     });
@@ -186,6 +192,7 @@
                         $('.form-row.sysvar').hide();
                         $('.form-row.datapoint').show();
                     }
+
                     loadConfig();
                 });
             }

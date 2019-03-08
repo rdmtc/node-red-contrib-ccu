@@ -92,6 +92,7 @@
                 if (ifacesPending) {
                     return;
                 }
+
                 ifacesPending = true;
                 console.log('loadIfaces()');
                 $nodeInputIface.html('<option value="">*</option>');
@@ -157,6 +158,7 @@
                     } else {
                         data.roomChannels[room] = [channel];
                     }
+
                     if (!data.roomDevices[room]) {
                         data.roomDevices[room] = [device];
                     } else if (!data.roomDevices[room].includes(device)) {
@@ -171,6 +173,7 @@
                     } else {
                         data.functionChannels[func] = [channel];
                     }
+
                     if (!data.functionDevices[func]) {
                         data.functionDevices[func] = [device];
                     } else if (!data.functionDevices[func].includes(device)) {
@@ -210,6 +213,7 @@
                         // device
                         d = device;
                     }
+
                     return [iface, d.TYPE, d.FIRMWARE, d.VERSION, cType, paramset].join('/');
                 }
             }
@@ -218,6 +222,7 @@
                 if (!data) {
                     return;
                 }
+
                 const iface = $('#node-input-iface').val();
                 const rooms = $('#node-input-rooms').val() ? [$('#node-input-rooms').val()] : [];
                 const funcs = $('#node-input-functions').val() ? [$('#node-input-functions').val()] : [];
@@ -321,6 +326,7 @@
                             } else {
                                 deviceCheck = true;
                             }
+
                             channelCheck = true;
                         }
 
@@ -365,6 +371,7 @@
                         } else {
                             deviceCheck = true;
                         }
+
                         return roomCheck && functionCheck && deviceCheck;
                     }
 
@@ -372,6 +379,7 @@
                         if (!device || !data.metadata.devices[iface][device]) {
                             return true;
                         }
+
                         let roomCheck = false;
                         let functionCheck = false;
 
@@ -380,6 +388,7 @@
                                 if (data.roomDevices[room].includes(device)) {
                                     roomCheck = true;
                                 }
+
                                 roomCheck = roomCheck ||
                                     data.metadata.devices[iface][device].CHILDREN
                                         .some(v => data.roomDevices[room].includes(v));
@@ -393,6 +402,7 @@
                                 if (data.functionDevices[func].includes(device)) {
                                     functionCheck = true;
                                 }
+
                                 functionCheck = functionCheck ||
                                     data.metadata.devices[iface][device].CHILDREN
                                         .some(v => data.functionDevices[func].includes(v));
@@ -428,6 +438,7 @@
                             if (!checkDevice(dev)) {
                                 return;
                             }
+
                             lists.device.push(dev);
                             lists.deviceName.push(data.channelNames[dev]);
                             if (!lists.deviceType.includes(data.metadata.devices[iface][dev].TYPE)) {

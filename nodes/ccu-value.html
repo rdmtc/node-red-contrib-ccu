@@ -48,6 +48,7 @@
                 if (ifacesPending) {
                     return;
                 }
+
                 ifacesPending = true;
                 console.log('loadIfaces()');
                 $nodeInputIface.html('<option value=""></option>');
@@ -77,6 +78,7 @@
                 if (!ifacesLoaded) {
                     return;
                 }
+
                 console.log('loadConfig()');
                 const nodeId = $nodeInputCcuConfig.val();
                 const url = 'ccu?config=' + nodeId + '&type=channels&iface=' + $nodeInputIface.val();
@@ -140,12 +142,14 @@
                 if (!data) {
                     return;
                 }
+
                 const arr = [];
                 Object.keys(data).forEach(addr => {
                     if (addr.match(/:\d+$/)) {
                         if (data[addr].name) {
                             addr += ' ' + data[addr].name;
                         }
+
                         arr.push(addr);
                     }
                 });
@@ -169,12 +173,14 @@
                     if (c.datapoints.indexOf($nodeInputDatapoint.val()) === -1) {
                         $nodeInputDatapoint.val('').autocomplete('search');
                     }
+
                     if (c.datapoints.includes('RAMP_TIME')) {
                         $('.RAMP_TIME').show();
                     } else {
                         $('#node-input-ramp').typedInput('type', 'undefined');
                         $('#node-input-ramp').val('');
                     }
+
                     if (c.datapoints.includes('ON_TIME')) {
                         $('.ON_TIME').show();
                     } else {
@@ -191,6 +197,7 @@
                 } else {
                     $nodeInputMode.val('').attr('disabled', true);
                 }
+
                 loadConfig();
             });
 
@@ -229,12 +236,15 @@
             if ($('#ON_TIME').is(':hidden')) {
                 this.onType = 'undefined';
             }
+
             if ($('#RAMP_TIME').is(':hidden')) {
                 this.rampType = 'undefined';
             }
+
             if (this.onType === 'undefined') {
                 this.on = 0;
             }
+
             if (this.rampType === 'undefined') {
                 this.ramp = 0;
             }

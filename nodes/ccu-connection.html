@@ -39,6 +39,7 @@
             if (typeof this.queueTimeout === 'undefined') {
                 $('#node-config-input-queueTimeout').val(5000);
             }
+
             if (typeof this.queuePause === 'undefined') {
                 $('#node-config-input-queuePause').val(250);
             }
@@ -89,6 +90,7 @@
                 if (!this.rpcBinPort) {
                     $('#node-config-input-rpcBinPort').val(data.ports[0]);
                 }
+
                 if (!this.rpcXmlPort) {
                     $('#node-config-input-rpcXmlPort').val(data.ports[1]);
                 }

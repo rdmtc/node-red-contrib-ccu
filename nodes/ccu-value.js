@@ -45,10 +45,12 @@ module.exports = function (RED) {
                     this.error('interface undefined');
                     return;
                 }
+
                 if (!channel) {
                     this.error('channel undefined');
                     return;
                 }
+
                 if (!datapoint) {
                     this.error('datapoint undefined');
                     return;
@@ -66,10 +68,11 @@ module.exports = function (RED) {
                         ramp = this.context().global.get(config.ramp);
                         break;
                     case 'num':
-                        ramp = config.ramp; // eslint-disable-line prefer-destructuring
+                        ramp = config.ramp;
                         break;
                     default:
                 }
+
                 ramp = parseFloat(ramp);
 
                 let on;
@@ -84,7 +87,7 @@ module.exports = function (RED) {
                         on = this.context().global.get(config.on);
                         break;
                     case 'num':
-                        on = config.on; // eslint-disable-line prefer-destructuring
+                        on = config.on;
                         break;
                     default:
                 }
@@ -98,9 +101,11 @@ module.exports = function (RED) {
                     if (on) {
                         params.ON_TIME = this.ccu.paramCast(iface, channel, 'VALUES', 'ON_TIME', on);
                     }
+
                     if (ramp) {
                         params.RAMP_TIME = this.ccu.paramCast(iface, channel, 'VALUES', 'RAMP_TIME', ramp);
                     }
+
                     params[datapoint] = this.ccu.paramCast(iface, channel, 'VALUES', datapoint, msg.payload);
                     // Todo queue
                     this.ccu.methodCall(iface, 'putParamset', [channel, 'VALUES', params]);
@@ -115,6 +120,7 @@ module.exports = function (RED) {
                 this.debug('ccu-value close');
                 this.ccu.unsubscribe(this.idSubscription);
             }
+
             done();
         }
 

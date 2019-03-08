@@ -121,6 +121,7 @@
                 if (ifacesPending) {
                     return;
                 }
+
                 ifacesPending = true;
                 console.log('loadIfaces()');
                 $nodeInputIface.html('');
@@ -192,8 +193,10 @@
                         if (deviceType === 'HmIP-BSL') {
                             type = 'BSL_' + type;
                         }
+
                         $nodeInputChannelType.val(type).trigger('change');
                     }
+
                     if (!$nodeInputName.val()) {
                         $nodeInputName.val(n.join(' '));
                     }
@@ -214,10 +217,12 @@
                             if (data[addr].name) {
                                 addr += ' ' + data[addr].name;
                             }
+
                             arr.push(addr);
                         }
                     });
                 }
+
                 console.log('autoCompleteChannel()', arr.length);
                 $nodeInputChannel.autocomplete('option', 'source', arr);
 
@@ -350,6 +355,7 @@
                     this.chime = chime.join(',');
                     break;
                 }
+
                 case 'SIGNAL_LED': {
                     const led = ['1', $('#node-input-repeat').val(), '108000'];
                     $('#node-input-led-container').editableList('items').each(function () {
@@ -358,6 +364,7 @@
                     this.led = led.join(',');
                     break;
                 }
+
                 case 'DIMMER_VIRTUAL_RECEIVER': {
                     const dimmerList = [];
                     $('#node-input-dimmer-container').editableList('items').each(function () {
@@ -367,6 +374,7 @@
                     this.dimmerList = dimmerList;
                     break;
                 }
+
                 case 'ACOUSTIC_SIGNAL_VIRTUAL_RECEIVER': {
                     const soundList = [];
                     $('#node-input-acoustic-container').editableList('items').each(function () {
@@ -375,6 +383,7 @@
                     this.soundList = soundList;
                     break;
                 }
+
                 case 'KEY':
                     break;
 

@@ -37,9 +37,11 @@ module.exports = function (RED) {
                 if (map[col]) {
                     col = map[col];
                 }
+
                 if (['0x80', '0x81', '0x82', '0x83', '0x84', '0x85'].indexOf(col) === -1) {
                     col = '0x80';
                 }
+
                 return col;
             }
 
@@ -73,9 +75,11 @@ module.exports = function (RED) {
                 if (map[ico]) {
                     ico = map[ico];
                 }
+
                 if (['0x80', '0x81', '0x82', '0x83', '0x84', '0x85', '0x86', '0x87', '0x88'].indexOf(ico) === -1) {
                     ico = '';
                 }
+
                 return ico;
             }
 
@@ -83,9 +87,11 @@ module.exports = function (RED) {
                 if (typeof str !== 'string') {
                     str = String(str);
                 }
+
                 if (!str) {
                     str = ' ';
                 }
+
                 const charcodes = {
                     Ä: '0x5B',
                     Ö: '0x23',
@@ -114,27 +120,33 @@ module.exports = function (RED) {
                 if (config.channelType === 'HM-Dis-WM55') {
                     payload += ',0x11,' + convertColor(msg.color1 || config.color1);
                 }
+
                 if (msg.icon1 || config.icon1) {
                     payload += ',0x13,' + convertIcon(msg.icon1 || config.icon1);
                 }
+
                 payload += ',0x0A';
 
                 payload += ',0x12,' + convertString(msg.line2 || config.line2);
                 if (config.channelType === 'HM-Dis-WM55') {
                     payload += ',0x11,' + convertColor(msg.color2 || config.color2);
                 }
+
                 if (msg.icon2 || config.icon2) {
                     payload += ',0x13,' + convertIcon(msg.icon2 || config.icon2);
                 }
+
                 payload += ',0x0A';
 
                 payload += ',0x12,' + convertString(msg.line3 || config.line3);
                 if (config.channelType === 'HM-Dis-WM55') {
                     payload += ',0x11,' + convertColor(msg.color3 || config.color3);
                 }
+
                 if (msg.icon3 || config.icon3) {
                     payload += ',0x13,' + convertIcon(msg.icon3 || config.icon3);
                 }
+
                 payload += ',0x0A';
 
                 if (config.channelType === 'HM-Dis-WM55') {
@@ -143,6 +155,7 @@ module.exports = function (RED) {
                     if (msg.icon4 || config.icon4) {
                         payload += ',0x13,' + convertIcon(msg.icon4 || config.icon4);
                     }
+
                     payload += ',0x0A';
 
                     payload += ',0x12,' + convertString(msg.line5 || config.line5);
@@ -150,6 +163,7 @@ module.exports = function (RED) {
                     if (msg.icon5 || config.icon5) {
                         payload += ',0x13,' + convertIcon(msg.icon5 || config.icon5);
                     }
+
                     payload += ',0x0A';
 
                     payload += ',0x12,' + convertString(msg.line6 || config.line6);
@@ -157,6 +171,7 @@ module.exports = function (RED) {
                     if (msg.icon6 || config.icon6) {
                         payload += ',0x13,' + convertIcon(msg.icon6 || config.icon6);
                     }
+
                     payload += ',0x0A';
                 }
 

@@ -59,6 +59,7 @@
                 if (ifacesPending) {
                     return;
                 }
+
                 ifacesPending = true;
                 console.log('loadIfaces()');
                 $nodeInputIface.html('');
@@ -123,6 +124,7 @@
                     if (data && data[channel]) {
                         $nodeInputChannelType.val(data[channel].type).trigger('change');
                     }
+
                     if (!$nodeInputName.val()) {
                         $nodeInputName.val(n.join(' '));
                     }
@@ -143,10 +145,12 @@
                             if (data[addr].name) {
                                 addr += ' ' + data[addr].name;
                             }
+
                             arr.push(addr);
                         }
                     });
                 }
+
                 console.log('autoCompleteChannel()', arr.length);
                 $nodeInputChannel.autocomplete('option', 'source', arr);
             }

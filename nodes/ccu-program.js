@@ -60,6 +60,7 @@ module.exports = function (RED) {
                 this.debug('unsubscribe');
                 this.ccu.unsubscribeProgram(this.idSubscription);
             }
+
             done();
         }
 

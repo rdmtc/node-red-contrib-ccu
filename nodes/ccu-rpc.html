@@ -39,6 +39,7 @@
                 if (ifacesPending) {
                     return;
                 }
+
                 ifacesPending = true;
                 console.log('loadIfaces()');
                 $nodeInputIface.html('<option></option>');
@@ -114,6 +115,7 @@
                     default:
                         methods = [];
                 }
+
                 console.log('autocompleteMethods', iface, methods.length);
                 $('#node-input-method').autocomplete('option', 'source', methods);
             }

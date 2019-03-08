@@ -51,6 +51,7 @@ module.exports = function (RED) {
                 this.debug('ccu-set-value close');
                 this.ccu.unsubscribe(this.idSubscription);
             }
+
             done();
         }
 
@@ -64,10 +65,12 @@ module.exports = function (RED) {
                 if (this.iface && iface !== this.iface) {
                     return;
                 }
+
                 Object.keys(this.ccu.metadata.devices[iface]).forEach(address => {
                     if (this.blacklist.has(address)) {
                         return;
                     }
+
                     const channel = this.ccu.metadata.devices[iface][address];
 
                     if (!channel.PARENT) {
@@ -82,64 +85,77 @@ module.exports = function (RED) {
                                 this.blacklist.add(address);
                                 return;
                             }
+
                             if (this.deviceRx === 're' && !channel.PARENT.match(new RegExp(this.device))) {
                                 this.blacklist.add(address);
                                 return;
                             }
                         }
+
                         if (this.deviceType) {
                             if (this.deviceTypeRx === 'str' && this.deviceType !== device.TYPE) {
                                 this.blacklist.add(address);
                                 return;
                             }
+
                             if (this.deviceTypeRx === 're' && !device.TYPE.match(new RegExp(this.deviceType))) {
                                 this.blacklist.add(address);
                                 return;
                             }
                         }
+
                         if (this.deviceName) {
                             if (!this.ccu.channelNames[address]) {
                                 this.blacklist.add(address);
                                 return;
                             }
+
                             if (this.deviceNameRx === 'str' && this.ccu.channelNames[channel.PARENT] !== this.deviceName) {
                                 this.blacklist.add(address);
                                 return;
                             }
+
                             if (this.deviceNameRx === 're' && !this.ccu.channelNames[channel.PARENT].match(new RegExp(this.deviceName))) {
                                 this.blacklist.add(address);
                                 return;
                             }
                         }
+
                         if (this.channel) {
                             if (this.channelRx === 'str' && this.channel !== address) {
                                 this.blacklist.add(address);
                                 return;
                             }
+
                             if (this.channelRx === 're' && !address.match(new RegExp(this.channel))) {
                                 this.blacklist.add(address);
                                 return;
                             }
                         }
+
                         if (this.channelType) {
                             if (this.channelTypeTx === 'str' && this.channelType !== channel.TYPE) {
                                 this.blacklist.add(address);
                                 return;
                             }
+
                             if (this.channelTypeTx === 'str' && !this.channelType.match(new RegExp(channel.TYPE))) {
                                 this.blacklist.add(address);
                                 return;
                             }
                         }
+
                         if (this.channelName) {
                             if (!this.ccu.channelNames[address]) {
                                 this.blacklist.add(address);
                                 return;
                             }
+
                             if (this.channelNameRx === 'str' && this.ccu.channelNames[address] !== this.channelName) {
                                 this.blacklist.add(address);
                                 return;
                             }
+
                             if (this.channelNameRx === 're' && !this.ccu.channelNames[address].match(new RegExp(this.channelName))) {
                                 this.blacklist.add(address);
                                 return;
@@ -151,10 +167,12 @@ module.exports = function (RED) {
                                 this.blacklist.add(address);
                                 return;
                             }
+
                             if (this.roomsRx === 'str' && !this.ccu.channelRooms[address].includes(this.rooms)) {
                                 this.blacklist.add(address);
                                 return;
                             }
+
                             if (this.roomsRx === 're') {
                                 let match = false;
                                 this.ccu.channelRooms[address].forEach(room => {
@@ -174,10 +192,12 @@ module.exports = function (RED) {
                                 this.blacklist.add(address);
                                 return;
                             }
+
                             if (this.functionsRx === 'str' && !this.ccu.channelFunctions[address].includes(this.functions)) {
                                 this.blacklist.add(address);
                                 return;
                             }
+
                             if (this.functionsRx === 're') {
                                 let match = false;
                                 this.ccu.channelFunctions[address].forEach(func => {
@@ -202,9 +222,11 @@ module.exports = function (RED) {
                             if (this.datapointRx === 'str' && dp !== this.datapoint) {
                                 return;
                             }
+
                             if (this.datapointRx === 're' && !dp.match(rx)) {
                                 return;
                             }
+
                             const datapointName = iface + '.' + address + '.' + dp;
                             const currentValue = this.ccu.values[datapointName] && this.ccu.values[datapointName].value;
                             count += 1;

@@ -68,6 +68,7 @@ module.exports = function (RED) {
                 res.status(500).send(JSON.stringify({}));
                 return;
             }
+
             const obj = {};
 
             switch (req.query.type) {
@@ -81,6 +82,7 @@ module.exports = function (RED) {
                     res.status(200).send(JSON.stringify(obj));
                     break;
                 }
+
                 case 'channels': {
                     const devices = config.metadata.devices[req.query.iface];
                     if (devices) {
@@ -96,9 +98,11 @@ module.exports = function (RED) {
                             }
                         });
                     }
+
                     res.status(200).send(JSON.stringify(obj));
                     break;
                 }
+
                 case 'rooms':
                     res.status(200).send(JSON.stringify({
                         rooms: config.rooms
@@ -134,6 +138,7 @@ module.exports = function (RED) {
                                     deviceType: devices[addr].PARENT_TYPE
                                 };
                             }
+
                             if ([
                                 'HmIP-MP3P',
                                 'HmIP-BSL'
@@ -149,6 +154,7 @@ module.exports = function (RED) {
                             }
                         });
                     }
+
                     res.status(200).send(JSON.stringify(obj));
                     break;
                 }
@@ -168,6 +174,7 @@ module.exports = function (RED) {
                             }
                         });
                     }
+
                     res.status(200).send(JSON.stringify(obj));
                     break;
                 }
@@ -314,6 +321,7 @@ module.exports = function (RED) {
 
             this.newParamsetDescriptionCount = 0;
             this.paramsetQueue = [];
+            this.paramsQueue = [];
 
             this.paramsetFile = path.join(RED.settings.userDir || path.join(__dirname, '..'), 'paramsets.json');
 
@@ -344,6 +352,7 @@ module.exports = function (RED) {
             this.setVariableQueueTimeout = {};
 
             this.values = {};
+            this.params = {MASTER: {}};
             this.links = {};
 
             this.workingTimeout = {};
@@ -357,7 +366,7 @@ module.exports = function (RED) {
             this.rxCounters = {};
             this.txCounters = {};
 
-            this.metadataFile = path.join(RED.settings.userDir || (__dirname + '/..'), 'ccu_' + this.host + '.json');
+            this.metadataFile = path.join(RED.settings.userDir || path.join(__dirname, '..'), 'ccu_' + this.host + '.json');
             this.loadMetadata();
 
             this.setContext();
@@ -451,6 +460,7 @@ module.exports = function (RED) {
                 clearInterval(this.statsInterval);
                 return;
             }
+
             const [firstLogger] = Object.keys(RED.settings.logging);
             if (RED.settings.logging[firstLogger].level !== 'debug' && RED.settings.logging[firstLogger].level !== 'trace') {
                 return;
@@ -473,6 +483,7 @@ module.exports = function (RED) {
                 if (typeof this.ifaceStatus[iface] !== 'undefined') {
                     this.logger.info(iface, connected ? (this.ifaceTypes[iface].protocol + ' port ' + this.ifaceTypes[iface].port + ' connected') : 'disconnected');
                 }
+
                 this.ifaceStatus[iface] = connected;
                 Object.keys(this.users).forEach(id => {
                     if (typeof this.users[id].setStatus === 'function') {
@@ -542,6 +553,7 @@ module.exports = function (RED) {
                         this.paramsetDescriptions = {};
                     }
                 };
+
                 if (fs.existsSync(this.paramsetFile)) {
                     load(this.paramsetFile);
                     resolve();
@@ -592,6 +604,7 @@ module.exports = function (RED) {
             if (!data) {
                 return {};
             }
+
             for (let i = 0; i < data.length; i++) {
                 if (data[i][key] === val) {
                     return data[i];
@@ -619,6 +632,7 @@ module.exports = function (RED) {
                             });
                         } catch (error) {}
                     }
+
                     resolve();
                 });
             });
@@ -823,6 +837,7 @@ module.exports = function (RED) {
                     }, 30000);
                     return;
                 }
+
                 const sysvar = this.sysvar[name];
                 delete this.setVariableQueue[name];
                 if (sysvar) {
@@ -833,6 +848,7 @@ module.exports = function (RED) {
                                     value = sysvar.enum.indexOf(value);
                                 }
                             }
+
                             value = Boolean(value);
                             break;
                         case 'string':
@@ -844,9 +860,11 @@ module.exports = function (RED) {
                                     value = sysvar.enum.indexOf(value);
                                 }
                             }
+
                             value = parseFloat(value) || 0;
                             break;
                     }
+
                     const script = `dom.GetObject(${sysvar.id}).State(${value});`;
                     this.logger.debug('setVariable', name, script);
                     this.rega.exec(script + '\n', err => {
@@ -856,6 +874,7 @@ module.exports = function (RED) {
                             if (!this.regaPollPending) {
                                 this.regaPoll();
                             }
+
                             resolve(sysvar);
                         }
                     });
@@ -879,13 +898,14 @@ module.exports = function (RED) {
                     .catch(err => this.logger.error('getRegaVariables', err))
                     .then(() => this.getRegaPrograms())
                     .catch(err => this.logger.error('getRegaPrograms', err))
-                    .then(() => {
+                    .finally(() => {
                         if (this.regaInterval && this.regaPollEnabled && !this.cancelRegaPoll) {
                             //this.logger.trace('rega next poll in', this.regaInterval, 'seconds');
                             this.regaPollTimeout = setTimeout(() => {
                                 this.regaPoll();
                             }, this.regaInterval * 1000);
                         }
+
                         this.regaPollPending = false;
                     });
             }
@@ -940,7 +960,7 @@ module.exports = function (RED) {
                     type: 'SYSVAR',
                     name: sysvar.name,
                     info: sysvar.info,
-                    value: sysvar.value,
+                    value: sysvar.val,
                     valueType: sysvar.type,
                     valueEnum: sysvar.enum[Number(sysvar.val)],
                     unit: sysvar.unit,
@@ -967,6 +987,7 @@ module.exports = function (RED) {
                     });
                 }
             }
+
             if (isNew || this.sysvar[sysvar.name].ts !== sysvar.ts) {
                 Object.assign(this.sysvar[sysvar.name], {
                     payload: sysvar.val,
@@ -992,6 +1013,7 @@ module.exports = function (RED) {
                             match = false;
                         }
                     }
+
                     //this.logger.trace('match', match, JSON.stringify(filter), 'name:' + sysvar.name + ' cache:' + this.sysvar[sysvar.name].cache + ' change:' + this.sysvar[sysvar.name].change);
                     if (match) {
                         callback(this.sysvar[sysvar.name]);
@@ -1027,6 +1049,7 @@ module.exports = function (RED) {
                             Promise.resolve()
                             );
                         }
+
                         resolve();
                         this.setIfaceStatus('ReGaHSS', true);
                     }
@@ -1046,7 +1069,7 @@ module.exports = function (RED) {
                         reject(err);
                         this.hadTimeout.add('ReGaHSS');
                         this.setIfaceStatus('ReGaHSS', false);
-                    } else {
+                    } else if (res && Array.isArray(res)) {
                         const d = new Date();
                         res.forEach(prg => {
                             prg.type = 'PROGRAM';
@@ -1054,6 +1077,7 @@ module.exports = function (RED) {
                             if (!this.program[prg.name]) {
                                 this.program[prg.name] = {};
                             }
+
                             if (this.program[prg.name].active !== prg.active || this.program[prg.name].ts !== prg.ts) {
                                 this.program[prg.name] = {
                                     id: prg.id,
@@ -1104,6 +1128,7 @@ module.exports = function (RED) {
                                     this.setIfaceStatus(iface, false);
                                 });
                             }
+
                             this.setIfaceStatus(iface, true);
                         })
                         .catch(() => {});
@@ -1127,6 +1152,7 @@ module.exports = function (RED) {
                     clientOptions.host = this.host;
                     clientOptions.port = port;
                 }
+
                 this.clients[iface] = rpc.createClient(clientOptions);
                 this.logger.debug('rpc client created', iface, JSON.stringify(clientOptions));
                 if (this.methodCallQueue[iface]) {
@@ -1137,6 +1163,7 @@ module.exports = function (RED) {
                     });
                     delete this.methodCallQueue[iface];
                 }
+
                 resolve(iface);
             });
         }
@@ -1159,6 +1186,7 @@ module.exports = function (RED) {
                         if (this.ifaceTypes[iface].ping) {
                             this.rpcCheckInit(iface);
                         }
+
                         if (iface === 'CUxD') {
                             this.getDevices(iface).then(() => resolve(iface)).catch(() => resolve(iface));
                         } else if (['BidCos-RF', 'BidCos-Wired', 'HmIP-RF'].includes(iface)) {
@@ -1189,6 +1217,7 @@ module.exports = function (RED) {
                     }
                 });
             }
+
             return links;
         }
 
@@ -1203,6 +1232,7 @@ module.exports = function (RED) {
                     if (!this.metadata.devices[iface]) {
                         this.metadata.devices[iface] = {};
                     }
+
                     const knownDevices = [];
                     let change = false;
                     devices.forEach(device => {
@@ -1223,6 +1253,7 @@ module.exports = function (RED) {
                     if (change) {
                         this.saveMetadata();
                     }
+
                     resolve();
                 }).catch(reject);
             });
@@ -1236,6 +1267,7 @@ module.exports = function (RED) {
             if (!this.metadata.devices[iface] || !Object.keys(this.metadata.devices[iface]).length > 0) {
                 return;
             }
+
             clearTimeout(this.rpcPingTimer[iface]);
             const pingTimeout = this.ifaceTypes[iface].pingTimeout || this.rpcPingTimeout;
             const elapsed = Math.round((now() - this.lastEvent[iface]) / 1000);
@@ -1247,10 +1279,12 @@ module.exports = function (RED) {
                 this.rpcInit(iface);
                 return;
             }
+
             if (elapsed >= (pingTimeout / 2)) {
                 //this.logger.trace('ping', iface, elapsed);
                 this.methodCall(iface, 'ping', ['nr']);
             }
+
             this.rpcPingTimer[iface] = setTimeout(() => {
                 this.rpcCheckInit(iface);
             }, pingTimeout * 250);
@@ -1361,10 +1395,12 @@ module.exports = function (RED) {
                         if (err) {
                             this.logger.error('rpc <', protocol, method, err);
                         }
+
                         this.logger.debug('rpc <', protocol, method, JSON.stringify(params));
                         if (method === 'event') {
                             method = 'eventSingle';
                         }
+
                         if (isIterable(params)) {
                             this.rpcMethods[method](err, params, callback);
                         } else {
@@ -1377,6 +1413,7 @@ module.exports = function (RED) {
                     this.logger.error('rpc <', protocol, 'method', method, 'not found:', JSON.stringify(params));
                 });
             }
+
             return url;
         }
 
@@ -1399,7 +1436,37 @@ module.exports = function (RED) {
                     // device
                     d = device;
                 }
+
                 return [iface, d.TYPE, d.FIRMWARE, d.VERSION, cType, paramset].join('/');
+            }
+        }
+
+        paramsQueuePush(iface, device, paramset = 'MASTER') {
+            this.paramsQueue.push({
+                iface,
+                address: device.ADDRESS,
+                paramset
+            });
+        }
+
+        paramsQueueShift() {
+            const item = this.paramsQueue.shift();
+            if (item) {
+                const {iface, address, paramset} = item;
+                this.methodCall(iface, 'getParamset', [address, paramset])
+                    .then(res => {
+                        this.params[paramset][address] = res;
+                    })
+                    .catch(err => this.logger.error(err))
+                    .then(() => {
+                        clearTimeout(this.getParamsTimeout);
+                        this.getParamsTimeout = setTimeout(() => {
+                            this.paramsQueueShift();
+                        }, 200);
+                    });
+
+            } else {
+                this.logger.debug(JSON.stringify(this.params))
             }
         }
 
@@ -1421,17 +1488,18 @@ module.exports = function (RED) {
                         });
                     }
                 });
-                clearTimeout(this.getParamsetTimeout);
-                this.getParamsetTimeout = setTimeout(() => {
-                    this.paramsetQueueShift();
-                }, 1000);
             }
+            clearTimeout(this.getParamsetTimeout);
+            this.getParamsetTimeout = setTimeout(() => {
+                this.paramsetQueueShift();
+            }, 1000);
         }
 
         /**
          *
          */
         paramsetQueueShift() {
+            this.logger.debug('paramsetQueueShift');
             if (!this.paramsetPending) {
                 this.paramsetPending = true;
             }
@@ -1473,6 +1541,7 @@ module.exports = function (RED) {
                     this.newParamsetDescription = false;
                     this.saveParamsets();
                 }
+                this.paramsQueueShift();
             }
         }
 
@@ -1490,8 +1559,10 @@ module.exports = function (RED) {
                 if (param) {
                     return this.paramsetDescriptions[name][param];
                 }
+
                 return this.paramsetDescriptions[name];
             }
+
             this.paramsetQueuePush(iface, device);
             return {};
         }
@@ -1502,16 +1573,24 @@ module.exports = function (RED) {
          * @param device
          */
         newDevice(iface, device) {
-            this.logger.debug('newDevice', iface, device.ADDRESS);
             if (!this.metadata.devices[iface]) {
                 this.metadata.devices[iface] = {};
             }
+
             if (!this.metadata.types[iface]) {
                 this.metadata.types[iface] = {};
             }
+
+            if (this.metadata.devices[iface][device.ADDRESS]) {
+                this.logger.trace('newDevice (already known)', iface, device.ADDRESS);
+            } else {
+                this.logger.debug('newDevice', iface, device.ADDRESS);
+            }
+
             this.metadata.devices[iface][device.ADDRESS] = device;
 
             if (!device.TYPE) {
+                // TODO rethink.
                 throw new Error('device type undefined: ' + JSON.stringify(device));
             }
 
@@ -1519,6 +1598,9 @@ module.exports = function (RED) {
                 this.metadata.types[iface][device.TYPE].push(device.ADDRESS);
             } else {
                 this.metadata.types[iface][device.TYPE] = [device.ADDRESS];
+            }
+            if (device.TYPE === 'MULTI_MODE_INPUT_TRANSMITTER') {
+                //this.paramsQueuePush(iface, device);
             }
             this.paramsetQueuePush(iface, device);
         }
@@ -1547,10 +1629,16 @@ module.exports = function (RED) {
                         // Würgaround for Firmware 3.43.15
                         return;
                     }
+
+                    if (dev.TYPE === 'MULTI_MODE_INPUT_TRANSMITTER') {
+                        //this.paramsQueuePush(iface, dev);
+                    }
+
                     this.paramsetQueuePush(iface, this.metadata.devices[iface][addr]);
                     result.push(this.listDevicesAnswer(iface, this.metadata.devices[iface][addr]));
                 });
             }
+
             return result;
         }
 
@@ -1593,6 +1681,7 @@ module.exports = function (RED) {
                         if (typeof d[k] === 'undefined') {
                             delete d[k];
                         }
+
                         if (d[k] === '') {
                             // Würgaround https://github.com/eq-3/occu/issues/83
                             delete d[k];
@@ -1614,6 +1703,7 @@ module.exports = function (RED) {
             if (idInit === 'CUxD') {
                 return idInit;
             }
+
             const match = idInit.match(/^nr_[0-9a-zA-Z]{6}_([a-zA-Z-]+)$/);
             return match && match[1];
         }
@@ -1704,6 +1794,7 @@ module.exports = function (RED) {
                             this.rxCounters[iface] = 1;
                         }
                     }
+
                     callback(null, '');
                 },
                 'system.multicall': (_, params, callback) => {
@@ -1739,8 +1830,10 @@ module.exports = function (RED) {
                                             direction = value;
                                         }
                                     }
+
                                     iface = this.getIfaceFromIdInit(idInit);
                                 }
+
                                 result.push('');
                             } else if (call && this.rpcMethods[call.methodName]) {
                                 pong = false;
@@ -1755,6 +1848,7 @@ module.exports = function (RED) {
                             this.publishEvent(call.params, working, direction);
                         });
                     }
+
                     this.logger.debug('    >', iface, 'system.multicall', JSON.stringify(result));
 
                     if (!pong && iface) {
@@ -1784,6 +1878,7 @@ module.exports = function (RED) {
                 this.sysvarCallbacks[id] = {filter, callback};
                 return id;
             }
+
             this.logger.error('subscribeSysvar called without callback');
             return null;
         }
@@ -1799,6 +1894,7 @@ module.exports = function (RED) {
                 delete this.sysvarCallbacks[id];
                 return true;
             }
+
             this.logger.error('unsubscribeSysvar called for unknown callback', id);
             return false;
         }
@@ -1818,6 +1914,7 @@ module.exports = function (RED) {
                 this.programCallbacks[id] = {filter, callback};
                 return id;
             }
+
             this.logger.error('subscribeProgram called without callback');
             return null;
         }
@@ -1833,6 +1930,7 @@ module.exports = function (RED) {
                 delete this.programCallbacks[id];
                 return true;
             }
+
             this.logger.error('unsubscribeProgram called for unknown callback', id);
             return false;
         }
@@ -1899,9 +1997,11 @@ module.exports = function (RED) {
                     if (!this.callbackBlacklists[msg.datapointName]) {
                         this.callbackBlacklists[msg.datapointName] = new Set();
                     }
+
                     if (!this.callbackWhitelists[msg.datapointName]) {
                         this.callbackWhitelists[msg.datapointName] = new Set();
                     }
+
                     this.callCallback(msg, id);
                 });
             }
@@ -1929,6 +2029,7 @@ module.exports = function (RED) {
 
                 return true;
             }
+
             this.logger.error('unsubscribe called for unknown callback', id);
             return false;
         }
@@ -1943,6 +2044,7 @@ module.exports = function (RED) {
             if (!topic || typeof msg !== 'object') {
                 return topic;
             }
+
             const msgLower = {};
             Object.keys(msg).forEach(k => {
                 msgLower[k.toLowerCase()] = msg[k];
@@ -1957,6 +2059,7 @@ module.exports = function (RED) {
                     if (rkey === 'interface') {
                         rkey = 'iface';
                     }
+
                     topic = topic.replace(rx, msgLower[rkey] || '');
                 });
             }
@@ -2025,9 +2128,9 @@ module.exports = function (RED) {
                 valueEnum: description.ENUM ? description.ENUM[Number(payload)] : undefined,
                 valueStable,
                 rooms: this.channelRooms[channel] || [],
-                room: this.channelRooms[channel] && this.channelRooms[channel].length === 1 ? this.channelRooms[channel][0] : undefined,
+                room: this.channelRooms[channel] && this.channelRooms[channel].length > 0 ? this.channelRooms[channel][0] : undefined,
                 functions: this.channelFunctions[channel] || [],
-                function: this.channelFunctions[channel] && this.channelFunctions[channel].length === 1 ? this.channelFunctions[channel][0] : undefined,
+                function: this.channelFunctions[channel] && this.channelFunctions[channel].length > 0 ? this.channelFunctions[channel][0] : undefined,
                 ts,
                 tsPrevious: this.values[datapointName].ts,
                 lc: change ? ts : this.values[datapointName].lc,
@@ -2138,6 +2241,7 @@ module.exports = function (RED) {
                             //this.logger.trace('cb mismatch cache ' + id + ' ' + filter.cache + ' ' + msg.cache);
                             return false;
                         }
+
                         matchCache = true;
                         continue;
                     }
@@ -2148,6 +2252,7 @@ module.exports = function (RED) {
                             //this.logger.trace('cb mismatch change ' + id + ' ' + filter.change + ' ' + msg.change + ' ' + msg.cache);
                             return false;
                         }
+
                         matchChange = true;
                         continue;
                     }
@@ -2158,6 +2263,7 @@ module.exports = function (RED) {
                             //this.logger.trace('cb mismatch stable ' + id + ' ' + filter.stable + ' ' + msg.stable);
                             return false;
                         }
+
                         matchStable = true;
                         continue;
                     }
@@ -2166,6 +2272,7 @@ module.exports = function (RED) {
                         if (matchCache && matchChange && matchStable) {
                             break;
                         }
+
                         continue;
                     }
 
@@ -2197,6 +2304,7 @@ module.exports = function (RED) {
                     }
                 }
             }
+
             if (match) {
                 //this.logger.trace('callCallback ' + id + ' ' + msg.datapointName + ' ' + msg.value);
                 callback(RED.util.cloneMessage(msg));
@@ -2205,6 +2313,7 @@ module.exports = function (RED) {
                 //this.logger.trace('add to blacklist ' + id + ' ' + msg.datapointName);
                 this.callbackBlacklists[msg.datapointName].add(id);
             }
+
             return match;
         }
 
@@ -2217,14 +2326,17 @@ module.exports = function (RED) {
             if (!this.callbackBlacklists[msg.datapointName]) {
                 this.callbackBlacklists[msg.datapointName] = new Set();
             }
+
             if (!this.callbackWhitelists[msg.datapointName]) {
                 this.callbackWhitelists[msg.datapointName] = new Set();
             }
+
             Object.keys(this.callbacks).forEach(key => {
                 if (this.callbackBlacklists[msg.datapointName].has(key)) {
                     //this.logger.trace('blacklistet ' + key + ' ' + msg.datapointName);
                     return;
                 }
+
                 this.callCallback(msg, key);
             });
         }
@@ -2307,6 +2419,7 @@ module.exports = function (RED) {
             if (this.setValuePending || this.setValueQueue.length === 0) {
                 return;
             }
+
             this.setValuePending = true;
             const {iface, address, datapoint, value, burst, resolve, reject} = this.setValueQueue.shift();
             let timeout;
@@ -2362,6 +2475,7 @@ module.exports = function (RED) {
                     if (this.setValueCache[id] && typeof this.setValueCache[id].reject === 'function') {
                         this.setValueCache[id].reject(new Error('overwritten'));
                     }
+
                     this.setValueCache[id] = {params, resolve, reject};
                     this.logger.debug('deferred', id);
                 } else {
@@ -2371,6 +2485,7 @@ module.exports = function (RED) {
                             this.setValueDeferred(id);
                         }, this.setValueThrottle);
                     }
+
                     this.methodCall(iface, 'setValue', params).then(resolve).catch(err => {
                         this.logger.error('rpc >', iface, 'setValue', JSON.stringify(params), '<', err);
                         reject(err);
@@ -2413,13 +2528,14 @@ module.exports = function (RED) {
             if (paramset) {
                 switch (paramset.TYPE) {
                     case 'ACTION':
-                    // eslint-disable-line no-fallthrough
+                    // Fallthrough by intention
                     case 'BOOL':
                         if (value === 'false') {
                             value = false;
                         } else if (!isNaN(value)) { // Make sure that the string "0" gets casted to boolean false
                             value = Number(value);
                         }
+
                         value = Boolean(value);
                         break;
                     case 'FLOAT':
@@ -2429,6 +2545,7 @@ module.exports = function (RED) {
                         } else if (typeof paramset.MAX !== 'undefined' && value > paramset.MAX) {
                             value = paramset.MAX;
                         }
+
                         value = {explicitDouble: value};
                         break;
                     case 'ENUM':
@@ -2437,18 +2554,21 @@ module.exports = function (RED) {
                                 value = paramset.ENUM.indexOf(value);
                             }
                         }
-                    // eslint-disable-line no-fallthrough
+
+                    // Fallthrough by intention
                     case 'INTEGER':
                         if (typeof value === 'boolean') {
                             value = Number(value);
                         } else {
                             value = parseInt(value, 10) || 0;
                         }
+
                         if (typeof paramset.MIN !== 'undefined' && value < paramset.MIN) {
                             value = paramset.MIN;
                         } else if (typeof paramset.MAX !== 'undefined' && value > paramset.MAX) {
                             value = paramset.MAX;
                         }
+
                         break;
                     case 'STRING':
                         value = String(value);
@@ -2462,6 +2582,7 @@ module.exports = function (RED) {
                     value = String(value);
                 }
             }
+
             return value;
         }
 

@@ -20,6 +20,7 @@ module.exports = function (RED) {
             if (typeof config.change === 'undefined') {
                 config.change = true;
             }
+
             if (typeof config.cache === 'undefined') {
                 config.cache = true;
             }
@@ -56,6 +57,7 @@ module.exports = function (RED) {
                 this.debug('unsubscribe');
                 this.ccu.unsubscribeSysvar(this.idSubscription);
             }
+
             done();
         }
 

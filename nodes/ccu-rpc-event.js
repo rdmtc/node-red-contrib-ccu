@@ -38,6 +38,7 @@ module.exports = function (RED) {
                 if (!config[attr]) {
                     return;
                 }
+
                 if (config[attr + 'Rx'] === 're') {
                     filter[attr] = new RegExp(config[attr]);
                 } else {

@@ -19,6 +19,7 @@ module.exports = function (RED) {
                     const address = config.iface + '.' + config.channel.split(' ')[0] + '.' + config.datapoint;
                     value = this.ccu.values[address];
                 }
+
                 this.status({fill: 'green', shape: 'ring', text: String(value)});
 
                 if (config.setPropType === 'cmsg') {
