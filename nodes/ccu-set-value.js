@@ -23,6 +23,7 @@ module.exports = function (RED) {
             this.deviceName = config.deviceName;
             this.channel = config.channel;
             this.channelType = config.channelType;
+            this.channelIndex = config.channelIndex;
             this.channelName = config.channelName;
             this.datapoint = config.datapoint;
             this.roomsRx = config.roomsRx;
@@ -32,6 +33,7 @@ module.exports = function (RED) {
             this.deviceNameRx = config.deviceNameRx;
             this.channelRx = config.channelRx;
             this.channelTypeRx = config.channelTypeRx;
+            this.channelIndexRx = config.channelIndexRx;
             this.channelNameRx = config.channelNameRx;
             this.datapointRx = config.datapointRx;
             this.force = config.force;
@@ -140,6 +142,18 @@ module.exports = function (RED) {
                             }
 
                             if (this.channelTypeRx === 're' && !channel.TYPE.match(new RegExp(this.channelType))) {
+                                this.blacklist.add(address);
+                                return;
+                            }
+                        }
+
+                        if (this.channelIndex) {
+                            if (this.channelIndexRx === 'str' && !address.endsWith(':' + this.channelIndex)) {
+                                this.blacklist.add(address);
+                                return;
+                            }
+
+                            if (this.channelIndexRx === 're' && !address.split(':')[1].match(new RegExp(String(this.channelIndex)))) {
                                 this.blacklist.add(address);
                                 return;
                             }

@@ -22,6 +22,8 @@
             channelNameRx: {value: 'str'},
             channelType: {value: ''},
             channelTypeRx: {value: 'str'},
+            channelIndex: {value: ''},
+            channelIndexRx: {value: 'str'},
             datapoint: {value: ''},
             datapointRx: {value: 'str'},
             force: {value: false}
@@ -199,6 +201,7 @@
             $('#node-input-channel').change(autocomplete);
             $('#node-input-channelName').change(autocomplete);
             $('#node-input-channelType').change(autocomplete);
+            $('#node-input-channelIndex').change(autocomplete);
             $('#node-input-datapoint').change(autocomplete);
 
             function paramsetName(iface, device, paramset) {
@@ -232,6 +235,7 @@
                 const channels = $('#node-input-channel').val() ? [$('#node-input-channel').val()] : [];
                 const channelNames = $('#node-input-channelName').val() ? [$('#node-input-channelName').val()] : [];
                 const channelTypes = $('#node-input-channelType').val() ? [$('#node-input-channelType').val()] : [];
+                const channelIndexes = $('#node-input-channelIndex').val() ? [$('#node-input-channelIndex').val()] : [];
                 const datapoints = $('#node-input-datapoint').val() ? [$('#node-input-datapoint').val()] : [];
 
                 const lists = {
@@ -241,6 +245,7 @@
                     channel: [],
                     channelName: [],
                     channelType: [],
+                    channelIndex: [],
                     datapoint: []
                 };
 
@@ -425,6 +430,9 @@
                             if (!lists.channelType.includes(data.metadata.devices[iface][dev].TYPE)) {
                                 lists.channelType.push(data.metadata.devices[iface][dev].TYPE);
                             }
+                            if (!lists.channelIndex.includes(dev.split(':')[1])) {
+                                lists.channelIndex.push(dev.split(':')[1]);
+                            }
 
                             const psName = paramsetName(iface, data.metadata.devices[iface][dev], 'VALUES');
                             if (data.paramsetDescriptions[psName]) {
@@ -467,8 +475,14 @@
                     });
                 }
 
+                console.log('lists', lists);
+
                 Object.keys(lists).forEach(key => {
-                    lists[key].sort((a, b) => a.localeCompare(b));
+                    if (key === 'channelIndex') {
+                        lists[key].sort((a, b) => Number(a) > Number(b));
+                    } else {
+                        lists[key].sort((a, b) => a.localeCompare(b));
+                    }
                 });
 
                 $('#node-input-rooms').parent().find('.red-ui-typedInput-input input').autocomplete('option', 'source', data.rooms);
@@ -481,6 +495,7 @@
                 $('#node-input-channel').parent().find('.red-ui-typedInput-input input').autocomplete('option', 'source', lists.channel);
                 $('#node-input-channelName').parent().find('.red-ui-typedInput-input input').autocomplete('option', 'source', lists.channelName);
                 $('#node-input-channelType').parent().find('.red-ui-typedInput-input input').autocomplete('option', 'source', lists.channelType);
+                $('#node-input-channelIndex').parent().find('.red-ui-typedInput-input input').autocomplete('option', 'source', lists.channelIndex);
 
                 $('#node-input-datapoint').parent().find('.red-ui-typedInput-input input').autocomplete('option', 'source', lists.datapoint);
             }
@@ -543,6 +558,11 @@
         <label for="node-input-channelType"><i class="icon-bookmark"></i> channelType</label>
         <input type="text" class="filter" id="node-input-channelType">
         <input type="hidden" id="node-input-channelTypeRx">
+    </div>
+    <div class="form-row">
+        <label for="node-input-channelType"><i class="icon-bookmark"></i> channelIndex</label>
+        <input type="text" class="filter" id="node-input-channelIndex">
+        <input type="hidden" id="node-input-channelIndexRx">
     </div>
     <div class="form-row">
         <label for="node-input-datapoint"><i class="icon-tag"></i> datapoint</label>

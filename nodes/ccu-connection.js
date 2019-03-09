@@ -2280,6 +2280,10 @@ module.exports = function (RED) {
                         continue;
                     }
 
+                    if (attr === 'channelIndex' && typeof filter[attr] !== 'undefined') {
+                        filter[attr] = parseInt(filter[attr], 10);
+                    }
+
                     if (Array.isArray(msg[attr])) {
                         if (filter[attr] instanceof RegExp) {
                             match = false;

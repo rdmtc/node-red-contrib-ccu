@@ -32,6 +32,7 @@ module.exports = function (RED) {
                 'channel',
                 'channelName',
                 'channelType',
+                'channelIndex',
                 'datapoint'
 
             ].forEach(attr => {

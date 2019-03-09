@@ -22,6 +22,8 @@
             channelNameRx: {value: 'str'},
             channelType: {value: ''},
             channelTypeRx: {value: 'str'},
+            channelIndex: {value: ''},
+            channelIndexRx: {value: 'str'},
             datapoint: {value: ''},
             datapointRx: {value: 'str'},
             change: {value: false},
@@ -232,6 +234,7 @@
                 const channels = $('#node-input-channel').val() ? [$('#node-input-channel').val()] : [];
                 const channelNames = $('#node-input-channelName').val() ? [$('#node-input-channelName').val()] : [];
                 const channelTypes = $('#node-input-channelType').val() ? [$('#node-input-channelType').val()] : [];
+                const channelIndexes = $('#node-input-channelIndex').val() ? [$('#node-input-channelIndex').val()] : [];
                 const datapoints = $('#node-input-datapoint').val() ? [$('#node-input-datapoint').val()] : [];
 
                 const lists = {
@@ -241,6 +244,7 @@
                     channel: [],
                     channelName: [],
                     channelType: [],
+                    channelIndex: [],
                     datapoint: []
                 };
 
@@ -425,6 +429,9 @@
                             if (!lists.channelType.includes(data.metadata.devices[iface][dev].TYPE)) {
                                 lists.channelType.push(data.metadata.devices[iface][dev].TYPE);
                             }
+                            if (!lists.channelIndex.includes(dev.split(':')[1])) {
+                                lists.channelIndex.push(dev.split(':')[1]);
+                            }
 
                             const psName = paramsetName(iface, data.metadata.devices[iface][dev], 'VALUES');
                             if (data.paramsetDescriptions[psName]) {
@@ -544,6 +551,11 @@
         <input type="hidden" id="node-input-channelTypeRx">
     </div>
     <div class="form-row">
+        <label for="node-input-channelType"><i class="icon-bookmark"></i> channelIndex</label>
+        <input type="text" class="filter" id="node-input-channelIndex">
+        <input type="hidden" id="node-input-channelIndexRx">
+    </div>
+    <div class="form-row">
         <label for="node-input-datapoint"><i class="icon-tag"></i> datapoint</label>
         <input type="text" class="filter" id="node-input-datapoint">
         <input type="hidden" id="node-input-datapointRx">
@@ -599,6 +611,7 @@
         <li><b>channel</b>: Die Kanaladresse bestehend aus Serien- und Kanalnummer. Beispiel: <code>OEQ1245312:4</code></li>
         <li><b>channelName</b>: Der in der CCU vergebene Kanalname. Beispiel: <code>Bad Lichte Decke PIR</code></li>
         <li><b>channelType</b>: Der Typ des Kanals. Beispiel: <code>VIRTUAL_KEY</code> oder <code>DIMMER</code></li>
+        <li><b>channelIndex</b>: Der Index des Kanals. Beispiel: <code>2</code>
         <li><b>datapoint</b>: Der Datenpunkt des Kanals. Beispiel: <code>PRESS_SHORT</code> oder <code>ACTUAL_TEMPERATURE</code>.</li>
         <li><b>Nur geänderte Werte ausgeben</b> - Ein Event wird nur dann erzeugt, wenn sich der Wert seit dem letztn Event verändert hat.</li>
         <li><b>Während WORKING keine Werte ausgeben</b> - Es gibt Aktoren, z.B. Dimmer oder Rolladen, die während einer Rampe (Öffnen/Schließen eines Rollladen, Dimmen einer Lampe) fortwährend den aktuellen Zustand ausgeben. Um nur den End-Status auszugeben kann diese Option benutzt werden. Gebräuchlich auch bei Verwendung mit Dashboard-Nodes um "springende" Slider zu verhindern.</li>
