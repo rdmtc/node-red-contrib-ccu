@@ -134,12 +134,12 @@ module.exports = function (RED) {
                         }
 
                         if (this.channelType) {
-                            if (this.channelTypeTx === 'str' && this.channelType !== channel.TYPE) {
+                            if (this.channelTypeRx === 'str' && this.channelType !== channel.TYPE) {
                                 this.blacklist.add(address);
                                 return;
                             }
 
-                            if (this.channelTypeTx === 'str' && !this.channelType.match(new RegExp(channel.TYPE))) {
+                            if (this.channelTypeRx === 're' && !channel.TYPE.match(new RegExp(this.channelType))) {
                                 this.blacklist.add(address);
                                 return;
                             }
