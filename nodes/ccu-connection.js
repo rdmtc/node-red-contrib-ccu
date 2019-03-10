@@ -1464,9 +1464,8 @@ module.exports = function (RED) {
                             this.paramsQueueShift();
                         }, 200);
                     });
-
             } else {
-                this.logger.debug(JSON.stringify(this.params))
+                this.logger.debug(JSON.stringify(this.params));
             }
         }
 
@@ -1489,6 +1488,7 @@ module.exports = function (RED) {
                     }
                 });
             }
+
             clearTimeout(this.getParamsetTimeout);
             this.getParamsetTimeout = setTimeout(() => {
                 this.paramsetQueueShift();
@@ -1541,6 +1541,7 @@ module.exports = function (RED) {
                     this.newParamsetDescription = false;
                     this.saveParamsets();
                 }
+
                 this.paramsQueueShift();
             }
         }
@@ -1599,9 +1600,11 @@ module.exports = function (RED) {
             } else {
                 this.metadata.types[iface][device.TYPE] = [device.ADDRESS];
             }
+
             if (device.TYPE === 'MULTI_MODE_INPUT_TRANSMITTER') {
                 //this.paramsQueuePush(iface, device);
             }
+
             this.paramsetQueuePush(iface, device);
         }
 

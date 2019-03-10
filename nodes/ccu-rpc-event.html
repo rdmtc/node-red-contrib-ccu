@@ -234,7 +234,7 @@
                 const channels = $('#node-input-channel').val() ? [$('#node-input-channel').val()] : [];
                 const channelNames = $('#node-input-channelName').val() ? [$('#node-input-channelName').val()] : [];
                 const channelTypes = $('#node-input-channelType').val() ? [$('#node-input-channelType').val()] : [];
-                const channelIndexes = $('#node-input-channelIndex').val() ? [$('#node-input-channelIndex').val()] : [];
+                //const channelIndexes = $('#node-input-channelIndex').val() ? [$('#node-input-channelIndex').val()] : [];
                 const datapoints = $('#node-input-datapoint').val() ? [$('#node-input-datapoint').val()] : [];
 
                 const lists = {
@@ -429,6 +429,7 @@
                             if (!lists.channelType.includes(data.metadata.devices[iface][dev].TYPE)) {
                                 lists.channelType.push(data.metadata.devices[iface][dev].TYPE);
                             }
+
                             if (!lists.channelIndex.includes(dev.split(':')[1])) {
                                 lists.channelIndex.push(dev.split(':')[1]);
                             }
