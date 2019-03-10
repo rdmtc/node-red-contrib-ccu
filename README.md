@@ -3,6 +3,7 @@
 [![NPM version](https://badge.fury.io/js/node-red-contrib-ccu.svg)](http://badge.fury.io/js/node-red-contrib-ccu)
 [![Dependencies Status](https://david-dm.org/HM-RedMatic/node-red-contrib-ccu/status.svg)](https://david-dm.org/HM-RedMatic/node-red-contrib-ccu)
 [![Build Status](https://travis-ci.org/HM-RedMatic/node-red-contrib-ccu.svg?branch=master)](https://travis-ci.org/HM-RedMatic/node-red-contrib-ccu)
+[![Coverage Status](https://coveralls.io/repos/github/HM-RedMatic/node-red-contrib-ccu/badge.svg?branch=master)](https://coveralls.io/github/HM-RedMatic/node-red-contrib-ccu?branch=master)
 [![XO code style](https://img.shields.io/badge/code_style-XO-5ed9c7.svg)](https://github.com/sindresorhus/xo)
 [![License][mit-badge]][mit-url]
 
