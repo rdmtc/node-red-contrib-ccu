@@ -461,9 +461,11 @@ module.exports = function (RED) {
                 return;
             }
 
-            const [firstLogger] = Object.keys(RED.settings.logging);
-            if (RED.settings.logging[firstLogger].level !== 'debug' && RED.settings.logging[firstLogger].level !== 'trace') {
-                return;
+            if (RED.settings.logging) {
+                const [firstLogger] = Object.keys(RED.settings.logging);
+                if (RED.settings.logging[firstLogger] && RED.settings.logging[firstLogger].level !== 'debug' && RED.settings.logging[firstLogger].level !== 'trace') {
+                    return;
+                }
             }
 
             this.statsInterval = setInterval(() => {
