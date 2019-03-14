@@ -1018,7 +1018,7 @@ module.exports = function (RED) {
 
                     //this.logger.trace('match', match, JSON.stringify(filter), 'name:' + sysvar.name + ' cache:' + this.sysvar[sysvar.name].cache + ' change:' + this.sysvar[sysvar.name].change);
                     if (match) {
-                        callback(this.sysvar[sysvar.name]);
+                        callback(RED.util.cloneMessage(this.sysvar[sysvar.name]));
                     }
                 });
             }
