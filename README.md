@@ -1,9 +1,9 @@
 # node-red-contrib-ccu
 
 [![NPM version](https://badge.fury.io/js/node-red-contrib-ccu.svg)](http://badge.fury.io/js/node-red-contrib-ccu)
-[![Dependencies Status](https://david-dm.org/HM-RedMatic/node-red-contrib-ccu/status.svg)](https://david-dm.org/HM-RedMatic/node-red-contrib-ccu)
-[![Build Status](https://travis-ci.org/HM-RedMatic/node-red-contrib-ccu.svg?branch=master)](https://travis-ci.org/HM-RedMatic/node-red-contrib-ccu)
-[![Coverage Status](https://coveralls.io/repos/github/HM-RedMatic/node-red-contrib-ccu/badge.svg?branch=master)](https://coveralls.io/github/HM-RedMatic/node-red-contrib-ccu?branch=master)
+[![Dependencies Status](https://david-dm.org/rdmtc/node-red-contrib-ccu/status.svg)](https://david-dm.org/rdmtc/node-red-contrib-ccu)
+[![Build Status](https://travis-ci.org/rdmtc/node-red-contrib-ccu.svg?branch=master)](https://travis-ci.org/rdmtc/node-red-contrib-ccu)
+[![Coverage Status](https://coveralls.io/repos/github/rdmtc/node-red-contrib-ccu/badge.svg?branch=master)](https://coveralls.io/github/rdmtc/node-red-contrib-ccu?branch=master)
 [![XO code style](https://img.shields.io/badge/code_style-XO-5ed9c7.svg)](https://github.com/sindresorhus/xo)
 [![License][mit-badge]][mit-url]
 
@@ -19,10 +19,10 @@ and special nodes ease the control of displays and mp3 actuators. RPC events can
 through regular expressions and also by rooms and functions). It's possible to start rega-programs and set 
 rega-variables and last but not least there are nodes to execute arbitrary rega-scripts and RPC calls.
 
-These nodes are included in [RedMatic](https://github.com/HM-RedMatic/RedMatic) which ships Node-RED as an addon package 
+These nodes are included in [RedMatic](https://github.com/rdmtc/RedMatic) which ships Node-RED as an addon package 
 for installation on a Homematic CCU3 or RaspberryMatic.
 
-Some example flows can be found in the [RedMatic Wiki](https://github.com/HM-RedMatic/RedMatic/wiki) (German language).
+Some example flows can be found in the [RedMatic Wiki](https://github.com/rdmtc/RedMatic/wiki) (German language).
 
 __A modern Browser is required, Internet Explorer won't work.__
 
