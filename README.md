@@ -39,7 +39,7 @@ If Node-RED/node-red-contrib-ccu runs inside a Container or a VM with NAT'd netw
 
 ![ccu-config-docker](docs/ccu-config-docker.png)
 
-The config option `Init address`will be used to tell the CCU on which Address node-red-contrib-ccu is reachable. As 172.17.0.20 is not reachable for the CCU the Hosts IP Address and port forwarding/exposal has to be used. The `Listen address`setting `0.0.0.0`tells node-red-contrib-ccu to bind it's listeners to all available interfaces. 
+The config option `Init address`will be used to tell the CCU on which Address node-red-contrib-ccu is reachable. As 172.17.0.20 is not reachable for the CCU the Hosts IP Address and port forwarding/exposal has to be used. As `Listen address` setting also `0.0.0.0` (which tells node-red-contrib-ccu to bind it's listeners to all available interfaces) would be possible. 
 
 ### piVCCU
 
