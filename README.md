@@ -35,9 +35,9 @@ The communication with the Homematic CCU needs independent connections in two di
 
 If Node-RED/node-red-contrib-ccu runs inside a Container or a VM with NAT'd network it's necessary to forward/expose the ports for connections _from_ the CCU _to_ node-red-contrib-ccu's callback listeners (example below for a Docker container: use options `-p 2048:2048 -p 2049:2049`in the docker run command). 
 
-![schema-docker](schema-docker.png)
+![schema-docker](docs/schema-docker.png)
 
-![ccu-config-docker](ccu-config-docker.png)
+![ccu-config-docker](docs/ccu-config-docker.png)
 
 The config option `Init address`will be used to tell the CCU on which Address node-red-contrib-ccu is reachable. As 172.17.0.20 is not reachable for the CCU the Hosts IP Address and port forwarding/exposal has to be used. The `Listen address`setting `0.0.0.0`tells node-red-contrib-ccu to bind it's listeners to all available interfaces. 
 
@@ -45,17 +45,17 @@ The config option `Init address`will be used to tell the CCU on which Address no
 
 This example shows a configuration for piVCCU and Node-RED running in containers with bridged networking.
 
-![schema-pivccu](schema-pivccu.png)
+![schema-pivccu](docs/schema-pivccu.png)
 
-![ccu-config-pivccu](ccu-config-pivccu.png)
+![ccu-config-pivccu](docs/ccu-config-pivccu.png)
 
 ### debmatic
 
 In this example both Node-RED and debmatic are installed on the same (possibly virtual) host.
 
-![schema-debmatic](schema-debmatic.png)
+![schema-debmatic](docs/schema-debmatic.png)
 
-![ccu-config-debmatic](ccu-config-debmatic.png)
+![ccu-config-debmatic](docs/ccu-config-debmatic.png)
 
 
 ## License
