@@ -13,6 +13,9 @@
     "eq-3"
   ],
   "main": "none",
+  "engines": {
+    "node": ">= 10.0.0"
+  },
   "scripts": {
     "test": "camo-purge; xo && nyc mocha \"test/**/*_spec.js\" --exit && nyc report --reporter=text-lcov | coveralls --force",
     "lintfix": "xo --fix",
