@@ -19,7 +19,7 @@
     "scripts": {
         "checkgit": "(git diff --exit-code && git diff --cached --exit-code && git diff --exit-code origin/master..master) 1> /dev/null",
         "prepublishOnly": "npm run checkgit --silent",
-        "postpublish": "git tag v$(jq -r '.version' package.json) && git push --tags",
+        "postpublish": "git tag v$(jq -r '.version' package.json) && git push --no-verify --tags",
         "test": "camo-purge; xo && nyc mocha \"test/**/*_spec.js\" --exit && nyc report --reporter=text-lcov | coveralls --force",
         "lintfix": "xo --fix",
         "lintonly": "xo",
