@@ -304,7 +304,7 @@ module.exports = function (RED) {
             this.rpcPingTimeout = parseInt(config.rpcPingTimeout, 10) || 60;
             this.rpcPingTimer = {};
             this.ifaceStatus = {};
-            this.serverStatus = {};
+            this.serverError = {};
             this.queueTimeout = parseInt(config.queueTimeout, 10) || 5000;
             this.queuePause = parseInt(config.queuePause, 10) || 0;
 
@@ -487,7 +487,7 @@ module.exports = function (RED) {
                     this.logger.info(iface, connected ? (this.ifaceTypes[iface].protocol + ' port ' + this.ifaceTypes[iface].port + ' connected') : 'disconnected');
                 }
 
-                this.ifaceStatus[iface] = (this.serverStatus[iface] === 'listening') && connected;
+                this.ifaceStatus[iface] = !this.serverError[iface] && connected;
                 Object.keys(this.users).forEach(id => {
                     if (typeof this.users[id].setStatus === 'function') {
                         this.users[id].setStatus({ifaceStatus: this.ifaceStatus});
@@ -1394,13 +1394,13 @@ module.exports = function (RED) {
                 this.servers[protocol] = rpc.createServer({host: this.rpcServerHost, port}, () => {
                     // Todo homematic-xmlrpc and binrpc module: clarify onListening callback params
                     this.logger.info(protocol === 'binrpc' ? 'binrpc' : 'xmlrpc', 'server listening on', url);
-                    this.serverStatus[iface] = 'listening';
+                    this.serverError[iface] = null;
                 });
 
                 // Todo homematic-xmlrpc and binrpc module: emit error event on server object to eliminate access to httpServer/server
                 this.servers[protocol][protocol === 'binrpc' ? 'server' : 'httpServer'].on('error', err => {
                     this.logger.error('binrpc ' + err.message);
-                    this.serverStatus[iface] = err.message;
+                    this.serverError[iface] = err.message;
                 });
 
                 Object.keys(this.rpcMethods).forEach(method => {
