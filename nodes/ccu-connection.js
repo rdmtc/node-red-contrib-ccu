@@ -304,6 +304,7 @@ module.exports = function (RED) {
             this.rpcPingTimeout = parseInt(config.rpcPingTimeout, 10) || 60;
             this.rpcPingTimer = {};
             this.ifaceStatus = {};
+            this.serverStatus = {};
             this.queueTimeout = parseInt(config.queueTimeout, 10) || 5000;
             this.queuePause = parseInt(config.queuePause, 10) || 0;
 
@@ -486,7 +487,7 @@ module.exports = function (RED) {
                     this.logger.info(iface, connected ? (this.ifaceTypes[iface].protocol + ' port ' + this.ifaceTypes[iface].port + ' connected') : 'disconnected');
                 }
 
-                this.ifaceStatus[iface] = connected;
+                this.ifaceStatus[iface] = (this.serverStatus[iface] === 'listening') && connected;
                 Object.keys(this.users).forEach(id => {
                     if (typeof this.users[id].setStatus === 'function') {
                         this.users[id].setStatus({ifaceStatus: this.ifaceStatus});
@@ -1390,8 +1391,18 @@ module.exports = function (RED) {
             const {rpc, protocol} = this.ifaceTypes[iface];
             const port = (protocol === 'binrpc' ? this.rpcBinPort : this.rpcXmlPort);
             if (!this.servers[protocol]) {
-                this.servers[protocol] = rpc.createServer({host: this.rpcServerHost, port});
-                this.logger.info(protocol === 'binrpc' ? 'binrpc' : 'xmlrpc', 'server listening on', url);
+                this.servers[protocol] = rpc.createServer({host: this.rpcServerHost, port}, () => {
+                    // Todo homematic-xmlrpc and binrpc module: clarify onListening callback params
+                    this.logger.info(protocol === 'binrpc' ? 'binrpc' : 'xmlrpc', 'server listening on', url);
+                    this.serverStatus[iface] = 'listening';
+                });
+
+                // Todo homematic-xmlrpc and binrpc module: emit error event on server object to eliminate access to httpServer/server
+                this.servers[protocol][protocol === 'binrpc' ? 'server' : 'httpServer'].on('error', err => {
+                    this.logger.error('binrpc ' + err.message);
+                    this.serverStatus[iface] = err.message;
+                });
+
                 Object.keys(this.rpcMethods).forEach(method => {
                     this.servers[protocol].on(method, (err, params, callback) => {
                         if (err) {
@@ -1996,7 +2007,7 @@ module.exports = function (RED) {
 
             if (filter.cache && this.cachedValuesReceived) {
                 Object.keys(this.values).forEach(dp => {
-                    const msg = Object.assign({}, this.values[dp]);
+                    const msg = {...this.values[dp]};
                     msg.cache = true;
                     msg.change = false;
                     if (!this.callbackBlacklists[msg.datapointName]) {
@@ -2108,8 +2119,7 @@ module.exports = function (RED) {
 
             this.logger.trace('createMessage', channel, datapoint, payload, 'change=' + change);
 
-            const msg = Object.assign({
-                topic: '',
+            const msg = {topic: '',
                 payload,
                 ccu: this.host,
                 iface,
@@ -2139,8 +2149,7 @@ module.exports = function (RED) {
                 ts,
                 tsPrevious: this.values[datapointName].ts,
                 lc: change ? ts : this.values[datapointName].lc,
-                change
-            }, additions);
+                change, ...additions};
 
             msg.stable = !msg.working;
 
