@@ -7,3 +7,4 @@ tools
 .travis.yml
 ccu_localhost.json
 ccu_paramsets_v2.json
+.github
