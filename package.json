@@ -1,6 +1,6 @@
 {
     "name": "node-red-contrib-ccu",
-    "version": "2.0.5",
+    "version": "2.0.6",
     "description": "Node-RED Nodes for the Homematic CCU",
     "repository": "https://github.com/rdmtc/node-red-contrib-ccu",
     "keywords": [
@@ -14,7 +14,7 @@
     ],
     "main": "none",
     "engines": {
-        "node": ">= 10.0.0"
+        "node": ">= 8.0.0"
     },
     "scripts": {
         "checkgit": "([[ $(git rev-parse --abbrev-ref HEAD) == \"master\" ]] && git diff --exit-code && git diff --cached --exit-code && git diff --exit-code origin/master..master)",
@@ -43,6 +43,7 @@
         "mqtt-wildcard": "^3.0.9",
         "nextport": "^1.0.0",
         "obj-ease": "^1.0.1",
+        "promise.prototype.finally": "^3.1.0",
         "string-similarity": "^3.0.0"
     },
     "node-red": {

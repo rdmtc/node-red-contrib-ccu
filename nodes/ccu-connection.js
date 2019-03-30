@@ -3,6 +3,10 @@ const path = require('path');
 const fs = require('fs');
 const crypto = require('crypto');
 
+const promiseFinally = require('promise.prototype.finally');
+
+promiseFinally.shim();
+
 const base62 = require('buffer-base62').toBase62;
 const stringSimilarity = require('string-similarity');
 const nextport = require('nextport');
