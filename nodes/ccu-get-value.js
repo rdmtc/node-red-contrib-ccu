@@ -20,7 +20,7 @@ module.exports = function (RED) {
                     value = this.ccu.values[address];
                 }
 
-                this.status({fill: 'green', shape: 'ring', text: String(value)});
+                this.status({fill: 'green', shape: 'ring', text: String(value.payload)});
 
                 if (config.setPropType === 'cmsg') {
                     Object.assign(msg, value);
