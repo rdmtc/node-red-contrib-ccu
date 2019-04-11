@@ -2011,7 +2011,7 @@ module.exports = function (RED) {
 
             if (filter.cache && this.cachedValuesReceived) {
                 Object.keys(this.values).forEach(dp => {
-                    const msg = {...this.values[dp]};
+                    const msg = Object.assign({}, this.values[dp]);
                     msg.cache = true;
                     msg.change = false;
                     if (!this.callbackBlacklists[msg.datapointName]) {
@@ -2123,7 +2123,8 @@ module.exports = function (RED) {
 
             this.logger.trace('createMessage', channel, datapoint, payload, 'change=' + change);
 
-            const msg = {topic: '',
+            const msg = Object.assign({
+                topic: '',
                 payload,
                 ccu: this.host,
                 iface,
@@ -2153,7 +2154,7 @@ module.exports = function (RED) {
                 ts,
                 tsPrevious: this.values[datapointName].ts,
                 lc: change ? ts : this.values[datapointName].lc,
-                change, ...additions};
+                change}, additions);
 
             msg.stable = !msg.working;
 
