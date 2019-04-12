@@ -2563,12 +2563,13 @@ module.exports = function (RED) {
                         break;
                     case 'FLOAT':
                         value = parseFloat(value) || 0;
+                        /* Todo: rethink, deactivate boundary check for now (https://github.com/rdmtc/node-red-contrib-ccu/issues/74)
                         if (typeof paramset.MIN !== 'undefined' && value < paramset.MIN) {
                             value = paramset.MIN;
                         } else if (typeof paramset.MAX !== 'undefined' && value > paramset.MAX) {
                             value = paramset.MAX;
                         }
-
+                        */
                         value = {explicitDouble: value};
                         break;
                     case 'ENUM':
@@ -2585,12 +2586,13 @@ module.exports = function (RED) {
                         } else {
                             value = parseInt(value, 10) || 0;
                         }
-
+                        /* Todo: rethink, deactivate boundary check for now (https://github.com/rdmtc/node-red-contrib-ccu/issues/74)
                         if (typeof paramset.MIN !== 'undefined' && value < paramset.MIN) {
                             value = paramset.MIN;
                         } else if (typeof paramset.MAX !== 'undefined' && value > paramset.MAX) {
                             value = paramset.MAX;
                         }
+                        */
 
                         break;
                     case 'STRING':
