@@ -673,10 +673,12 @@ module.exports = function (RED) {
                         res.forEach(dp => {
                             const ts = (new Date(dp.ts + ' UTC+' + (d.getTimezoneOffset() / -60))).getTime();
                             const [iface, channel, datapoint] = dp.name.split('.');
-                            if (this.enabledIfaces.includes(iface) && datapoint && !datapoint.startsWith('PRESS_')) {
+                            if (this.enabledIfaces.includes(iface) && datapoint) {
                                 const msg = this.createMessage(iface, channel, datapoint, dp.value, {cache: true, change: false, working: false, ts, lc: ts});
                                 this.values[msg.datapointName] = msg;
-                                this.callCallbacks(msg);
+                                if (!datapoint.startsWith('PRESS_')) {
+                                    this.callCallbacks(msg);
+                                }
                             }
                         });
                         this.cachedValuesReceived = true;
