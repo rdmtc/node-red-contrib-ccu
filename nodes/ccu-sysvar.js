@@ -29,9 +29,9 @@ module.exports = function (RED) {
             this.topic = config.topic;
 
             this.idSubscription = this.ccu.subscribeSysvar({name: this.name, cache: config.cache, change: config.change}, msg => {
+                this.status({fill: 'green', shape: 'ring', text: String(msg.payload)});
                 msg.topic = this.ccu.topicReplace(config.topic, msg);
                 this.send(msg);
-                this.status({fill: 'green', shape: 'ring', text: String(msg.payload)});
             });
 
             this.on('input', this._input);

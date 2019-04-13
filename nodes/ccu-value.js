@@ -29,9 +29,9 @@ module.exports = function (RED) {
                 };
 
                 this.idSubscription = this.ccu.subscribe(filter, msg => {
+                    this.status({fill: 'green', shape: 'ring', text: String(msg.payload)});
                     msg.topic = this.ccu.topicReplace(config.topic, msg);
                     this.send(msg);
-                    this.status({fill: 'green', shape: 'ring', text: String(msg.payload)});
                 });
             }
 
