@@ -273,7 +273,7 @@ module.exports = function (RED) {
                     conf: 'virt',
                     rpc: xmlrpc,
                     port: this.isLocal ? 39292 : 9292,
-                    path: '/groups',
+                    path: 'groups',
                     protocol: 'http',
                     init: true,
                     ping: false // Todo ?
