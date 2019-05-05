@@ -69,14 +69,32 @@ module.exports = function (RED) {
                     message: '0x87',
                     servicemeldung: '0x88',
                     servicemessage: '0x88',
-                    'service message': '0x88'
+                    'service message': '0x88',
+                    grün: '0x89',
+                    signalgrün: '0x89',
+                    'signal grün': '0x89',
+                    green: '0x89',
+                    signalgreen: '0x89',
+                    'signal green': '0x89',
+                    gelb: '0x8A',
+                    signalgelb: '0x8A',
+                    'signal gelb': '0x8A',
+                    yellow: '0x8A',
+                    signalyellow: '0x8A',
+                    'signal yellow': '0x8A',
+                    rot: '0x8B',
+                    signalrot: '0x8B',
+                    'signal rot': '0x8B',
+                    red: '0x8B',
+                    signalred: '0x8B',
+                    'signal red': '0x8B'
                 };
 
                 if (map[ico]) {
                     ico = map[ico];
                 }
 
-                if (['0x80', '0x81', '0x82', '0x83', '0x84', '0x85', '0x86', '0x87', '0x88'].indexOf(ico) === -1) {
+                if (['0x80', '0x81', '0x82', '0x83', '0x84', '0x85', '0x86', '0x87', '0x88', '0x89', '0x8A', '0x8B'].indexOf((ico || '').toUpperCase()) === -1) {
                     ico = '';
                 }
 
