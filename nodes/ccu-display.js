@@ -42,7 +42,7 @@ module.exports = function (RED) {
                     col = '0x80';
                 }
 
-                return col;
+                return ',0x11,' + col;
             }
 
             function convertIcon(ico) {
@@ -94,11 +94,11 @@ module.exports = function (RED) {
                     ico = map[ico];
                 }
 
-                if (['0x80', '0x81', '0x82', '0x83', '0x84', '0x85', '0x86', '0x87', '0x88', '0x89', '0x8A', '0x8B'].indexOf((ico || '').toUpperCase()) === -1) {
+                if (!['0x80', '0x81', '0x82', '0x83', '0x84', '0x85', '0x86', '0x87', '0x88', '0x89', '0x8A', '0x8B'].includes(ico)) {
                     ico = '';
                 }
 
-                return ico;
+                return ico ? (',0x13,' + ico) : '';
             }
 
             function convertString(str) {
@@ -124,7 +124,7 @@ module.exports = function (RED) {
                     res.push(charcodes[c] || ('0x' + c.charCodeAt(0).toString(16).toUpperCase()));
                 });
 
-                return res.slice(0, 12).join(',');
+                return ',0x12,' + res.slice(0, 12).join(',');
             }
 
             this.on('input', msg => {
@@ -134,61 +134,49 @@ module.exports = function (RED) {
                     payload += ',0x0A';
                 }
 
-                payload += ',0x12,' + convertString(msg.line1 || config.line1);
+                payload += convertString(msg.line1 || config.line1);
                 if (config.channelType === 'HM-Dis-WM55') {
-                    payload += ',0x11,' + convertColor(msg.color1 || config.color1);
+                    payload += convertColor(msg.color1 || config.color1);
                 }
 
-                if (msg.icon1 || config.icon1) {
-                    payload += ',0x13,' + convertIcon(msg.icon1 || config.icon1);
-                }
+                payload += convertIcon(msg.icon1 || config.icon1);
 
                 payload += ',0x0A';
 
-                payload += ',0x12,' + convertString(msg.line2 || config.line2);
+                payload += convertString(msg.line2 || config.line2);
                 if (config.channelType === 'HM-Dis-WM55') {
-                    payload += ',0x11,' + convertColor(msg.color2 || config.color2);
+                    payload += convertColor(msg.color2 || config.color2);
                 }
 
-                if (msg.icon2 || config.icon2) {
-                    payload += ',0x13,' + convertIcon(msg.icon2 || config.icon2);
-                }
+                payload += convertIcon(msg.icon2 || config.icon2);
 
                 payload += ',0x0A';
 
-                payload += ',0x12,' + convertString(msg.line3 || config.line3);
+                payload += convertString(msg.line3 || config.line3);
                 if (config.channelType === 'HM-Dis-WM55') {
-                    payload += ',0x11,' + convertColor(msg.color3 || config.color3);
+                    payload += convertColor(msg.color3 || config.color3);
                 }
 
-                if (msg.icon3 || config.icon3) {
-                    payload += ',0x13,' + convertIcon(msg.icon3 || config.icon3);
-                }
+                payload += convertIcon(msg.icon3 || config.icon3);
 
                 payload += ',0x0A';
 
                 if (config.channelType === 'HM-Dis-WM55') {
-                    payload += ',0x12,' + convertString(msg.line4 || config.line4);
-                    payload += ',0x11,' + convertColor(msg.color4 || config.color4);
-                    if (msg.icon4 || config.icon4) {
-                        payload += ',0x13,' + convertIcon(msg.icon4 || config.icon4);
-                    }
+                    payload += convertString(msg.line4 || config.line4);
+                    payload += convertColor(msg.color4 || config.color4);
+                    payload += convertIcon(msg.icon4 || config.icon4);
 
                     payload += ',0x0A';
 
-                    payload += ',0x12,' + convertString(msg.line5 || config.line5);
-                    payload += ',0x11,' + convertColor(msg.color5 || config.color5);
-                    if (msg.icon5 || config.icon5) {
-                        payload += ',0x13,' + convertIcon(msg.icon5 || config.icon5);
-                    }
+                    payload += convertString(msg.line5 || config.line5);
+                    payload += convertColor(msg.color5 || config.color5);
+                    payload += convertIcon(msg.icon5 || config.icon5);
 
                     payload += ',0x0A';
 
-                    payload += ',0x12,' + convertString(msg.line6 || config.line6);
-                    payload += ',0x11,' + convertColor(msg.color6 || config.color6);
-                    if (msg.icon6 || config.icon6) {
-                        payload += ',0x13,' + convertIcon(msg.icon6 || config.icon6);
-                    }
+                    payload += convertString(msg.line6 || config.line6);
+                    payload += convertColor(msg.color6 || config.color6);
+                    payload += convertIcon(msg.icon6 || config.icon6);
 
                     payload += ',0x0A';
                 }
