@@ -69,7 +69,9 @@
             chime: {value: ''},
             length: {value: 108000},
             repeat: {value: 1},
+            repeatType: {value: 'num'},
             volume: {value: 100},
+            volumeType: {value: 'num'},
             line1: {value: ''},
             icon1: {value: ''},
             line2: {value: ''},
@@ -82,13 +84,16 @@
             acousticAlarmSelection: {value: 'DISABLE_ACOUSTIC_SIGNAL'},
             durationUnit: {value: 'S'},
             durationValue: {value: 0},
+            durationValueType: {value: 'num'},
             rampTimeUnit: {value: 'S'},
             rampTimeValue: {value: 0},
+            rampTimeValueType: {value: 'num'},
             repetitions: {value: 0},
             dimmerColor: {value: 0},
             dimmerLevel: {value: 100},
             dimmerList: {value: []},
             soundLevel: {value: 50},
+            soundLevelType: {value: 'num'},
             soundList: {value: []},
             opticalAlarmSelection: {value: 'DISABLE_OPTICAL_SIGNAL'},
             ccuConfig: {value: 'localhost', type: 'ccu-connection', required: true}
@@ -111,6 +116,36 @@
             const $nodeInputCcuConfig = $('#node-input-ccuConfig');
             const $nodeInputIface = $('#node-input-iface');
             const $nodeInputName = $('#node-input-name');
+
+            $('#node-input-repeat').typedInput({
+                default: 'num',
+                types: ['num', 'msg', 'flow', 'global', 'env'],
+                typeField: '#node-input-repeatType'
+            });
+
+            $('#node-input-volume').typedInput({
+                default: 'num',
+                types: ['num', 'msg', 'flow', 'global', 'env'],
+                typeField: '#node-input-volumeType'
+            });
+
+            $('#node-input-durationValue').typedInput({
+                default: 'num',
+                types: ['num', 'msg', 'flow', 'global', 'env'],
+                typeField: '#node-input-durationValueType'
+            });
+
+            $('#node-input-rampTimeValue').typedInput({
+                default: 'num',
+                types: ['num', 'msg', 'flow', 'global', 'env'],
+                typeField: '#node-input-rampTimeValueType'
+            });
+
+            $('#node-input-soundLevel').typedInput({
+                default: 'num',
+                types: ['num', 'msg', 'flow', 'global', 'env'],
+                typeField: '#node-input-soundLevelType'
+            });
 
             let data;
 
@@ -433,12 +468,14 @@
 
     <div class="form-row SUBMIT SIGNAL_CHIME">
         <label for="node-input-volume"><i class="fa fa-volume-up"></i> Lautstärke</label>
-        <input type="number" id="node-input-volume" min="0" max="100">
+        <input type="text" id="node-input-volume">
+        <input type="hidden" id="node-input-volumeType">
     </div>
 
     <div class="form-row SUBMIT SIGNAL_CHIME SIGNAL_LED">
         <label for="node-input-repeat"><i class="icon-repeat"></i> Wiederholungen</label>
-        <input type="number" min="0" max="255" id="node-input-repeat">
+        <input type="text" id="node-input-repeat">
+        <input type="hidden" id="node-input-repeatType">
     </div>
 
     <div class="form-row SUBMIT SIGNAL_CHIME">
@@ -524,7 +561,8 @@
 
     <div class="form-row SUBMIT ACOUSTIC_SIGNAL_VIRTUAL_RECEIVER ">
         <label for="node-input-soundLevel"><i class=""></i> Lautstärke </label>
-        <input id="node-input-soundLevel" type="number" min="0" max="100">
+        <input id="node-input-soundLevel" type="text">
+        <input id="node-input-soundLevelType" type="hidden">
     </div>
 
     <div class="form-row SUBMIT BSL_DIMMER_VIRTUAL_RECEIVER">
@@ -544,6 +582,7 @@
     <div class="form-row SUBMIT DIMMER_VIRTUAL_RECEIVER BSL_DIMMER_VIRTUAL_RECEIVER">
         <label for="node-input-dimmerLevel"><i class=""></i> Helligkeit </label>
         <input id="node-input-dimmerLevel" type="number" min="0" max="100">
+        <input id="node-input-dimmerLevelType" type="hidden">
     </div>
 
 
@@ -554,7 +593,8 @@
             <option value="M">Minuten</option>
             <option value="H">Stunden</option>
         </select>
-        <input id="node-input-rampTimeValue" type="number" style="width: 35%">
+        <input id="node-input-rampTimeValue" type="text" style="width: 35%">
+        <input id="node-input-rampTimeValueType" type="hidden">
     </div>
 
 
@@ -565,7 +605,8 @@
             <option value="M">Minuten</option>
             <option value="H">Stunden</option>
         </select>
-        <input id="node-input-durationValue" type="number" style="width: 35%">
+        <input id="node-input-durationValue" type="text" style="width: 35%">
+        <input id="node-input-durationValueType" type="hidden">
     </div>
 
 
