@@ -447,8 +447,13 @@ module.exports = function (RED) {
                 return addMessageToPending(msg);
             }
             return getProperty(node, msg)
-                .then(property => applyRules(node, msg, property))
+                .then(property => {
+                    node.statusVal = String(property);
+                    node.status({text: node.statusVal});
+                    return applyRules(node, msg, property)
+                })
                 .then(onward => {
+                    node.status({text: node.statusVal + ' (' + onward.map((e,i) => e ? (i + 1) : null).filter(e => e).join(',') + ')'});
                     if (!repair || !hasParts) {
                         node.send(onward);
                     } else {
