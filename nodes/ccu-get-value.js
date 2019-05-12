@@ -13,10 +13,15 @@ module.exports = function (RED) {
 
             this.on('input', msg => {
                 let value;
-                if (config.iface === 'ReGaHSS') {
-                    value = this.ccu.sysvar[config.sysvar];
+                const iface = msg.iface || config.iface;
+                const channel = msg.channel || config.channel.split(' ')[0];
+                const datapoint = msg.datapoint || config.datapoint;
+                const sysvar = msg.sysvar || config.sysvar;
+
+                if (iface === 'ReGaHSS') {
+                    value = this.ccu.sysvar[sysvar];
                 } else {
-                    const address = config.iface + '.' + config.channel.split(' ')[0] + '.' + config.datapoint;
+                    const address = iface + '.' + channel + '.' + datapoint;
                     value = this.ccu.values[address];
                 }
 
