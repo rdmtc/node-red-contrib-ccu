@@ -96,7 +96,8 @@ module.exports = function (RED) {
                                 if (config.paramsetDescriptions[psKey]) {
                                     obj[addr] = {
                                         name: config.channelNames[addr],
-                                        datapoints: Object.keys(config.paramsetDescriptions[psKey])
+                                        datapoints: Object.keys(config.paramsetDescriptions[psKey]),
+                                        rxMode: devices[devices[addr].PARENT] && devices[devices[addr].PARENT].RX_MODE
                                     };
                                 }
                             }
