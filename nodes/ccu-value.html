@@ -34,7 +34,6 @@
         },
         oneditprepare() {
             const $nodeInputIface = $('#node-input-iface');
-            const $nodeInputMode = $('#node-input-mode');
             const $nodeInputCcuConfig = $('#node-input-ccuConfig');
             const $nodeInputChannel = $('#node-input-channel');
             const $nodeInputDatapoint = $('#node-input-datapoint');
@@ -187,17 +186,18 @@
                         $('#node-input-on').typedInput('type', 'undefined');
                         $('#node-input-on').val('');
                     }
+
+                    if (c.rxMode & 0x02) {
+                        $('.BURST').show();
+                    } else {
+                        $('.BURST').hide();
+                    }
                 }
             }
 
             $nodeInputIface.change(() => {
                 console.log('$nodeInputIface change');
-                if ($nodeInputIface.val() === 'BidCos-RF') {
-                    $nodeInputMode.removeAttr('disabled');
-                } else {
-                    $nodeInputMode.val('').attr('disabled', true);
-                }
-
+                $('.BURST').hide();
                 loadConfig();
             });
 
@@ -287,7 +287,7 @@
         <input type="hidden" id="node-input-onType">
     </div>
 
-    <div class="form-row">
+    <div class="form-row BURST">
         <label for="node-input-mode"><i class="fa fa-empire"></i> set Mode</label>
         <select id="node-input-mode">
             <option value=''>default</option>
@@ -398,7 +398,7 @@
             <ul>
                 <li><b>Nur geänderte Werte ausgeben</b> - Ein Event wird nur dann erzeugt, wenn sich der Wert seit dem letztn Event verändert hat.</li>
                 <li><b>Während WORKING keine Werte ausgeben</b> - Es gibt Aktoren, z.B. Dimmer oder Rolladen, die während einer Rampe (Öffnen/Schließen eines Rollladen, Dimmen einer Lampe) fortwährend den aktuellen Zustand ausgeben. Um nur den End-Status auszugeben kann diese Option benutzt werden. Gebräuchlich auch bei Verwendung mit Dashboard-Nodes um "springende" Slider zu verhindern.</li>
-                <li><b>Beim Start letzten bekannten Wert ausgeben</b> - Wenn Node-RED gestartet wird, dann wird der letzte Wert (sofern in der ReGaHSS bekannt) ausgegeben. Z.B. um beim Start einen korrekten Wert an das Dashboard zu übergeben. <b>Achtung:</b> Wird durch die ausgegebene Nachricht im weiteren Verlauf des Flows ein Homematic Wert gesetzt wirkt sich jedes (Full-)Deployment negativ auf den DutyCycle aus.</li>
+                <li><b>Beim Start letzten bekannten Wert ausgeben</b> - Wenn Node-RED gestartet wird, dann wird der letzte Wert (sofern in der ReGaHSS bekannt) ausgegeben. Z.B. um beim Start einen korrekten Wert an das Dashboard zu übergeben. <b>Achtung:</b> </li>
             </ul>
 
         </li>
