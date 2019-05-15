@@ -1,4 +1,8 @@
 <script type="text/javascript">
+    function clipValueLength(v, l) {
+        return (v.length > l) ? v.substring(0, (l - 3)) + '...' : v;
+    }
+
     RED.nodes.registerType('ccu-value', {
 
         category: 'ccu',
@@ -27,7 +31,13 @@
         paletteLabel: 'value',
         align: 'right',
         label() {
-            return this.name || String(this.channel).replace(/^[A-Za-z0-9-]+:\d /, '') || 'value';
+            if (this.name) {
+                return this.name;
+            }
+
+            const dp = String(this.datapoint).replace(/PRESS_|_STATE|_MODE|ERROR_|OPERATING_|ACTUAL_|^STATE$|^LEVEL$/, '');
+
+            return clipValueLength(String(this.channel).replace(/^[A-Za-z0-9-]+:\d /, ''), 17) + ((dp.length > 1 && dp.length < 10) ? ' ' + dp : '') || 'value';
         },
         labelStyle() {
             return this.name ? 'node_label_italic' : '';
