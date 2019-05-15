@@ -34,7 +34,9 @@
             if (this.name) {
                 return this.name;
             }
+
             const dp = String(this.datapoint).replace(/PRESS_|_STATE|_MODE|ERROR_|OPERATING_|ACTUAL_|^STATE$|^LEVEL$/, '');
+
             return clipValueLength(String(this.channel).replace(/^[A-Za-z0-9-]+:\d /, ''), 17) + ((dp.length > 1 && dp.length < 10) ? ' ' + dp : '') || 'value';
         },
         labelStyle() {
