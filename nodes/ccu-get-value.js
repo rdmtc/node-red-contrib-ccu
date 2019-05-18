@@ -12,6 +12,7 @@ module.exports = function (RED) {
             }
 
             this.on('input', msg => {
+                msg = RED.util.cloneMessage(msg);
                 let value;
                 const iface = msg.iface || config.iface;
                 const channel = msg.channel || config.channel.split(' ')[0];
@@ -26,7 +27,6 @@ module.exports = function (RED) {
                 }
 
                 this.status({fill: 'green', shape: 'ring', text: String(value.payload)});
-
                 if (config.setPropType === 'cmsg') {
                     Object.assign(msg, value);
                     this.send(msg);
