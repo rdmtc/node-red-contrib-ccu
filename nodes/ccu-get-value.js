@@ -12,12 +12,11 @@ module.exports = function (RED) {
             }
 
             this.on('input', msg => {
-                msg = RED.util.cloneMessage(msg);
                 let value;
-                const iface = msg.iface || config.iface;
-                const channel = msg.channel || config.channel.split(' ')[0];
-                const datapoint = msg.datapoint || config.datapoint;
-                const sysvar = msg.sysvar || config.sysvar;
+                const iface = config.iface || msg.iface;
+                const channel = String(config.channel).split(' ')[0] || msg.channel;
+                const datapoint = config.datapoint || msg.datapoint;
+                const sysvar = config.sysvar || msg.sysvar;
 
                 if (iface === 'ReGaHSS') {
                     value = this.ccu.sysvar[sysvar];

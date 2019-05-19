@@ -78,6 +78,7 @@
                     if (nodeId !== '_ADD_') {
                         const url = 'ccu?config=' + nodeId + '&type=ifaces';
                         $.getJSON(url, d => {
+                            $nodeInputIface.append('<option></option>');
                             Object.keys(d).forEach(i => {
                                 $nodeInputIface.append('<option' + (d[i].enabled ? '' : ' disabled') + (i === node.iface ? ' selected' : '') + '>' + i + '</option>');
                             });
