@@ -1,5 +1,20 @@
 {
   "ccu-connection": {
 
+  },
+  "common": {
+    "label": {
+      "rooms":"Room",
+      "functions": "Function",
+      "allDevices": "Device",
+      "sysVars": "System Variable",
+      "value": "value",
+      "valueEnum": "value enumeration (valueEnum)",
+      "ts": "timestamp (ts)",
+      "lc": "last change (lc)",
+      "working": "working",
+      "direction": "direction",
+      "all": "all properties as object"
+    }
   }
 }

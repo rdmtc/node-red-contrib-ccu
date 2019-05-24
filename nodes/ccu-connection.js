@@ -108,6 +108,82 @@ module.exports = function (RED) {
                     break;
                 }
 
+                case 'tree': {
+                    const processChannels = (iface, devices, callback) => {
+                        if (!devices) {
+                            return;
+                        }
+                        Object.keys(devices).forEach(addr => {
+                            if (addr.match(/:\d+$/)) {
+                                const psKey = config.paramsetName(iface, devices[addr], 'VALUES');
+                                if (config.paramsetDescriptions[psKey]) {
+                                    const devID = devices[addr].PARENT;
+                                    const dps = [];
+                                    let chName = config.channelNames[addr];
+                                    chName = (chName) ? chName + '  (' + addr + ')' : addr;
+
+                                    Object.keys(config.paramsetDescriptions[psKey]).forEach(dp => {
+                                        dps.push({
+                                            iface: iface,
+                                            id: iface + '.' + addr + '.' + dp,
+                                            channel: chName,
+                                            label: dp,
+                                            icon: 'fa fa-tag fa-fw',
+                                            class: req.query.classDp
+                                        });
+                                    });
+                                    dps.sort((a, b) => a.label.localeCompare(b.label));
+                                    const channel = {
+                                        iface: iface,
+                                        id: iface + '.' + addr,
+                                        label: chName,
+                                        children: dps,
+                                        rooms: config.channelRooms[addr],
+                                        functions: config.channelFunctions[addr],
+                                        icon: 'fa fa-tags fa-fw',
+                                        class: req.query.classCh
+                                    };
+                                    callback(iface, devID, channel, addr);
+                                }
+                            }
+                        });
+                    }
+                    if (req.query.iface) {
+                        const devices = config.metadata.devices[req.query.iface];
+                        processChannels(req.query.iface, devices, (iface, devID, channel, chID) => {
+                            if (!channel.children || channel.children.length === 0) {
+                                return;
+                            }
+                            if (!obj[devID]) {
+                                obj[devID] = {
+                                    id: iface + '.' + devID,
+                                    name: config.channelNames[devID],
+                                    label: (config.channelNames[devID]) ? config.channelNames[devID] + '  (' + devID + ')' : devID,
+                                    type: devices[devID].TYPE,
+                                    iface: iface,
+                                    icon: 'fa fa-archive fa-fw',
+                                    channels: {},
+                                    children: []
+                                };
+                            }
+                            obj[devID].channels[chID] = channel;
+                            obj[devID].children.push(channel);
+                        });
+                    } else {
+                        Object.keys(config.metadata.devices).forEach(iface => {
+                            const devices = config.metadata.devices[iface];
+                            processChannels(iface, devices, (iface, devID, channel, chID) => {
+                                if (!channel.children || channel.children.length === 0) {
+                                    return;
+                                }
+                                obj[chID] = channel;
+                            });
+                        });
+                    }
+                    res.status(200).send(JSON.stringify(obj));
+                    break;
+                }
+
                 case 'rooms':
                     res.status(200).send(JSON.stringify({
                         rooms: config.rooms

@@ -102,16 +102,28 @@
                 const $nodeInputCcuConfig = $('#node-input-ccuConfig');
                 const $nodeInputChannel = $('#node-input-channel');
                 const $nodeInputSysvar = $('#node-input-sysvar');
+                const $nodeInputSysvarProperty = $('#node-input-sysvarProperty');
                 const $nodeInputDatapoint = $('#node-input-datapoint');
                 const $nodeInputDatapointProperty = $('#node-input-datapointProperty');
+                const $configLookupBtn = $('#config-lookup-btn');
+                const $configLookupTree = $('#config-lookup-tree');
 
                 let data;
+                let channelArray;
 
                 let ifacesLoaded = false;
                 let ifacesPending = false;
 
                 $('.form-row.datapoint').hide();
                 $('.form-row.sysvar').hide();
+
+                const sysvarPropertys = ["value","valueEnum","ts","lc"];
+                const datapointPropertys = ["value","ts","lc", "working", "direction"];
+
+                sysvarPropertys.forEach( val => { $nodeInputSysvarProperty.append($('<option></option>').val(val).text(node._('node-red-contrib-ccu/ccu-connection:common.label.'+val)));})
+                datapointPropertys.forEach(val => { $nodeInputDatapointProperty.append($('<option></option>').val(val).text(node._('node-red-contrib-ccu/ccu-connection:common.label.' + val))); })
+                $nodeInputSysvarProperty.val(node.sysvarProperty || sysvarPropertys[0]);
+                $nodeInputDatapointProperty.val(node.datapointProperty || datapointPropertys[0]);
 
                 function loadIfaces(iface, cb) {
                     if (ifacesPending) {
@@ -458,6 +470,193 @@
                     const rule = this.rules[i];
                     $('#node-input-rule-container').editableList('addItem', {r: rule, i});
                 }
+
+                const $dialog = $("#dialog-select-datapoint").dialog({
+                        autoOpen: false,
+                        height: 400,
+                        width: 600,
+                        modal: true
+                    });
+
+                try {
+                    let treeList = $configLookupTree.css({ width: "100%", height: "100%" }).treeList({
+                        data: [{
+                            id: 'rooms',
+                            label: node._('node-red-contrib-ccu/ccu-connection:common.label.rooms'),
+                            icon: 'fa fa-home fa-fw',
+                            children: (done) => { loadTreeData('rooms', done) }
+                        }, {
+                            id: 'functions',
+                            label: node._('node-red-contrib-ccu/ccu-connection:common.label.functions'),
+                            icon: 'fa fa-cogs fa-fw',
+                            children: (done) => { loadTreeData('functions', done) }
+                        }, {
+                            id: 'all',
+                            label: node._('node-red-contrib-ccu/ccu-connection:common.label.allDevices'),
+                            icon: 'fa fa-slack fa-fw',
+                            children: (done) => {
+                                const nodeId = $nodeInputCcuConfig.val();
+                                const url = 'ccu?config=' + nodeId + '&type=ifaces';
+                                $.getJSON(url, d => {
+                                    const arrIface = [];
+                                    Object.keys(d).forEach(ifId => {
+                                        const iface = d[ifId];
+                                        if (ifId !== 'ReGaHSS' && iface.enabled) {
+                                            arrIface.push({
+                                                id: ifId,
+                                                label: ifId,
+                                                icon: 'fa fa-empire fa-fw',
+                                                children: (done) => { loadTreeData('tree', done, ifId) }
+                                            });
+                                        }
+                                    });
+                                    done(arrIface);
+                                });
+                            }
+                        }, {
+                            id: 'sysVars',
+                            label: node._('node-red-contrib-ccu/ccu-connection:common.label.sysVars'),
+                            icon: 'fa fa-cog fa-fw',
+                            children: (done) => { loadTreeData('sysvar', done) }
+                        }]
+                    });
+
+                    $configLookupTree.on('treelistselect', function (event, item) {
+                        if (item && item.iface && item.channel && item.datapoint && item.property) {
+                            $('.form-row.sysvar').hide();
+                            $('.form-row.datapoint').show();
+                            $nodeInputIface.val(item.iface);
+                            $nodeInputChannel.val(item.channel);
+                            $nodeInputDatapoint.val(item.datapoint);
+                            $nodeInputDatapointProperty.val(item.property);
+                            $dialog.dialog("close");
+                        } else if (item && item.sysvar && item.property) {
+                            $('.form-row.datapoint').hide();
+                            $('.form-row.sysvar').show();
+                            $nodeInputIface.val('ReGaHSS');
+                            $nodeInputSysvar.val(item.sysvar);
+                            $nodeInputSysvarProperty.val(item.property);
+                            $dialog.dialog("close");
+                        }
+                    });
+
+                    $configLookupBtn.click(() => {
+                        $dialog.dialog("open");
+                        if (!channelArray) {
+                            channelArray = [];
+                            const url = 'ccu?config=' + $nodeInputCcuConfig.val() + '&type=tree';
+                            $.getJSON(url, data => {
+                                Object.keys(data).forEach(addr => {
+                                    channelArray.push(data[addr]);
+                                    if (data[addr].children) {
+                                        data[addr].children.forEach((dp) => {
+                                            if (!dp.children) {
+                                                dp.children = getDPProp(dp);
+                                            }
+                                        });
+                                    }
+                                });
+                            });
+                        }
+                    });
+                } catch (ex) {
+                    // maybe wrong node-red version
+                    $configLookupBtn.hide();
+                }
+
+                function getDPProp(dp) {
+                    const retVal = [];
+
+                    datapointPropertys.forEach(val => {
+                        retVal.push({
+                            label: node._('node-red-contrib-ccu/ccu-connection:common.label.' + val),
+                            icon: 'fa fa-tasks fa-fw',
+                            iface: dp.iface,
+                            channel: dp.channel,
+                            datapoint: dp.label,
+                            property: val
+                        }); })
+
+                    return retVal;
+                }
+
+                function loadTreeData(type, done, ifId) {
+                    const nodeId = $nodeInputCcuConfig.val();
+                    let url = 'ccu?config=' + nodeId + '&type=' + type;
+
+                    if (type === 'tree') {
+                        url += '&iface=' + ifId;
+                        $.getJSON(url, devices => {
+                            const arrDev = [];
+                            Object.keys(devices).forEach(id => {
+                                const dev = devices[id];
+                                dev.children.forEach((ch) => {
+                                    if (ch.children) {
+                                        ch.children.sort((a, b) => a.label.localeCompare(b.label))
+                                        ch.children.forEach((dp) => {
+                                            if (!dp.children) {
+                                                dp.children = getDPProp(dp);
+                                            }
+                                        });
+                                    }
+                                });
+                                arrDev.push(dev);
+                            });
+                            arrDev.sort((a, b) => a.label.localeCompare(b.label));
+                            done(arrDev);
+                        });
+                    } else if (type === 'sysvar') {
+                        $.getJSON(url, d => {
+                            const arrSysVar = [];
+                            Object.keys(d).forEach(id => {
+                                arrSysVar.push({
+                                    id: id,
+                                    label: id,
+                                    icon: 'fa fa-tags fa-fw',
+                                    children: (done) => {
+                                        const retVal = [];
+                                        sysvarPropertys.forEach(val => {
+                                            retVal.push({
+                                                label: node._('node-red-contrib-ccu/ccu-connection:common.label.' + val),
+                                                icon: 'fa fa-tag fa-fw',
+                                                sysvar: id,
+                                                property: val
+                                            });
+                                        })
+                                        done(retVal);
+                                    }
+                                });
+                            });
+                            done(arrSysVar);
+                        });
+                    } else {
+                        const url = 'ccu?config=' + nodeId + '&type=' + type;
+                        $.getJSON(url, r => {
+                            const arr = [];
+                            if (r && r[type]) {
+                                for (let index = 0; index < r[type].length; index++) {
+                                    const lbl = r[type][index];
+                                    arr.push({
+                                        label: lbl,
+                                        children: function (done) {
+                                            const arrCh = [];
+                                            if (channelArray) {
+                                                channelArray.forEach(ch => {
+                                                    if (ch[type] && ch[type].includes(lbl)) {
+                                                        arrCh.push(ch);
+                                                    }
+                                                });
+                                            }
+                                            arrCh.sort((a, b) => a.label.localeCompare(b.label));
+                                            done(arrCh);
+                                        }
+                                    });
+                                }
+                            }
+                            done(arr);
+                        });
+                    }
+                }
             },
             oneditsave() {
                 const rules = $('#node-input-rule-container').editableList('items');
@@ -522,21 +721,21 @@
     </div>
     <div class="form-row">
         <label for="node-input-iface"><i class="fa fa-empire"></i> Interface</label>
-        <select id="node-input-iface" disabled>
-       </select>
+        <div style="display: inline-block; position: relative; width: 70%;">
+            <select id="node-input-iface" style="width:calc(100% - 40px);" disabled>
+                <option></option>
+            </select>
+            <a id="config-lookup-btn" class="editor-button" style="width: 35px; position: absolute; right: 0px;"><i id="config-lookup-icon" class="fa fa-search"></i></a>
+       </div>
     </div>
     <div class="form-row sysvar">
         <label for="node-input-sysvar"><i class="icon-tags"></i> Sysvar</label>
-        <select id="node-input-sysvar">
+        <select id="node-input-sysvar" style="width:70%;">
         </select>
     </div>
     <div class="form-row sysvar">
         <label for="node-input-sysvarProperty"><i class="icon-tags"></i> Property</label>
-        <select id="node-input-sysvarProperty">
-            <option selected value="value">value</option>
-            <option value="valueEnum">valueEnum</option>
-            <option value="ts">ts</option>
-            <option value="lc">lc</option>
+        <select id="node-input-sysvarProperty" style="width:70%;">
         </select>
     </div>
     <div class="form-row datapoint">
@@ -549,12 +748,7 @@
     </div>
      <div class="form-row datapoint">
         <label for="node-input-datapointProperty"><i class="icon-tags"></i> Property</label>
-        <select id="node-input-datapointProperty">
-            <option selected value="value">value</option>
-            <option value="ts">ts</option>
-            <option value="lc">lc</option>
-            <option value="working">working</option>
-            <option value="direction">direction</option>
+        <select id="node-input-datapointProperty" style="width:70%;">
         </select>
     </div>
 
@@ -572,6 +766,9 @@
     <div class="form-row">
         <input type="checkbox" id="node-input-repair" style="display: inline-block; width: auto; vertical-align: top;">
         <label style="width: auto;" for="node-input-repair"><span data-i18n="ccu-switch.label.repair"></span></label></input>
+    </div>
+    <div id="dialog-select-datapoint" title="Select Channel, Datapoint and Property">
+        <div id="config-lookup-tree"></div>
     </div>
 </script>
 

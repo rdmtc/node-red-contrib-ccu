@@ -47,9 +47,11 @@
             const $nodeInputCcuConfig = $('#node-input-ccuConfig');
             const $nodeInputChannel = $('#node-input-channel');
             const $nodeInputDatapoint = $('#node-input-datapoint');
+            const $configLookupBtn = $('#config-lookup-btn');
+            const $configLookupTree = $('#config-lookup-tree');
 
             let data;
-
+            let channelList;
             let ifacesLoaded = false;
             let ifacesPending = false;
 
@@ -240,6 +242,121 @@
                     typeUndefined
                 ]
             });
+
+            const $dialog = $("#dialog-select-datapoint").dialog({
+                    autoOpen: false,
+                    height: 400,
+                    width: 600,
+                    modal: true
+                });
+
+            try {
+                let treeList = $configLookupTree.css({ width: "100%", height: "100%" }).treeList({
+                    data: [{
+                            id: 'rooms',
+                        label: this._('node-red-contrib-ccu/ccu-connection:common.label.rooms'),
+                            icon: 'fa fa-home fa-fw',
+                            children: (done) => { loadTreeData('rooms', done) }
+                    }, {
+                            id: 'functions',
+                        label: this._('node-red-contrib-ccu/ccu-connection:common.label.functions'),
+                            icon: 'fa fa-cogs fa-fw',
+                            children: (done) => { loadTreeData('functions', done) }
+                    }, {
+                            id: 'all',
+                        label: this._('node-red-contrib-ccu/ccu-connection:common.label.allDevices'),
+                            icon: 'fa fa-slack fa-fw',
+                            children: (done) => {
+                                const nodeId = $nodeInputCcuConfig.val();
+                                const url = 'ccu?config=' + nodeId + '&type=ifaces';
+                                $.getJSON(url, d => {
+                                    const arrIface = [];
+                                    Object.keys(d).forEach(ifId => {
+                                        const iface = d[ifId];
+                                        if (ifId !== 'ReGaHSS' && iface.enabled) {
+                                            arrIface.push({
+                                                id: ifId,
+                                                label: ifId,
+                                            icon: 'fa fa-empire fa-fw',
+                                            children: (done) => { loadTreeData('tree', done, ifId) }
+                                            });
+                                        }
+                                    });
+                                    done(arrIface);
+                                });
+                            }
+                    }]
+                });
+                $configLookupTree.on('treelistselect', function (event, item) {
+                    console.log(item);
+                    if (item && item.iface && item.channel && item.label) {
+                        $nodeInputIface.val(item.iface);
+                        $nodeInputChannel.val(item.channel);
+                        $nodeInputDatapoint.val(item.label);
+                        $dialog.dialog("close");
+                    }
+                });
+
+                $configLookupBtn.click(() => {
+                    $dialog.dialog("open");
+                    if (!channelList) {
+                        const url = 'ccu?config=' + $nodeInputCcuConfig.val() + '&type=tree';
+                        $.getJSON(url, data => {
+                            channelList = data;
+                        });
+                    }
+                });
+            } catch (ex) {
+                // maybe wrong node-red version
+                $configLookupBtn.hide();
+            }
+
+            function loadTreeData(type, done, ifId) {
+                const nodeId = $nodeInputCcuConfig.val();
+                let url = 'ccu?config=' + nodeId + '&type=' + type;
+                if (type === 'tree') {
+                    url += '&iface=' + ifId + '&classCh=tree-channel&classDp=tree-dp';
+                $.getJSON(url, devices => {
+                    const arr = [];
+                    Object.keys(devices).forEach(id => {
+                        arr.push(devices[id]);
+                    });
+                    arr.sort((a, b) => a.label.localeCompare(b.label));
+                    arr.forEach((ch) => { if (ch.children) { ch.children.sort((a, b) => a.label.localeCompare(b.label)) } });
+                    done(arr);
+                });
+                } else {
+                const url = 'ccu?config=' + nodeId + '&type=' + type + '&classChannel=tree-channel&classDp=tree-dp';
+                $.getJSON(url, r => {
+                    const arr = [];
+                    if (r && r[type]) {
+                        for (let index = 0; index < r[type].length; index++) {
+                            console.log(r[type][index]);
+                            const lbl = r[type][index];
+                            arr.push({
+                                label: lbl,
+                                children: function (done) {
+                                    const arrCh = [];
+                                    if (channelList) {
+                                        Object.keys(channelList).forEach(addr => {
+                                            if (channelList[addr][type] && channelList[addr][type].includes(lbl)) {
+                                                console.log(channelList[addr]);
+                                                arrCh.push(channelList[addr]);
+                                            }
+                                        });
+                                    }
+                                    arrCh.sort((a, b) => a.label.localeCompare(b.label));
+                                    console.log(arrCh);
+                                    done(arrCh);
+                                }
+                            });
+                        }
+                    }
+                    console.log(arr);
+                    done(arr);
+                });
+                }
+            }
         },
 
         oneditsave() {
@@ -273,9 +390,12 @@
     </div>
     <div class="form-row">
         <label for="node-input-iface"><i class="fa fa-empire"></i> Interface</label>
-        <select id="node-input-iface" disabled>
-            <option></option>
-       </select>
+        <div style="display: inline-block; position: relative; width: 70%;">
+            <select id="node-input-iface" style="width:calc(100% - 40px);" disabled>
+                <option></option>
+            </select>
+            <a id="config-lookup-btn" class="editor-button" style="width: 35px; position: absolute; right: 0px;"><i id="config-lookup-icon" class="fa fa-search"></i></a>
+       </div>
     </div>
     <div class="form-row">
         <label for="node-input-channel"><i class="icon-tags"></i> channel</label>
@@ -371,6 +491,9 @@
         }
     </style>
 
+    <div id="dialog-select-datapoint" title="Select Channel and Datapoint">
+        <div id="config-lookup-tree"></div>
+    </div>
 </script>
 
 
