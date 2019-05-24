@@ -4,14 +4,14 @@
   },
   "common": {
     "label": {
-      "rooms":"Räume",
+      "rooms":"RÃ¤ume",
       "functions": "Gewerke",
-      "allDevices": "Geräte",
+      "allDevices": "GerÃ¤te",
       "sysVars": "Systemvariable",
       "value": "Wert (value)",
       "valueEnum": "value enumeration (valueEnum)",
       "ts": "Zeitpunkt letzte Aktualisierung (ts)",
-      "lc": "Zeitpunkt letzte Änderung (lc)",
+      "lc": "Zeitpunkt letzte Ã„nderung (lc)",
       "working": "im Schaltvorgang (working)",
       "direction": "Richtung (direction)",
       "all": "alle Eigenschaften als Objekt"

@@ -117,11 +117,15 @@
                 $('.form-row.datapoint').hide();
                 $('.form-row.sysvar').hide();
 
-                const sysvarPropertys = ["value","valueEnum","ts","lc"];
-                const datapointPropertys = ["value","ts","lc", "working", "direction"];
+                const sysvarPropertys = ['value', 'valueEnum', 'ts', 'lc'];
+                const datapointPropertys = ['value', 'ts', 'lc', 'working', 'direction'];
 
-                sysvarPropertys.forEach( val => { $nodeInputSysvarProperty.append($('<option></option>').val(val).text(node._('node-red-contrib-ccu/ccu-connection:common.label.'+val)));})
-                datapointPropertys.forEach(val => { $nodeInputDatapointProperty.append($('<option></option>').val(val).text(node._('node-red-contrib-ccu/ccu-connection:common.label.' + val))); })
+                sysvarPropertys.forEach(val => $nodeInputSysvarProperty.append(
+                    $('<option></option>').val(val).text(node._('node-red-contrib-ccu/ccu-connection:common.label.' + val))
+                ));
+                datapointPropertys.forEach(val => $nodeInputDatapointProperty.append(
+                    $('<option></option>').val(val).text(node._('node-red-contrib-ccu/ccu-connection:common.label.' + val))
+                ));
                 $nodeInputSysvarProperty.val(node.sysvarProperty || sysvarPropertys[0]);
                 $nodeInputDatapointProperty.val(node.datapointProperty || datapointPropertys[0]);
 
@@ -471,30 +475,30 @@
                     $('#node-input-rule-container').editableList('addItem', {r: rule, i});
                 }
 
-                const $dialog = $("#dialog-select-datapoint").dialog({
-                        autoOpen: false,
-                        height: 400,
-                        width: 600,
-                        modal: true
-                    });
+                const $dialog = $('#dialog-select-datapoint').dialog({
+                    autoOpen: false,
+                    height: 400,
+                    width: 600,
+                    modal: true
+                });
 
                 try {
-                    let treeList = $configLookupTree.css({ width: "100%", height: "100%" }).treeList({
+                    $configLookupTree.css({width: '100%', height: '100%'}).treeList({
                         data: [{
                             id: 'rooms',
                             label: node._('node-red-contrib-ccu/ccu-connection:common.label.rooms'),
                             icon: 'fa fa-home fa-fw',
-                            children: (done) => { loadTreeData('rooms', done) }
+                            children: done => loadTreeData('rooms', done)
                         }, {
                             id: 'functions',
                             label: node._('node-red-contrib-ccu/ccu-connection:common.label.functions'),
                             icon: 'fa fa-cogs fa-fw',
-                            children: (done) => { loadTreeData('functions', done) }
+                            children: done => loadTreeData('functions', done)
                         }, {
                             id: 'all',
                             label: node._('node-red-contrib-ccu/ccu-connection:common.label.allDevices'),
                             icon: 'fa fa-slack fa-fw',
-                            children: (done) => {
+                            children: done => {
                                 const nodeId = $nodeInputCcuConfig.val();
                                 const url = 'ccu?config=' + nodeId + '&type=ifaces';
                                 $.getJSON(url, d => {
@@ -506,7 +510,7 @@
                                                 id: ifId,
                                                 label: ifId,
                                                 icon: 'fa fa-empire fa-fw',
-                                                children: (done) => { loadTreeData('tree', done, ifId) }
+                                                children: done => loadTreeData('tree', done, ifId)
                                             });
                                         }
                                     });
@@ -517,11 +521,11 @@
                             id: 'sysVars',
                             label: node._('node-red-contrib-ccu/ccu-connection:common.label.sysVars'),
                             icon: 'fa fa-cog fa-fw',
-                            children: (done) => { loadTreeData('sysvar', done) }
+                            children: done => loadTreeData('sysvar', done)
                         }]
                     });
 
-                    $configLookupTree.on('treelistselect', function (event, item) {
+                    $configLookupTree.on('treelistselect', (event, item) => {
                         if (item && item.iface && item.channel && item.datapoint && item.property) {
                             $('.form-row.sysvar').hide();
                             $('.form-row.datapoint').show();
@@ -529,19 +533,19 @@
                             $nodeInputChannel.val(item.channel);
                             $nodeInputDatapoint.val(item.datapoint);
                             $nodeInputDatapointProperty.val(item.property);
-                            $dialog.dialog("close");
+                            $dialog.dialog('close');
                         } else if (item && item.sysvar && item.property) {
                             $('.form-row.datapoint').hide();
                             $('.form-row.sysvar').show();
                             $nodeInputIface.val('ReGaHSS');
                             $nodeInputSysvar.val(item.sysvar);
                             $nodeInputSysvarProperty.val(item.property);
-                            $dialog.dialog("close");
+                            $dialog.dialog('close');
                         }
                     });
 
                     $configLookupBtn.click(() => {
-                        $dialog.dialog("open");
+                        $dialog.dialog('open');
                         if (!channelArray) {
                             channelArray = [];
                             const url = 'ccu?config=' + $nodeInputCcuConfig.val() + '&type=tree';
@@ -549,7 +553,7 @@
                                 Object.keys(data).forEach(addr => {
                                     channelArray.push(data[addr]);
                                     if (data[addr].children) {
-                                        data[addr].children.forEach((dp) => {
+                                        data[addr].children.forEach(dp => {
                                             if (!dp.children) {
                                                 dp.children = getDPProp(dp);
                                             }
@@ -575,7 +579,8 @@
                             channel: dp.channel,
                             datapoint: dp.label,
                             property: val
-                        }); })
+                        });
+                    });
 
                     return retVal;
                 }
@@ -590,10 +595,10 @@
                             const arrDev = [];
                             Object.keys(devices).forEach(id => {
                                 const dev = devices[id];
-                                dev.children.forEach((ch) => {
+                                dev.children.forEach(ch => {
                                     if (ch.children) {
-                                        ch.children.sort((a, b) => a.label.localeCompare(b.label))
-                                        ch.children.forEach((dp) => {
+                                        ch.children.sort((a, b) => a.label.localeCompare(b.label));
+                                        ch.children.forEach(dp => {
                                             if (!dp.children) {
                                                 dp.children = getDPProp(dp);
                                             }
@@ -613,7 +618,7 @@
                                     id: id,
                                     label: id,
                                     icon: 'fa fa-tags fa-fw',
-                                    children: (done) => {
+                                    children: done => {
                                         const retVal = [];
                                         sysvarPropertys.forEach(val => {
                                             retVal.push({
