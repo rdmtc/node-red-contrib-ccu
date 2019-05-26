@@ -1188,15 +1188,11 @@ module.exports = function (RED) {
                 const initUrl = this.rpcServer(iface);
                 const hash = base62(crypto.createHash('sha1').update(initUrl).digest()).slice(0, 6);
                 const initId = 'nr_' + hash + '_' + iface;
+                this.lastEvent[iface] = now();
 
                 this.logger.info('init ' + iface + ' ' + initUrl + ' ' + initId);
                 this.methodCall(iface, 'init', [initUrl, initId])
                     .then(() => {
-                        this.lastEvent[iface] = now();
-                        if (this.ifaceTypes[iface].ping) {
-                            this.rpcCheckInit(iface);
-                        }
-
                         if (iface === 'CUxD') {
                             this.getDevices(iface).then(() => resolve(iface)).catch(() => resolve(iface));
                         } else if (['BidCos-RF', 'BidCos-Wired', 'HmIP-RF'].includes(iface)) {
@@ -1207,7 +1203,11 @@ module.exports = function (RED) {
                         } else {
                             resolve(iface);
                         }
-                    }).catch(err => reject(err));
+                    }).catch(err => reject(err)).finally(() => {
+                        if (this.ifaceTypes[iface].ping) {
+                            this.rpcCheckInit(iface);
+                        }
+                    });
             });
         }
 
@@ -1280,19 +1280,21 @@ module.exports = function (RED) {
 
             clearTimeout(this.rpcPingTimer[iface]);
             const pingTimeout = this.ifaceTypes[iface].pingTimeout || this.rpcPingTimeout;
-            const elapsed = Math.round((now() - this.lastEvent[iface]) / 1000);
+            const elapsed = Math.round((now() - (this.lastEvent[iface] || 0)) / 1000);
             this.logger.debug('rpcCheckInit', iface, elapsed, pingTimeout);
             if (elapsed > pingTimeout) {
                 this.hadTimeout.add(iface);
                 this.setIfaceStatus(iface, false);
                 this.logger.warn('ping timeout', iface, elapsed);
-                this.rpcInit(iface);
+                this.rpcInit(iface).catch(err => this.logger.error(err.message));
                 return;
             }
 
             if (elapsed >= (pingTimeout / 2)) {
                 //this.logger.trace('ping', iface, elapsed);
-                this.methodCall(iface, 'ping', ['nr']);
+                this.methodCall(iface, 'ping', ['nr']).catch(() => {
+                    this.setIfaceStatus(iface, false);
+                });
             }
 
             this.rpcPingTimer[iface] = setTimeout(() => {
@@ -1736,6 +1738,8 @@ module.exports = function (RED) {
                 'system.listMethods': (_, params, callback) => {
                     const [idInit] = params;
                     const iface = this.getIfaceFromIdInit(idInit);
+                    this.lastEvent[iface] = now();
+                    this.setIfaceStatus(iface, true);
                     const res = Object.keys(this.rpcMethods);
                     this.logger.debug('    >', iface, 'system.listMethods', JSON.stringify(res));
                     callback(null, res);
@@ -1793,6 +1797,8 @@ module.exports = function (RED) {
                 listDevices: (_, params, callback) => {
                     const [idInit] = params;
                     const iface = this.getIfaceFromIdInit(idInit);
+                    this.lastEvent[iface] = now();
+                    this.setIfaceStatus(iface, true);
                     const res = this.listDevices(iface) || [];
                     this.logger.debug('    >', iface, 'listDevices', JSON.stringify(res));
                     callback(null, res);
@@ -2381,6 +2387,8 @@ module.exports = function (RED) {
                     this.clients[iface].methodCall(method, params, (err, res) => {
                         if (err) {
                             this.logger.error('    <', iface, method, err);
+                            delete this.clients[iface];
+                            this.createClient(iface);
                             reject(err);
                         } else if (res && res.faultCode) {
                             this.logger.error('    <', iface, method, JSON.stringify(res));
