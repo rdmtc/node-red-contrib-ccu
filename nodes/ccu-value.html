@@ -287,31 +287,37 @@
                         }
                     }]
                 });
-                $configLookupTree.on('treelistselect', (event, item) => {
-                    if (item && item.iface && item.channel && item.label) {
-                        $nodeInputIface.val(item.iface);
-                        $nodeInputChannel.val(item.channel);
-                        $nodeInputDatapoint.val(item.label);
-                        $dialog.dialog('close');
-                    }
-                });
-
-                $configLookupBtn.click(() => {
-                    $dialog.dialog('open');
-                    if (!channelList) {
-                        const url = 'ccu?config=' + $nodeInputCcuConfig.val() + '&type=tree';
-                        $.getJSON(url, data => {
-                            channelList = data;
-                        });
-                    }
-                });
             } catch (ex) {
                 // maybe wrong node-red version
                 $configLookupBtn.hide();
             }
 
+            $configLookupTree.on('treelistselect', (event, item) => {
+                if (item && item.iface && item.channel && item.label) {
+                    $nodeInputIface.val(item.iface);
+                    $nodeInputChannel.val(item.channel);
+                    $nodeInputDatapoint.val(item.label);
+                    $dialog.dialog('close');
+                    loadConfig();
+                }
+            });
+
+            $configLookupBtn.click(() => {
+                $dialog.dialog('open');
+                if (!channelList) {
+                    const url = 'ccu?config=' + $nodeInputCcuConfig.val() + '&type=tree';
+                    $.getJSON(url, data => {
+                        channelList = data;
+                    });
+                }
+            });
+
             function loadTreeData(type, done, ifId) {
                 const nodeId = $nodeInputCcuConfig.val();
+                if (nodeId === '_ADD_') {
+                    return;
+                }
+
                 let url = 'ccu?config=' + nodeId + '&type=' + type;
                 if (type === 'tree') {
                     url += '&iface=' + ifId + '&classCh=tree-channel&classDp=tree-dp';
@@ -395,7 +401,7 @@
             <select id="node-input-iface" style="width:calc(100% - 40px);" disabled>
                 <option></option>
             </select>
-            <a id="config-lookup-btn" class="editor-button" style="width: 35px; position: absolute; right: 0px;"><i id="config-lookup-icon" class="fa fa-search"></i></a>
+            <a id="config-lookup-btn" class="editor-button red-ui-button" style="width: 35px; position: absolute; right: 0px;"><i id="config-lookup-icon" class="fa fa-search"></i></a>
        </div>
     </div>
     <div class="form-row">

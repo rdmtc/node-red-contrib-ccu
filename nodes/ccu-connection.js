@@ -120,14 +120,13 @@ module.exports = function (RED) {
                                 if (config.paramsetDescriptions[psKey]) {
                                     const devID = devices[addr].PARENT;
                                     const dps = [];
-                                    let chName = config.channelNames[addr];
-                                    chName = (chName) ? chName + '  (' + addr + ')' : addr;
+                                    const chName = config.channelNames[addr];
 
                                     Object.keys(config.paramsetDescriptions[psKey]).forEach(dp => {
                                         dps.push({
-                                            iface,
                                             id: iface + '.' + addr + '.' + dp,
-                                            channel: chName,
+                                            iface,
+                                            channel: (chName) ? addr + ' ' + chName : addr,
                                             label: dp,
                                             icon: 'fa fa-tag fa-fw',
                                             class: req.query.classDp
@@ -135,9 +134,9 @@ module.exports = function (RED) {
                                     });
                                     dps.sort((a, b) => a.label.localeCompare(b.label));
                                     const channel = {
-                                        iface,
                                         id: iface + '.' + addr,
-                                        label: chName,
+                                        iface,
+                                        label: (chName) ? chName + '  (' + addr + ')' : addr,
                                         children: dps,
                                         rooms: config.channelRooms[addr],
                                         functions: config.channelFunctions[addr],
