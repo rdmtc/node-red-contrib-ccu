@@ -267,7 +267,7 @@
                         id: 'all',
                         label: this._('node-red-contrib-ccu/ccu-connection:common.label.allDevices'),
                         icon: 'fa fa-slack fa-fw',
-                        children: (done, item) => {
+                        children: done => {
                             const nodeId = $nodeInputCcuConfig.val();
                             const url = 'ccu?config=' + nodeId + '&type=ifaces';
                             $.getJSON(url, d => {
@@ -344,7 +344,7 @@
                                 const lbl = r[type][index];
                                 arr.push({
                                     label: lbl,
-                                    children: (done, item) => {
+                                    children: done => {
                                         const arrCh = [];
                                         if (channelList) {
                                             Object.keys(channelList).forEach(addr => {

@@ -238,7 +238,7 @@
                             id: 'all',
                             label: node._('node-red-contrib-ccu/ccu-connection:common.label.allDevices'),
                             icon: 'fa fa-slack fa-fw',
-                            children: (done, item) => {
+                            children: done => {
                                 const nodeId = $nodeInputCcuConfig.val();
                                 const url = 'ccu?config=' + nodeId + '&type=ifaces';
                                 $.getJSON(url, d => {
@@ -365,7 +365,7 @@
                                     id,
                                     label: id,
                                     icon: 'fa fa-tags fa-fw',
-                                    children: (done, item) => {
+                                    children: done => {
                                         const retVal = [];
                                         sysvarPropertys.forEach(val => {
                                             retVal.push({
@@ -390,7 +390,7 @@
                                     const lbl = r[type][index];
                                     arr.push({
                                         label: lbl,
-                                        children: (done, item) => {
+                                        children: done => {
                                             const arrCh = [];
                                             if (channelArray) {
                                                 channelArray.forEach(ch => {
