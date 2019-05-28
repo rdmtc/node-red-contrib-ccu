@@ -101,6 +101,7 @@
                             });
 
                             $nodeInputIface.removeAttr('disabled');
+                            $configLookupBtn.removeAttr('disabled');
 
                             $nodeInputIface.trigger('change');
                             if (typeof cb === 'function') {
@@ -227,17 +228,17 @@
                             id: 'rooms',
                             label: node._('node-red-contrib-ccu/ccu-connection:common.label.rooms'),
                             icon: 'fa fa-home fa-fw',
-                            children: done => loadTreeData('rooms', done)
+                            children: (done, item) => loadTreeData('rooms', done, item)
                         }, {
                             id: 'functions',
                             label: node._('node-red-contrib-ccu/ccu-connection:common.label.functions'),
                             icon: 'fa fa-cogs fa-fw',
-                            children: done => loadTreeData('functions', done)
+                            children: (done, item) => loadTreeData('functions', done, item)
                         }, {
                             id: 'all',
                             label: node._('node-red-contrib-ccu/ccu-connection:common.label.allDevices'),
                             icon: 'fa fa-slack fa-fw',
-                            children: done => {
+                            children: (done, item) => {
                                 const nodeId = $nodeInputCcuConfig.val();
                                 const url = 'ccu?config=' + nodeId + '&type=ifaces';
                                 $.getJSON(url, d => {
@@ -249,7 +250,7 @@
                                                 id: ifId,
                                                 label: ifId,
                                                 icon: 'fa fa-empire fa-fw',
-                                                children: done => loadTreeData('tree', done, ifId)
+                                                children: (done, item) => loadTreeData('tree', done, item, ifId)
                                             });
                                         }
                                     });
@@ -260,7 +261,7 @@
                             id: 'sysVars',
                             label: node._('node-red-contrib-ccu/ccu-connection:common.label.sysVars'),
                             icon: 'fa fa-cog fa-fw',
-                            children: done => loadTreeData('sysvar', done)
+                            children: (done, item) => loadTreeData('sysvar', done, item)
                         }]
                     });
                 } catch (ex) {
@@ -327,7 +328,7 @@
                     return retVal;
                 }
 
-                function loadTreeData(type, done, ifId) {
+                function loadTreeData(type, done, item, ifId) {
                     const nodeId = $nodeInputCcuConfig.val();
                     if (nodeId === '_ADD_') {
                         return;
@@ -364,7 +365,7 @@
                                     id,
                                     label: id,
                                     icon: 'fa fa-tags fa-fw',
-                                    children: done => {
+                                    children: (done, item) => {
                                         const retVal = [];
                                         sysvarPropertys.forEach(val => {
                                             retVal.push({
@@ -389,7 +390,7 @@
                                     const lbl = r[type][index];
                                     arr.push({
                                         label: lbl,
-                                        children: done => {
+                                        children: (done, item) => {
                                             const arrCh = [];
                                             if (channelArray) {
                                                 channelArray.forEach(ch => {
@@ -429,7 +430,7 @@
             <select id="node-input-iface" style="width:calc(100% - 40px);" disabled>
                 <option></option>
             </select>
-            <a id="config-lookup-btn" class="editor-button red-ui-button" style="width: 35px; position: absolute; right: 0px;"><i id="config-lookup-icon" class="fa fa-search"></i></a>
+            <a id="config-lookup-btn" class="editor-button red-ui-button" style="width: 35px; position: absolute; right: 0px;" disabled><i id="config-lookup-icon" class="fa fa-search"></i></a>
        </div>
     </div>
     <div class="form-row sysvar">
