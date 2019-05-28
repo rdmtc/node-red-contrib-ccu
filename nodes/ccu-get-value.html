@@ -222,7 +222,10 @@
                     modal: true
                 });
 
-                try {
+                if (typeof $().treeList === 'undefined') {
+                    // maybe wrong node-red version
+                    $configLookupBtn.hide();
+                } else {
                     $configLookupTree.css({width: '100%', height: '100%'}).treeList({
                         data: [{
                             id: 'rooms',
@@ -264,9 +267,6 @@
                             children: (done, item) => loadTreeData('sysvar', done, item)
                         }]
                     });
-                } catch (ex) {
-                    // maybe wrong node-red version
-                    $configLookupBtn.hide();
                 }
 
                 $configLookupTree.on('treelistselect', (event, item) => {
