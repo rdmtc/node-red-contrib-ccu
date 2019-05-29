@@ -58,8 +58,8 @@
 
                 $nodeConfigInputHost.autocomplete({
                     source: discovered,
-                    close: () => {
-                        const name = $nodeConfigInputHost.val();
+                    select: (_, ui) => {
+                        const name = ui.item.label;
                         const address = name.split(' ').shift();
                         const serial = name.split(' ').pop();
 
@@ -79,6 +79,12 @@
                     },
                     delay: 0,
                     minLength: 0
+                });
+
+                $nodeConfigInputHost.on('change', () => {
+                    if (!$nodeConfigInputHost.val().endsWith($nodeConfigInputName.val())) {
+                        $nodeConfigInputName.val($nodeConfigInputHost.val());
+                    }
                 });
 
                 data.listen.forEach(addr => {
