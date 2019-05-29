@@ -1,4 +1,5 @@
 const os = require('os');
+const dns = require('dns');
 const path = require('path');
 const fs = require('fs');
 const crypto = require('crypto');
@@ -296,6 +297,37 @@ module.exports = function (RED) {
         return (new Date()).getTime();
     }
 
+    /**
+     *
+     * @param host
+     * @returns {Promise<any>}
+     */
+    function resolveHost(host) {
+        function unifyLoopback(addr) {
+            if (addr.startsWith('127.')) {
+                return '127.0.0.1';
+            }
+
+            return addr;
+        }
+
+        return new Promise(resolve => {
+            if (/^([01]?\d?\d|2[0-4]\d|25[0-5])\\.([01]?\d?\d|2[0-4]\d|25[0-5])\\.([01]?\d?\d|2[0-4]\d|25[0-5])\\.([01]?\d?\d|2[0-4]\d|25[0-5])$/g.test(host)) {
+                resolve(unifyLoopback(host));
+            } else if (/^((?:[0-9A-Fa-f]{1,4}))((?::[0-9A-Fa-f]{1,4}))*::((?:[0-9A-Fa-f]{1,4}))((?::[0-9A-Fa-f]{1,4}))*|((?:[0-9A-Fa-f]{1,4}))((?::[0-9A-Fa-f]{1,4})){7}$/g.test(host)) {
+                resolve(host);
+            } else {
+                dns.lookup(host, (err, addr) => {
+                    if (err) {
+                        resolve(host);
+                    } else {
+                        resolve(unifyLoopback(addr));
+                    }
+                });
+            }
+        });
+    }
+
     class CcuConnectionNode {
         /**
          *
@@ -306,8 +338,10 @@ module.exports = function (RED) {
 
             this.logger.debug('ccu-connection', config.host);
 
+            this.checkDuplicateConfig(config);
+
             this.isLocal = false;
-            if (config.host === '127.0.0.1' || config.host === 'localhost') {
+            if (config.host.startsWith('127.') || config.host === 'localhost') {
                 try {
                     const rfdConf = fs.readFileSync('/etc/lighttpd/conf.d/proxy.conf').toString();
                     if (rfdConf.match(/"port"\s+=>\s+32001/)) {
@@ -504,6 +538,24 @@ module.exports = function (RED) {
                     this.error(args.join(' ').substr(0, 300));
                 }
             };
+        }
+
+        /**
+         *
+         * @param config
+         */
+        checkDuplicateConfig(config) {
+            resolveHost(config.host).then(myAddr => {
+                RED.nodes.eachNode(n => {
+                    if (n.type === this.type && n.id !== this.id) {
+                        resolveHost(n.host).then(addr => {
+                            if (myAddr === addr) {
+                                this.logger.error('ccu-connection node ' + n.name + ' (' + n.id + ') is configured to connect to the same ccu. this leads to problems - only one ccu-connection node per ccu should exist!');
+                            }
+                        });
+                    }
+                });
+            });
         }
 
         /**
