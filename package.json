@@ -34,6 +34,10 @@
     },
     "author": "Sebastian Raff <hobbyquaker@gmail.com>",
     "license": "MIT",
+    "contributors": [
+        "Hypnos3 <hypnos3@online.de> https://github.com/Hypnos3",
+        "psi-4ward <gh@psi.cx> https://github.com/psi-4ward"
+    ],
     "dependencies": {
         "binrpc": "^3.3.1",
         "buffer-base62": "^0.1.2",

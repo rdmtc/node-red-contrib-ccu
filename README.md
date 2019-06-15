@@ -60,7 +60,7 @@ In this example both Node-RED and debmatic are installed on the same (possibly v
 
 ## License
 
-MIT (c) Sebastian Raff
+MIT (c) Sebastian Raff and node-red-contrib-ccu contributors
 
 [mit-badge]: https://img.shields.io/badge/License-MIT-blue.svg?style=flat
 [mit-url]: LICENSE
