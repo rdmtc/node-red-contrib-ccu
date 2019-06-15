@@ -435,7 +435,18 @@
 </script>
 
 <script type="text/x-red" data-template-name="ccu-signal">
-
+    <style>
+        label.ccu-checkbox {
+          width: auto !important;
+        }
+        label.ccu-checkbox input {
+            width: auto !important;
+            margin-top: -3px !important;
+        }
+        select.ccu-dropdown {
+            width: 70%;
+        }
+    </style>
 
     <div class="form-row">
         <label for="node-input-name"><i class="icon-globe"></i> Name</label>
@@ -448,7 +459,7 @@
     </div>
     <div class="form-row">
         <label for="node-input-iface"><i class="fa fa-empire"></i> Interface</label>
-        <select id="node-input-iface" disabled></select>
+        <select id="node-input-iface" class="ccu-dropdown" disabled></select>
     </div>
     <div class="form-row">
         <label for="node-input-channel"><i class="icon-tags"></i> Kanal</label>
@@ -456,7 +467,7 @@
     </div>
     <div class="form-row">
         <label for="node-input-channelType"><i class="icon-tags"></i> Typ</label>
-        <select id="node-input-channelType">
+        <select id="node-input-channelType" class="ccu-dropdown">
             <option value="SIGNAL_CHIME">SIGNAL_CHIME (HM-OU-*)</option>
             <option value="SIGNAL_LED">SIGNAL_LED (HM-OU-*)</option>
             <option value="ALARM_SWITCH_VIRTUAL_RECEIVER">ALARM (HmIP-ASIR)</option>
@@ -500,7 +511,7 @@
 
     <div class="form-row SUBMIT ALARM_SWITCH_VIRTUAL_RECEIVER">
         <label for="node-input-acousticAlarmSelection"><i class=""></i> Akustisch</label>
-        <select id="node-input-acousticAlarmSelection">
+        <select id="node-input-acousticAlarmSelection" class="ccu-dropdown">
             <option value="DISABLE_ACOUSTIC_SIGNAL">Kein akustisches Signal</option>
             <option value="FREQUENCY_RISING">Freq. steigend</option>
             <option value="FREQUENCY_FALLING">Freq. fallend</option>
@@ -524,7 +535,7 @@
 
     <div class="form-row SUBMIT ALARM_SWITCH_VIRTUAL_RECEIVER">
         <label for="node-input-opticalAlarmSelection"><i class=""></i> Optisch</label>
-        <select id="node-input-opticalAlarmSelection">
+        <select id="node-input-opticalAlarmSelection" class="ccu-dropdown">
             <option value="DISABLE_OPTICAL_SIGNAL">Kein optisches Signal</option>
             <option value="BLINKING_ALTERNATELY_REPEATING">Abwechselndes, langsames Blinken</option>
             <option value="BLINKING_BOTH_REPEATING">Gleichzeitigs langsames Blinken</option>
@@ -538,7 +549,7 @@
 
     <div class="form-row SUBMIT ACOUSTIC_SIGNAL_VIRTUAL_RECEIVER DIMMER_VIRTUAL_RECEIVER">
         <label for="node-input-repetitions"><i class=""></i> Wiederholungen </label>
-        <select id="node-input-repetitions">
+        <select id="node-input-repetitions" class="ccu-dropdown">
             <option value="0">Keine</option>
             <option value="1">1x</option>
             <option value="2">2x</option>
@@ -567,7 +578,7 @@
 
     <div class="form-row SUBMIT BSL_DIMMER_VIRTUAL_RECEIVER">
         <label for="node-input-dimmerColor"><i class=""></i> Farbe </label>
-        <select id="node-input-dimmerColor">
+        <select id="node-input-dimmerColor" class="ccu-dropdown">
             <option value="0">Aus</option>
             <option value="1">Blau</option>
             <option value="2">Grün</option>

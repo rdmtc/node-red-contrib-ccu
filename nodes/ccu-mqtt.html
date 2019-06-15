@@ -43,6 +43,18 @@
 </script>
 
 <script type="text/x-red" data-template-name="ccu-mqtt">
+    <style>
+        label.ccu-checkbox {
+          width: auto !important;
+        }
+        label.ccu-checkbox input {
+            width: auto !important;
+            margin-top: -3px !important;
+        }
+        select.ccu-dropdown {
+            width: 70%;
+        }
+    </style>
     <div class="form-row">
         <label for="node-input-name"><i class="icon-bookmark"></i> Name</label>
         <input type="text" id="node-input-name">
@@ -108,7 +120,7 @@
     </div>
     <div class="form-row">
         <label for="node-input-payloadOutput">Output Payload</label>
-        <select id="node-input-payloadOutput">
+        <select id="node-input-payloadOutput" class="ccu-dropdown">
             <option value="plain">Plain</option>
             <option value="mqsh-basic">MQTT-Smarthome JSON Basic</option>
             <option value="mqsh-extended">MQTT-Smarthome JSON Extended</option>

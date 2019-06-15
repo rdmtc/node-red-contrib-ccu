@@ -124,6 +124,11 @@
 </script>
 
 <script type="text/x-red" data-template-name="ccu-rpc">
+    <style>
+        select.ccu-dropdown {
+            width: 70%;
+        }
+    </style>
     <div class="form-row">
         <label for="node-input-ccuConfig"><i class="icon-globe"></i> CCU</label>
         <input type="text" id="node-input-ccuConfig">
@@ -134,7 +139,7 @@
     </div>
     <div class="form-row">
         <label for="node-input-iface"><i class="fa fa-empire"></i> Interface</label>
-        <select id="node-input-iface" disabled>
+        <select id="node-input-iface" class="ccu-dropdown" disabled>
             <option></option>
        </select>
     </div>

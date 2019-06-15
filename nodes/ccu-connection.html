@@ -113,6 +113,16 @@
 </script>
 
 <script type="text/x-red" data-template-name="ccu-connection">
+    <style>
+        label.ccu-checkbox {
+            display: block !important;
+            width: auto !important;
+        }
+        label.ccu-checkbox input {
+            width: auto !important;
+            margin-top: -3px !important;
+        }
+    </style>
     <div class="form-row">
         <label for="node-config-input-name"><i class="icon-tag"></i> CCU name</label>
         <input type="text" id="node-config-input-name">
@@ -176,15 +186,6 @@
             <option value="">none</option>
         </select>
     </div>
-    <style>
-        .ccu-checkbox {
-          width: auto !important;
-        }
-        .ccu-checkbox input {
-            width: 32px;
-            margin-top: -3px;
-        }
-    </style>
 </script>
 
 

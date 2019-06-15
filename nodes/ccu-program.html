@@ -57,6 +57,18 @@
 </script>
 
 <script type="text/x-red" data-template-name="ccu-program">
+    <style>
+        label.ccu-checkbox {
+          width: auto !important;
+        }
+        label.ccu-checkbox input {
+            width: auto !important;
+            margin-top: -3px !important;
+        }
+        select.ccu-dropdown {
+            width: 70%;
+        }
+    </style>
     <div class="form-row">
         <label for="node-input-ccuConfig"><i class="icon-globe"></i> CCU</label>
         <input type="text" id="node-input-ccuConfig">
@@ -68,7 +80,7 @@
     <div class="form-row">
         <label for="node-input-name"><i class="icon-bookmark"></i> Name</label>
         <input type="text" id="node-input-name">
-        <select id="select-input-name" style="display:none"></select>
+        <select id="select-input-name" style="display:none" class="ccu-dropdown"></select>
     </div>
     <div class="form-tips" data-i18n="ccu-program.tip"></div>
 </script>

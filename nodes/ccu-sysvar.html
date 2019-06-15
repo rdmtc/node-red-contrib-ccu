@@ -70,6 +70,18 @@
 </script>
 
 <script type="text/x-red" data-template-name="ccu-sysvar">
+    <style>
+        label.ccu-checkbox {
+          width: auto !important;
+        }
+        label.ccu-checkbox input {
+            width: auto !important;
+            margin-top: -3px !important;
+        }
+        select.ccu-dropdown {
+            width: 70%;
+        }
+    </style>
     <div class="form-row">
         <label for="node-input-ccuConfig"><i class="icon-globe"></i> CCU</label>
         <input type="text" id="node-input-ccuConfig">
@@ -81,7 +93,7 @@
     <div class="form-row">
         <label for="node-input-name"><i class="icon-bookmark"></i> Name</label>
         <input type="text" id="node-input-name">
-        <select id="select-input-name" style="display:none">
+        <select id="select-input-name" style="display:none" class="ccu-dropdown">
         </select>
     </div>
     <div class="form-row">
@@ -91,7 +103,6 @@
                 <input type="checkbox" id="node-input-change">
                 <span data-i18n="ccu-sysvar.change"></span>
             </label>
-
             <label class="ccu-checkbox">
                 <input type="checkbox" id="node-input-cache">
                 <span data-i18n="ccu-sysvar.cache"></span>
@@ -99,16 +110,6 @@
         </div>
     </div>
     <div class="form-tips" data-i18n="ccu-sysvar.tip"></div>
-     <style>
-        .ccu-checkbox {
-            width: auto !important;
-            display: block !important;
-        }
-        .ccu-checkbox input {
-            width: 24px;
-            margin-top: -3px;
-        }
-    </style>
 </script>
 
 <script type="text/x-red" data-help-name="ccu-sysvar" lang="de-DE">

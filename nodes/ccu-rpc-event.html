@@ -497,6 +497,19 @@
 </script>
 
 <script type="text/x-red" data-template-name="ccu-rpc-event">
+    <style>
+        label.ccu-checkbox {
+            display: block !important;
+            width: auto !important;
+        }
+        label.ccu-checkbox input {
+            width: auto !important;
+            margin-top: -3px !important;
+        }
+        select.ccu-dropdown {
+            width: 70%;
+        }
+    </style>
     <div class="form-row">
         <label for="node-input-ccuConfig"><i class="icon-globe"></i> CCU</label>
         <input type="text" id="node-input-ccuConfig">
@@ -507,7 +520,7 @@
     </div>
     <div class="form-row">
         <label for="node-input-iface"><i class="fa fa-empire"></i> Interface</label>
-        <select id="node-input-iface">
+        <select id="node-input-iface" class="ccu-dropdown">
             <option value="">*</option>
        </select>
     </div>
@@ -584,17 +597,6 @@
         <label for="node-input-name"><i class="icon-bookmark"></i> Name</label>
         <input type="text" id="node-input-name">
     </div>
-
-    <style>
-        .ccu-checkbox {
-            width: auto !important;
-            display: block !important;
-        }
-        .ccu-checkbox input {
-            width: 24px;
-            margin-top: -3px;
-        }
-    </style>
 </script>
 
 <script type="text/x-red" data-help-name="ccu-rpc-event" lang="de-DE">

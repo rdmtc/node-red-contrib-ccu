@@ -173,13 +173,25 @@
 </script>
 
 <script type="text/x-red" data-template-name="ccu-display">
+    <style>
+        label.ccu-checkbox {
+          width: auto !important;
+        }
+        label.ccu-checkbox input {
+            width: auto !important;
+            margin-top: -3px !important;
+        }
+        select.ccu-dropdown {
+            width: 70%;
+        }
+    </style>
     <div class="form-row">
         <label for="node-input-ccuConfig"><i class="icon-globe"></i> CCU</label>
         <input type="text" id="node-input-ccuConfig">
     </div>
     <div class="form-row">
         <label for="node-input-iface"><i class="fa fa-empire"></i> Interface</label>
-        <select id="node-input-iface" disabled></select>
+        <select id="node-input-iface" class="ccu-dropdown" disabled></select>
     </div>
     <div class="form-row">
         <label for="node-input-channel"><i class="icon-tags"></i> Kanal</label>
@@ -187,7 +199,7 @@
     </div>
     <div class="form-row">
         <label for="node-input-channelType"><i class="icon-tags"></i> Typ</label>
-        <select id="node-input-channelType">
+        <select id="node-input-channelType" class="ccu-dropdown">
             <option value="HM-Dis-WM55">HM-Dis-WM55</option>
             <option value="HM-Dis-EP-WM55">HM-Dis-EP-WM55</option>
         </select>
@@ -199,7 +211,7 @@
     </div>
     <div class="form-row SUBMIT HM-Dis-WM55">
         <label for="node-input-color1"><i class="icon-envelope"></i> Farbe 1</label>
-        <select id="node-input-color1">
+        <select id="node-input-color1" class="ccu-dropdown">
             <option value="0x80">Weiß</option>
             <option value="0x81">Rot</option>
             <option value="0x82">Orange</option>
@@ -210,7 +222,7 @@
     </div>
     <div class="form-row SUBMIT HM-Dis-WM55 HM-Dis-EP-WM55">
         <label for="node-input-icon1"><i class="icon-envelope"></i> Icon 1</label>
-        <select id="node-input-icon1">
+        <select id="node-input-icon1" class="ccu-dropdown">
             <option value=""></option>
             <option value="0x80">Aus</option>
             <option value="0x81">Ein</option>
@@ -232,7 +244,7 @@
     </div>
     <div class="form-row SUBMIT HM-Dis-WM55">
         <label for="node-input-color2"><i class="icon-envelope"></i> Farbe 2</label>
-        <select id="node-input-color2">
+        <select id="node-input-color2" class="ccu-dropdown">
             <option value="0x80">Weiß</option>
             <option value="0x81">Rot</option>
             <option value="0x82">Orange</option>
@@ -243,7 +255,7 @@
     </div>
     <div class="form-row SUBMIT HM-Dis-WM55 HM-Dis-EP-WM55">
         <label for="node-input-icon2"><i class="icon-envelope"></i> Icon 2</label>
-        <select id="node-input-icon2">
+        <select id="node-input-icon2" class="ccu-dropdown">
             <option value=""></option>
             <option value="0x80">Aus</option>
             <option value="0x81">Ein</option>
@@ -265,7 +277,7 @@
     </div>
     <div class="form-row SUBMIT HM-Dis-WM55">
         <label for="node-input-color3"><i class="icon-envelope"></i> Farbe 3</label>
-        <select id="node-input-color3">
+        <select id="node-input-color3" class="ccu-dropdown">
             <option value="0x80">Weiß</option>
             <option value="0x81">Rot</option>
             <option value="0x82">Orange</option>
@@ -276,7 +288,7 @@
     </div>
     <div class="form-row SUBMIT HM-Dis-WM55 HM-Dis-EP-WM55">
         <label for="node-input-icon3"><i class="icon-envelope"></i> Icon 3</label>
-        <select id="node-input-icon3">
+        <select id="node-input-icon3" class="ccu-dropdown">
             <option value=""></option>
             <option value="0x80">Aus</option>
             <option value="0x81">Ein</option>
@@ -298,7 +310,7 @@
     </div>
     <div class="form-row SUBMIT HM-Dis-WM55">
         <label for="node-input-color4"><i class="icon-envelope"></i> Farbe 4</label>
-        <select id="node-input-color4">
+        <select id="node-input-color4" class="ccu-dropdown">
             <option value="0x80">Weiß</option>
             <option value="0x81">Rot</option>
             <option value="0x82">Orange</option>
@@ -309,7 +321,7 @@
     </div>
     <div class="form-row SUBMIT HM-Dis-WM55">
         <label for="node-input-icon4"><i class="icon-envelope"></i> Icon 4</label>
-        <select id="node-input-icon4">
+        <select id="node-input-icon4" class="ccu-dropdown">
             <option value=""></option>
             <option value="0x80">Aus</option>
             <option value="0x81">Ein</option>
@@ -331,7 +343,7 @@
     </div>
     <div class="form-row SUBMIT HM-Dis-WM55">
         <label for="node-input-color5"><i class="icon-envelope"></i> Farbe 5</label>
-        <select id="node-input-color5">
+        <select id="node-input-color5" class="ccu-dropdown">
             <option value="0x80">Weiß</option>
             <option value="0x81">Rot</option>
             <option value="0x82">Orange</option>
@@ -342,7 +354,7 @@
     </div>
     <div class="form-row SUBMIT HM-Dis-WM55">
         <label for="node-input-icon5"><i class="icon-envelope"></i> Icon 5</label>
-        <select id="node-input-icon5">
+        <select id="node-input-icon5" class="ccu-dropdown">
             <option value=""></option>
             <option value="0x80">Aus</option>
             <option value="0x81">Ein</option>
@@ -365,7 +377,7 @@
     </div>
     <div class="form-row SUBMIT HM-Dis-WM55">
         <label for="node-input-color6"><i class="icon-envelope"></i> Farbe 6</label>
-        <select id="node-input-color6">
+        <select id="node-input-color6" class="ccu-dropdown">
             <option value="0x80">Weiß</option>
             <option value="0x81">Rot</option>
             <option value="0x82">Orange</option>
@@ -376,7 +388,7 @@
     </div>
     <div class="form-row SUBMIT HM-Dis-WM55">
         <label for="node-input-icon6"><i class="icon-envelope"></i> Icon 6</label>
-        <select id="node-input-icon6">
+        <select id="node-input-icon6" class="ccu-dropdown">
             <option value=""></option>
             <option value="0x80">Aus</option>
             <option value="0x81">Ein</option>
@@ -395,7 +407,7 @@
 
     <div class="form-row SUBMIT HM-Dis-EP-WM55">
         <label for="node-input-signal"><i class="icon-envelope"></i> LED</label>
-        <select id="node-input-signal">
+        <select id="node-input-signal" class="ccu-dropdown">
             <option value="0xF0">Aus</option>
             <option value="0xF1">Rot</option>
             <option value="0xF2">Grün</option>
@@ -404,7 +416,7 @@
     </div>
     <div class="form-row SUBMIT HM-Dis-EP-WM55">
         <label for="node-input-sound"><i class="icon-envelope"></i> Ton</label>
-        <select id="node-input-sound">
+        <select id="node-input-sound" class="ccu-dropdown">
             <option value="0xC0">Aus</option>
             <option value="0xC1">Lang Lang</option>
             <option value="0xC2">Lang Kurz</option>
@@ -416,7 +428,7 @@
     </div>
     <div class="form-row SUBMIT HM-Dis-EP-WM55">
         <label for="node-input-repeat"><i class="icon-bookmark"></i> Wiederholungen</label>
-        <select id="node-input-repeat">
+        <select id="node-input-repeat" class="ccu-dropdown">
             <option value="0xD0">1</option>
             <option value="0xD1">2</option>
             <option value="0xD2">3</option>
@@ -437,7 +449,7 @@
     </div>
     <div class="form-row SUBMIT HM-Dis-EP-WM55">
         <label for="node-input-pause"><i class="icon-bookmark"></i> Pause</label>
-        <select id="node-input-pause">
+        <select id="node-input-pause" class="ccu-dropdown">
             <option value="0xE0">10 Sekunden</option>
             <option value="0xE1">20 Sekunden</option>
             <option value="0xE2">30 Sekunden</option>
@@ -460,8 +472,6 @@
         <label for="node-input-name"><i class="icon-bookmark"></i> Name</label>
         <input type="text" id="node-input-name">
     </div>
-
-
 </script>
 
 <script type="text/x-red" data-help-name="ccu-display" lang="de-DE">
