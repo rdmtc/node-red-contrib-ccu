@@ -12,8 +12,6 @@ module.exports = function (RED) {
                 return;
             }
 
-            this.iface = config.iface;
-
             this.ccu.register(this);
 
             this.on('input', msg => {
@@ -31,24 +29,25 @@ module.exports = function (RED) {
                 }
 
                 const method = config.method || msg.method || msg.topic;
+                const iface = config.iface || msg.iface;
 
                 if (method === 'setValue') {
                     const [address, param, value] = params;
-                    params[2] = this.ccu.paramCast(config.iface, address, 'VALUES', param, value);
+                    params[2] = this.ccu.paramCast(iface, address, 'VALUES', param, value);
                 } else if (method === 'putParamset') {
                     let [address, paramset, values] = params;
                     values = values || {};
                     Object.keys(values).forEach(param => {
-                        values[param] = this.ccu.paramCast(config.iface, address, paramset, param, values[param]);
+                        values[param] = this.ccu.paramCast(iface, address, paramset, param, values[param]);
                     });
                     params[2] = values;
                 }
 
-                this.ccu.methodCall(config.iface, method, params)
+                this.ccu.methodCall(iface, method, params)
                     .then(res => {
                         const msg = {
                             ccu: this.ccu.host,
-                            iface: config.iface,
+                            iface,
                             topic: config.topic,
                             payload: res,
                             ts: (new Date()).getTime(),
