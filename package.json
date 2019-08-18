@@ -36,7 +36,8 @@
     "license": "MIT",
     "contributors": [
         "Hypnos3 <hypnos3@online.de> https://github.com/Hypnos3",
-        "psi-4ward <gh@psi.cx> https://github.com/psi-4ward"
+        "psi-4ward <gh@psi.cx> https://github.com/psi-4ward",
+        "Timo Wendt https://github.com/twendt"
     ],
     "dependencies": {
         "binrpc": "^3.3.1",
