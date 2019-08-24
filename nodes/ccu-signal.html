@@ -280,7 +280,13 @@
                     if ($('#node-input-chime-container').editableList('length') > 10) {
                         $('#node-input-chime-container').editableList('removeItem', data);
                     } else {
-                        $('<input type="number" class="number mp3" min="0" max="255" style="width: 80px;" value="' + data.cmd + '"/>').appendTo(container);
+                        let html = '<select class="number mp3" style="width: 80px;"><option value="">default</option>';
+                        for (let i = 1; i < 256; i++) {
+                            html += '<option value="' + i + '"' + (data.cmd === String(i) ? ' selected' : '') + '>' + ('00' + i).slice(-3) + '</option>';
+                        }
+
+                        html += '</select>';
+                        $(html).appendTo(container);
                         container.find('input:last').focus();
                     }
                 }
@@ -345,19 +351,23 @@
             $('#node-input-key-container').css('min-height', '300px').css('min-width', '450px').editableList({});
 
             if (this.channelType === 'SIGNAL_CHIME') {
+                /*
                 const [volume, repeat, length, ...commands] = this.chime.split(',');
                 $('#node-input-volume').val(Math.round(volume * 100));
                 $('#node-input-repeat').val(repeat);
                 $('#node-input-length').val(length);
+                */
 
-                commands.forEach(cmd => {
+                this.chime.split(',').forEach(cmd => {
                     $('#node-input-chime-container').editableList('addItem', {cmd});
                 });
             } else if (this.channelType === 'SIGNAL_LED') {
+                /*
                 const [, repeat, length, ...commands] = this.led.split(',');
                 $('#node-input-repeat').val(repeat);
                 $('#node-input-length').val(length);
-                commands.forEach(cmd => {
+                */
+                this.led.split(',').forEach(cmd => {
                     $('#node-input-led-container').editableList('addItem', {cmd});
                 });
             } else if (this.channelType === 'ALARM_SWITCH_VIRTUAL_RECEIVER') {
@@ -383,20 +393,22 @@
             const $nodeInputChannelType = $('#node-input-channelType');
             switch ($nodeInputChannelType.val()) {
                 case 'SIGNAL_CHIME': {
-                    const chime = [$('#node-input-volume').val() / 100, $('#node-input-repeat').val(), '10800'];
+                    const chime = [];
                     $('#node-input-chime-container').editableList('items').each(function () {
-                        chime.push($(this).find('input.number.mp3').val());
+                        chime.push($(this).find('select.number.mp3').val());
                     });
                     this.chime = chime.join(',');
+
                     break;
                 }
 
                 case 'SIGNAL_LED': {
-                    const led = ['1', $('#node-input-repeat').val(), '108000'];
+                    const led = [];
                     $('#node-input-led-container').editableList('items').each(function () {
                         led.push($(this).find('select').val());
                     });
                     this.led = led.join(',');
+
                     break;
                 }
 

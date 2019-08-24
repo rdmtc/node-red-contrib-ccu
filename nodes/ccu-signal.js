@@ -44,11 +44,13 @@ module.exports = function (RED) {
 
             switch (config.channelType) {
                 case 'SIGNAL_CHIME':
-                    payload = config.chime;
+                    console.log('config.chime', config.chime);
+                    payload = [config.volume / 100, config.repeat, 108000, ...config.chime.split(',')];
+                    console.log('payload', payload);
                     this.ccu.setValue(config.iface, config.channel, 'SUBMIT', payload);
                     break;
                 case 'SIGNAL_LED':
-                    payload = config.led;
+                    payload = ['1', config.repeat, 108000, ...config.led.split(',')];
                     this.ccu.setValue(config.iface, config.channel, 'SUBMIT', payload);
                     break;
                 case 'ALARM_SWITCH_VIRTUAL_RECEIVER':
