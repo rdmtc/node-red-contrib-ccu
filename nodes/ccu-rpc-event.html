@@ -65,7 +65,7 @@
                     types: ['str', 're']
                 }).typedInput('width', '70%');
 
-                const $input = $this.parent().find('.red-ui-typedInput-input input');
+                const $input = $this.parent().find('.red-ui-typedInput-input');
 
                 $input.autocomplete({
                     source: [],
@@ -479,18 +479,18 @@
                     lists[key].sort((a, b) => a.localeCompare(b));
                 });
 
-                $('#node-input-rooms').parent().find('.red-ui-typedInput-input input').autocomplete('option', 'source', data.rooms);
-                $('#node-input-functions').parent().find('.red-ui-typedInput-input input').autocomplete('option', 'source', data.functions);
+                $('#node-input-rooms').parent().find('.red-ui-typedInput-input').autocomplete('option', 'source', data.rooms);
+                $('#node-input-functions').parent().find('.red-ui-typedInput-input').autocomplete('option', 'source', data.functions);
 
-                $('#node-input-device').parent().find('.red-ui-typedInput-input input').autocomplete('option', 'source', lists.device);
-                $('#node-input-deviceName').parent().find('.red-ui-typedInput-input input').autocomplete('option', 'source', lists.deviceName);
-                $('#node-input-deviceType').parent().find('.red-ui-typedInput-input input').autocomplete('option', 'source', lists.deviceType);
+                $('#node-input-device').parent().find('.red-ui-typedInput-input').autocomplete('option', 'source', lists.device);
+                $('#node-input-deviceName').parent().find('.red-ui-typedInput-input').autocomplete('option', 'source', lists.deviceName);
+                $('#node-input-deviceType').parent().find('.red-ui-typedInput-input').autocomplete('option', 'source', lists.deviceType);
 
-                $('#node-input-channel').parent().find('.red-ui-typedInput-input input').autocomplete('option', 'source', lists.channel);
-                $('#node-input-channelName').parent().find('.red-ui-typedInput-input input').autocomplete('option', 'source', lists.channelName);
-                $('#node-input-channelType').parent().find('.red-ui-typedInput-input input').autocomplete('option', 'source', lists.channelType);
+                $('#node-input-channel').parent().find('.red-ui-typedInput-input').autocomplete('option', 'source', lists.channel);
+                $('#node-input-channelName').parent().find('.red-ui-typedInput-input').autocomplete('option', 'source', lists.channelName);
+                $('#node-input-channelType').parent().find('.red-ui-typedInput-input').autocomplete('option', 'source', lists.channelType);
 
-                $('#node-input-datapoint').parent().find('.red-ui-typedInput-input input').autocomplete('option', 'source', lists.datapoint);
+                $('#node-input-datapoint').parent().find('.red-ui-typedInput-input').autocomplete('option', 'source', lists.datapoint);
             }
         }
     });
