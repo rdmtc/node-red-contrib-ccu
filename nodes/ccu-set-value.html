@@ -50,7 +50,7 @@
             let ifacesLoaded = false;
             let ifacesPending = false;
 
-            $('#node-input-force').val(String(Boolean(this.force)));
+            $('#node-input-force-dropdown').val(String(Boolean(this.force)));
 
             $('.filter').each(function () {
                 const id = $(this).prop('id');
@@ -503,7 +503,7 @@
         },
 
         oneditsave() {
-            this.force = Boolean($('#node-input-force').val() || false);
+            this.force = $('#node-input-force-dropdown').val() === 'true';
         }
     });
 </script>
@@ -585,8 +585,8 @@
     </div>
 
     <div class="form-row">
-        <label for="node-input-force"><i class="icon-tag"></i> force</label>
-        <select id="node-input-force" class="ccu-dropdown">
+        <label for="node-input-force-dropdown"><i class="icon-tag"></i> force</label>
+        <select id="node-input-force-dropdown" class="ccu-dropdown">
             <option value="false">false</option>
             <option value="true">true</option>
         </select>
