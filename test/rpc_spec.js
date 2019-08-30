@@ -105,6 +105,16 @@ const flow1 = [
                 'nh'
             ]
         ]
+    },
+    {
+        id: 'nr',
+        type: 'ccu-rpc',
+        name: '',
+        iface: 'BidCos-RF',
+        topic: '${CCU}/${Interface}/${Method}',
+        method: '',
+        params: '',
+        ccuConfig: 'nc'
     }
 ];
 
@@ -114,6 +124,7 @@ describe('rpc flow1', () => {
     let nh;
     let nv;
     let ne;
+    let nr;
 
     afterEach(function (done) {
         this.timeout(3000);
@@ -126,11 +137,12 @@ describe('rpc flow1', () => {
         this.timeout(7000);
         hmSim = new HmSim(hmSimOptions());
         helper.startServer(() => {
-            helper.load([nodeConnection, nodeRpcEvent, nodeValue], flow1, () => {
+            helper.load([nodeConnection, nodeRpcEvent, nodeValue, nodeRpc], flow1, () => {
                 nc = helper.getNode('nc');
                 nh = helper.getNode('nh');
                 nv = helper.getNode('nv');
                 ne = helper.getNode('ne');
+                nr = helper.getNode('nr');
                 setTimeout(() => {
                     done();
                 }, 5000);
@@ -146,6 +158,20 @@ describe('rpc flow1', () => {
                 removeFiles();
                 done();
             });
+        });
+    });
+
+    describe('node rpc', () => {
+        it('should call setValue method', function (done) {
+            this.timeout(10000);
+            nh.once('input', msg => {
+                msg.should.have.properties({
+                    topic: 'localhost/BidCos-RF/HM-RCV-50:2/PRESS_SHORT',
+                    payload: true
+                });
+                done();
+            });
+            nr.receive({topic: 'setValue', payload: ['BidCoS-RF:2', 'PRESS_SHORT', true]});
         });
     });
 
