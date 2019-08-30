@@ -14,7 +14,7 @@ module.exports = function (RED) {
             this.on('input', msg => {
                 let value;
                 const iface = config.iface || msg.iface;
-                const channel = String(config.channel).split(' ')[0] || msg.channel;
+                const channel = String(config.channel || msg.channel).split(' ')[0];
                 const datapoint = config.datapoint || msg.datapoint;
                 const sysvar = config.sysvar || msg.sysvar;
 
