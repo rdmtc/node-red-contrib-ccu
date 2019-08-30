@@ -20,9 +20,19 @@ module.exports = function (RED) {
 
                 if (iface === 'ReGaHSS') {
                     value = this.ccu.sysvar[sysvar];
+                    if (!value) {
+                        this.error('unknown variable ' + sysvar);
+                        this.status({fill: 'red', shape: 'ring', text: 'error: unknown variable'});
+                        return;
+                    }
                 } else {
                     const address = iface + '.' + channel + '.' + datapoint;
                     value = this.ccu.values[address];
+                    if (!value) {
+                        this.error('unknown datapoint ' + address);
+                        this.status({fill: 'red', shape: 'ring', text: 'error: unknown datapoint'});
+                        return;
+                    }
                 }
 
                 this.status({fill: 'green', shape: 'ring', text: String(value.payload)});
