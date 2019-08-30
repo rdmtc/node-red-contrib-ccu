@@ -808,7 +808,7 @@ module.exports = function (RED) {
                             const ts = (new Date(dp.ts + ' UTC+' + (d.getTimezoneOffset() / -60))).getTime();
                             const [iface, channel, datapoint] = dp.name.split('.');
                             if (this.enabledIfaces.includes(iface) && datapoint) {
-                                const msg = this.createMessage(iface, channel, datapoint, dp.value, {cache: true, change: false, working: false, ts, lc: ts});
+                                const msg = this.createMessage(iface, channel, datapoint, dp.value, {cache: true, change: false, working: false, uncertain: dp.ts === '1970-01-01 01:00:00', ts, lc: ts});
                                 this.values[msg.datapointName] = msg;
                                 if (!datapoint.startsWith('PRESS_')) {
                                     this.callCallbacks(msg);
@@ -2325,7 +2325,7 @@ module.exports = function (RED) {
 
             //this.logger.trace('publishEvent', JSON.stringify(params));
 
-            const msg = this.createMessage(iface, channel, datapoint, payload, {cache: false, working, direction});
+            const msg = this.createMessage(iface, channel, datapoint, payload, {cache: false, uncertain: false, working, direction});
 
             let waitForWorking = false;
 
