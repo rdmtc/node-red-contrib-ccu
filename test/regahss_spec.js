@@ -181,7 +181,8 @@ describe('regahss flow1', () => {
         }, 2000);
     });
 
-    before(done => {
+    before(function (done) {
+        this.timeout(12000);
         hmSim = new HmSim(hmSimOptions());
         helper.startServer(() => {
             helper.load([nodeConnection, nodeSysvar, nodePoll], flow1, () => {
