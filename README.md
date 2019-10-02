@@ -26,6 +26,7 @@ Some example flows can be found in the [RedMatic Wiki](https://github.com/rdmtc/
 
 __A modern Browser is required, Internet Explorer won't work.__
 
+__Starting with Version 3.x these Nodes need Node-RED >= 1.0 to work correctly__
 
 ## Configuration Examples
 
