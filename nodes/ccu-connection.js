@@ -66,7 +66,7 @@ module.exports = function (RED) {
     });
     ccu.network.listen.push('0.0.0.0');
 
-    RED.httpAdmin.get('/ccu', (req, res) => {
+    RED.httpAdmin.get('/ccu', RED.auth.needsPermission('ccu.read'), (req, res) => {
         if (req.query.config && req.query.config !== '_ADD_') {
             const config = RED.nodes.getNode(req.query.config);
             if (!config) {
@@ -502,6 +502,7 @@ module.exports = function (RED) {
                 const enabled = config[this.ifaceTypes[iface].conf + 'Enabled'];
                 if (enabled) {
                     this.enabledIfaces.push(iface);
+                    this.ifaceStatus[iface] = null;
                 }
             });
 
@@ -621,8 +622,10 @@ module.exports = function (RED) {
          */
         setIfaceStatus(iface, connected) {
             if (this.ifaceStatus[iface] !== connected) {
-                if (typeof this.ifaceStatus[iface] !== 'undefined') {
-                    this.logger.info(iface, connected ? (this.ifaceTypes[iface].protocol + ' port ' + this.ifaceTypes[iface].port + ' connected') : 'disconnected');
+                if (iface === 'ReGaHSS') {
+                    this.logger.info('Interface', iface, connected ? 'connected' : 'disconnected');
+                } else {
+                    this.logger.info('Interface', connected ? (this.ifaceTypes[iface].protocol + ' port ' + this.ifaceTypes[iface].port + ' connected') : 'disconnected');
                 }
 
                 this.ifaceStatus[iface] = !this.serverError[iface] && connected;
@@ -1244,7 +1247,6 @@ module.exports = function (RED) {
                             }
                         });
                         resolve();
-                        this.setIfaceStatus('ReGaHSS', true);
                     }
                 });
             });
@@ -1259,7 +1261,6 @@ module.exports = function (RED) {
                 const enabled = config[this.ifaceTypes[iface].conf + 'Enabled'];
                 this.ifaceTypes[iface].enabled = enabled;
                 if (enabled) {
-                    this.setIfaceStatus(iface, false);
                     this.createClient(iface)
                         .then(() => {
                             if (this.ifaceTypes[iface].init) {

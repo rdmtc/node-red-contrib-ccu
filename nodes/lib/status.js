@@ -4,11 +4,11 @@ module.exports = (that, data) => {
         if (data.ifaceStatus) {
             let status = 0;
             Object.keys(data.ifaceStatus).forEach(s => {
-                if (data.ifaceStatus[s] || s === 'ReGaHSS') {
+                if (data.ifaceStatus[s]) {
                     status += 1;
                 }
             });
-            if (status <= 1) {
+            if (status < 1) {
                 that.status({fill: 'red', shape: 'dot', text: 'disconnected'});
                 that.currentStatus = 'red';
             } else if (status === Object.keys(data.ifaceStatus).length) {
