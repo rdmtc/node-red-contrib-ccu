@@ -13,6 +13,9 @@ With these Nodes you can connect [Homematic](https://github.com/hobbyquaker/awes
 [Node-RED](https://nodered.org/). Homematic is a series of smart home automation hardware from the manufacturer 
 [eQ-3](http://www.eq-3.de/), popular especially in Germany.
 
+**⚠️ node-red-contrib-ccu >= 3.0 needs Node-RED >= 1.0.** If you're still on Node-RED 0.20 or lower you should use the 
+latest 2.x version of node-red-contrib-ccu.
+
 For the communication with the CCU both RPC and ReGaHSS remote script are used. It's possible to connect to multiple 
 CCUs from one Node-RED instance. RPC setValue calls can be comfortably complemented with ON_TIME and RAMP_TIME values
 and special nodes ease the control of displays and mp3 actuators. RPC events can be filtered comprehensively (even 
