@@ -625,7 +625,7 @@ module.exports = function (RED) {
                 if (iface === 'ReGaHSS') {
                     this.logger.info('Interface', iface, connected ? 'connected' : 'disconnected');
                 } else {
-                    this.logger.info('Interface', connected ? (this.ifaceTypes[iface].protocol + ' port ' + this.ifaceTypes[iface].port + ' connected') : 'disconnected');
+                    this.logger.info('Interface', iface, connected ? (this.ifaceTypes[iface].protocol + ' port ' + this.ifaceTypes[iface].port + ' connected') : 'disconnected');
                 }
 
                 this.ifaceStatus[iface] = !this.serverError[iface] && connected;
