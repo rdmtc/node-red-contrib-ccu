@@ -18,7 +18,7 @@ module.exports = function (RED) {
             this.status({});
         }
 
-        _input(msg) {
+        _input(msg, send, done) {
             let script = this.script || msg.payload;
             script += '\n\nvar nr_script_call_success = true;\n';
             this.ccu.script(script)
@@ -26,16 +26,19 @@ module.exports = function (RED) {
                     msg.iface = this.iface;
                     msg.ccu = this.ccu.host;
                     msg.topic = this.ccu.topicReplace(this.topic, msg);
-                    this.send(msg);
+                    send(msg);
+
                     if (msg && msg.objects && msg.objects.nr_script_call_success === 'true') {
                         this.status({fill: 'green', shape: 'dot', text: 'success'});
+                        done();
                     } else {
                         this.status({fill: 'red', shape: 'dot', text: 'error'});
+                        done(new Error('Script call failed'));
                     }
                 })
                 .catch(err => {
-                    this.error(err.message);
                     this.status({fill: 'red', shape: 'dot', text: 'error'});
+                    done(err);
                 });
         }
     }

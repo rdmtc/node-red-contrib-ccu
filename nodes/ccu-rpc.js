@@ -14,7 +14,7 @@ module.exports = function (RED) {
 
             this.ccu.register(this);
 
-            this.on('input', msg => {
+            this.on('input', (msg, send, done) => {
                 let params = config.params || msg.payload;
 
                 if (params && typeof params === 'string') {
@@ -54,9 +54,11 @@ module.exports = function (RED) {
                             method
                         };
                         msg.topic = this.ccu.topicReplace(config.topic, msg);
-                        this.send(msg);
+                        send(msg);
+
+                        done();
                     }).catch(err => {
-                        this.error(err.message);
+                        done(err);
                     });
             });
         }

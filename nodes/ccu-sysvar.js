@@ -38,17 +38,18 @@ module.exports = function (RED) {
             this.on('close', this._destructor);
         }
 
-        _input(msg) {
+        _input(msg, send, done) {
             const name = this.name || msg.topic;
             const val = msg.payload;
             this.ccu.setVariable(name, val)
                 .then(() => {
                     this.status({fill: 'green', shape: 'ring', text: String(val)});
+                    done();
                 })
                 .catch(err => {
-                    this.error(err.message);
                     this.currentStatus = 'red';
                     this.status({fill: 'red', shape: 'dot', text: 'error'});
+                    done(err);
                 });
         }
 

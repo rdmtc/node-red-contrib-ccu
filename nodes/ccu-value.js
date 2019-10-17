@@ -35,7 +35,7 @@ module.exports = function (RED) {
                 });
             }
 
-            this.on('input', msg => {
+            this.on('input', (msg, send, done) => {
                 const [tIface, tChannel, tDatapoint] = (msg.topic || '').split('.');
                 const iface = config.iface || msg.interface || msg.iface || tIface;
                 const channel = (config.channel || this.ccu.findChannel(msg.channelName) || msg.channel || tChannel || '').split(' ')[0];
@@ -108,7 +108,11 @@ module.exports = function (RED) {
 
                     params[datapoint] = this.ccu.paramCast(iface, channel, 'VALUES', datapoint, msg.payload);
                     // Todo queue
-                    this.ccu.methodCall(iface, 'putParamset', [channel, 'VALUES', params]);
+                    this.ccu.methodCall(iface, 'putParamset', [channel, 'VALUES', params]).then(() => {
+                        done();
+                    }).catch(err => {
+                        done(err);
+                    });
                 }
             });
 

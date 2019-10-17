@@ -29,28 +29,32 @@ module.exports = function (RED) {
             this.on('close', this._destructor);
         }
 
-        _input(msg) {
+        _input(msg, send, done) {
             switch (typeof msg.payload) {
                 case 'boolean':
                     this.ccu.programActive(this.name || msg.topic, msg.payload)
                         .then(msg => {
-                            this.send(msg);
+                            send(msg);
+
                             this.status({fill: 'green', shape: 'dot', text: 'connected'});
+                            done();
                         })
                         .catch(err => {
-                            this.error(err.message);
                             this.status({fill: 'red', shape: 'dot', text: 'error'});
+                            done(err);
                         });
                     break;
                 default:
                     this.ccu.programExecute(this.name || msg.topic)
                         .then(msg => {
-                            this.send(msg);
+                            send(msg);
+
                             this.status({fill: 'green', shape: 'dot', text: 'connected'});
+                            done();
                         })
                         .catch(err => {
-                            this.error(err.message);
                             this.status({fill: 'red', shape: 'dot', text: 'error'});
+                            done(err);
                         });
             }
         }

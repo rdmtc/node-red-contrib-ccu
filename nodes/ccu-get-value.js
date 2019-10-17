@@ -11,7 +11,7 @@ module.exports = function (RED) {
                 return;
             }
 
-            this.on('input', msg => {
+            this.on('input', (msg, send, done) => {
                 let value;
                 const iface = config.iface || msg.iface;
                 const channel = String(config.channel || msg.channel).split(' ')[0];
@@ -21,16 +21,20 @@ module.exports = function (RED) {
                 if (iface === 'ReGaHSS') {
                     value = this.ccu.sysvar[sysvar];
                     if (!value) {
-                        this.error('unknown variable ' + sysvar);
+                        const err = new Error('unknown variable ' + sysvar);
                         this.status({fill: 'red', shape: 'ring', text: 'error: unknown variable'});
+                        done(err);
+
                         return;
                     }
                 } else {
                     const address = iface + '.' + channel + '.' + datapoint;
                     value = this.ccu.values[address];
                     if (!value) {
-                        this.error('unknown datapoint ' + address);
+                        const err = new Error('unknown datapoint ' + address);
                         this.status({fill: 'red', shape: 'ring', text: 'error: unknown datapoint'});
+                        done(err);
+
                         return;
                     }
                 }
@@ -38,7 +42,9 @@ module.exports = function (RED) {
                 this.status({fill: 'green', shape: 'ring', text: String(value.payload)});
                 if (config.setPropType === 'cmsg') {
                     Object.assign(msg, value);
-                    this.send(msg);
+                    send(msg);
+
+                    done();
                 } else {
                     if (config.datapointProperty !== 'all') {
                         value = value[config.datapointProperty];
@@ -46,15 +52,25 @@ module.exports = function (RED) {
 
                     if (config.setPropType === 'msg') {
                         RED.util.setMessageProperty(msg, config.setProp, value);
-                        this.send(msg);
+                        if (send) {
+                            send(msg);
+                        } else {
+                            this.send(msg);
+                        }
+
+                        if (done) {
+                            done();
+                        }
                     } else if ((this.setPropType === 'flow') || (this.setPropType === 'global')) {
                         const context = RED.util.parseContextStore(this.setProp);
                         const target = this.context()[this.setPropType];
                         target.set(context.key, value, context.store, err => {
                             if (err) {
-                                this.error(err, msg);
+                                done(err);
                             } else {
-                                this.send(msg);
+                                send(msg);
+
+                                done();
                             }
                         });
                     }

@@ -21,7 +21,7 @@ module.exports = function (RED) {
 
             this.values = {};
 
-            this.on('input', msg => {
+            this.on('input', (msg, send, done) => {
                 const values = {};
 
                 this.getValue(values, 'rampTimeValue', msg)
@@ -33,7 +33,11 @@ module.exports = function (RED) {
                         this.error(err.message);
                     })
                     .then(() => {
-                        this.sendCommand(Object.assign({}, this.config, values));
+                        this.sendCommand(Object.assign({}, this.config, values)).then(() => {
+                            done();
+                        }).catch(err => {
+                            done(err);
+                        });
                     });
             });
         }
@@ -47,20 +51,17 @@ module.exports = function (RED) {
                     console.log('config.chime', config.chime);
                     payload = [config.volume / 100, config.repeat, 108000, ...config.chime.split(',')];
                     console.log('payload', payload);
-                    this.ccu.setValue(config.iface, config.channel, 'SUBMIT', payload);
-                    break;
+                    return this.ccu.setValue(config.iface, config.channel, 'SUBMIT', payload);
                 case 'SIGNAL_LED':
                     payload = ['1', config.repeat, 108000, ...config.led.split(',')];
-                    this.ccu.setValue(config.iface, config.channel, 'SUBMIT', payload);
-                    break;
+                    return this.ccu.setValue(config.iface, config.channel, 'SUBMIT', payload);
                 case 'ALARM_SWITCH_VIRTUAL_RECEIVER':
-                    this.ccu.methodCall(config.iface, 'putParamset', [config.channel, 'VALUES', {
+                    return this.ccu.methodCall(config.iface, 'putParamset', [config.channel, 'VALUES', {
                         ACOUSTIC_ALARM_SELECTION: config.acousticAlarmSelection,
                         DURATION_UNIT: config.durationUnit,
                         DURATION_VALUE: parseInt(config.durationValue, 10) || 0,
                         OPTICAL_ALARM_SELECTION: config.opticalAlarmSelection
                     }]);
-                    break;
                 case 'DIMMER_VIRTUAL_RECEIVER': {
                     const params = {
                         LEVEL: config.dimmerLevel / 100,
@@ -76,12 +77,11 @@ module.exports = function (RED) {
                         params['COLOR_LIST_' + index] = Number(item.color);
                         params['ON_TIME_LIST_' + index] = Number(item.ontime);
                     });
-                    this.ccu.methodCall(config.iface, 'putParamset', [config.channel, 'VALUES', params]);
-                    break;
+                    return this.ccu.methodCall(config.iface, 'putParamset', [config.channel, 'VALUES', params]);
                 }
 
                 case 'BSL_DIMMER_VIRTUAL_RECEIVER': {
-                    this.ccu.methodCall(config.iface, 'putParamset', [config.channel, 'VALUES', {
+                    return this.ccu.methodCall(config.iface, 'putParamset', [config.channel, 'VALUES', {
                         LEVEL: config.dimmerLevel / 100,
                         RAMP_TIME_UNIT: config.rampTimeUnit,
                         RAMP_TIME_VALUE: Number(config.rampTimeValue),
@@ -89,7 +89,6 @@ module.exports = function (RED) {
                         DURATION_VALUE: parseInt(config.durationValue, 10) || 0,
                         COLOR: Number(config.dimmerColor)
                     }]);
-                    break;
                 }
 
                 case 'ACOUSTIC_SIGNAL_VIRTUAL_RECEIVER': {
@@ -106,12 +105,11 @@ module.exports = function (RED) {
                         const index = i + 1;
                         params['SOUNDFILE_LIST_' + index] = Number(item.sound);
                     });
-                    this.ccu.methodCall(config.iface, 'putParamset', [config.channel, 'VALUES', params]);
-                    break;
+                    return this.ccu.methodCall(config.iface, 'putParamset', [config.channel, 'VALUES', params]);
                 }
 
                 default:
-                    console.error('channelType', config.channelType, 'unknown');
+                    return Promise.reject(new Error(`channelType ${config.channelType} unknown`));
             }
         }
 

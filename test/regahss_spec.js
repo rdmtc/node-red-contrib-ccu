@@ -334,11 +334,12 @@ describe('regahss flow2', () => {
     describe('node ccu-sysvar', () => {
         it('should not send message on start', function (done) {
             this.timeout(30000);
-            function unexcpectedMsg() {
+            function unexcpectedMsg(msg) {
+                nh.removeListener('input', unexcpectedMsg);
                 done(new Error('unexpected msg received'));
             }
 
-            nh.once('input', unexcpectedMsg);
+            nh.on('input', unexcpectedMsg);
             setTimeout(() => {
                 nh.removeListener('input', unexcpectedMsg);
                 done();

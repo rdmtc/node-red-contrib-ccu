@@ -6,6 +6,8 @@ module.exports = {
         try {
             fs.unlinkSync(path.join(__dirname, '..', 'ccu_localhost.json'));
             fs.unlinkSync(path.join(__dirname, '..', 'ccu_paramsets_v2.json'));
+            fs.unlinkSync(path.join(__dirname, '..', 'ccu_rega_localhost.json'));
+            fs.unlinkSync(path.join(__dirname, '..', 'ccu_values_localhost.json'));
         } catch (error) {}
     },
     hmSimOptions() {

@@ -127,7 +127,7 @@ module.exports = function (RED) {
                 return ',0x12,' + res.slice(0, 12).join(',');
             }
 
-            this.on('input', msg => {
+            this.on('input', (msg, send, done) => {
                 let payload = '0x02';
 
                 if (config.channelType === 'HM-Dis-EP-WM55') {
@@ -195,7 +195,11 @@ module.exports = function (RED) {
 
                 payload += ',0x03';
 
-                this.ccu.setValue(config.iface, config.channel, 'SUBMIT', payload);
+                this.ccu.setValue(config.iface, config.channel, 'SUBMIT', payload).then(() => {
+                    done();
+                }).catch(err => {
+                    done(err);
+                });
             });
         }
 
