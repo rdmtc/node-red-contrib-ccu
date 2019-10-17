@@ -488,7 +488,11 @@ module.exports = function (RED) {
             this.txCounters = {};
 
             this.metadataFile = path.join(RED.settings.userDir || path.join(__dirname, '..'), 'ccu_' + this.host + '.json');
+            this.regadataFile = path.join(RED.settings.userDir || path.join(__dirname, '..'), 'ccu_rega_' + this.host + '.json');
+            this.valuesFile = path.join(RED.settings.userDir || path.join(__dirname, '..'), 'ccu_values_' + this.host + '.json');
             this.loadMetadata();
+            this.loadRegadata();
+            //this.loadValues();
 
             this.setContext();
 
@@ -653,6 +657,42 @@ module.exports = function (RED) {
          *
          * @returns {Promise<any>}
          */
+        saveRegadata() {
+            return new Promise(resolve => {
+                fs.writeFileSync(this.regadataFile, JSON.stringify({
+                    channelNames: this.channelNames,
+                    regaIdChannel: this.regaIdChannel,
+                    regaChannels: this.regaChannels,
+                    channelRooms: this.channelRooms,
+                    channelFunctions: this.channelFunctions,
+                    groups: this.groups,
+                    sysvar: this.sysvar,
+                    program: this.program,
+                    values: this.values
+                }));
+                this.logger.info('regadata saved to', this.regadataFile);
+                resolve();
+            });
+        }
+
+        /**
+         *
+         * @returns {Promise<any>}
+         */
+        saveValues() {
+            return new Promise(resolve => {
+                fs.writeFileSync(this.valuesFile, JSON.stringify({
+                    values: this.values
+                }));
+                this.logger.info('values saved to', this.valuesFile);
+                resolve();
+            });
+        }
+
+        /**
+         *
+         * @returns {Promise<any>}
+         */
         loadMetadata() {
             return new Promise(resolve => {
                 try {
@@ -660,11 +700,62 @@ module.exports = function (RED) {
                     this.logger.info('metadata loaded from', this.metadataFile);
                     resolve();
                 } catch (err) {
-                    this.logger.info('metadata new empty');
+                    this.logger.warn('metadata new empty');
                     this.metadata = {
                         devices: {},
                         types: {}
                     };
+                    resolve();
+                }
+            });
+        }
+
+        /**
+         *
+         * @returns {Promise<any>}
+         */
+        loadRegadata() {
+            return new Promise(resolve => {
+                try {
+                    const regadata = JSON.parse(fs.readFileSync(this.regadataFile));
+                    this.logger.info('regadata loaded from', this.regadataFile);
+                    this.channelNames = regadata.channelNames;
+                    this.regaIdChannel = regadata.regaIdChannel;
+                    this.regaChannels = regadata.regaChannels;
+                    this.channelRooms = regadata.channelRooms;
+                    this.channelFunctions = regadata.channelFunctions;
+                    this.groups = regadata.groups;
+                    /*
+                    this.sysvar = regadata.sysvar;
+                    Object.keys(this.sysvar).forEach(s => {
+                        this.sysvar[s].fromFile = true;
+                    });
+                    this.program = regadata.program;
+                    Object.keys(this.program).forEach(s => {
+                        this.program[s].fromFile = true;
+                    });
+                    */
+                    resolve();
+                } catch (err) {
+                    this.logger.error('error loading regadata ' + err.message);
+                    resolve();
+                }
+            });
+        }
+
+        /**
+         *
+         * @returns {Promise<any>}
+         */
+        loadValues() {
+            return new Promise(resolve => {
+                try {
+                    const valuesdata = JSON.parse(fs.readFileSync(this.valuesFile));
+                    this.logger.info('values loaded from', this.valuesFile);
+                    this.values = valuesdata.values;
+                    resolve();
+                } catch (err) {
+                    this.logger.error('error loading values ' + err.message);
                     resolve();
                 }
             });
@@ -724,6 +815,9 @@ module.exports = function (RED) {
                 this.logger.debug('clear rpcPingTimer', iface);
                 clearTimeout(this.rpcPingTimer[iface]);
             });
+
+            this.saveRegadata();
+            this.saveValues();
 
             this.rpcClose()
                 .then(() => {
@@ -804,9 +898,13 @@ module.exports = function (RED) {
                 this.logger.debug('rega getValues');
                 this.rega.getValues((err, res) => {
                     if (err) {
-                        reject(err);
+                        reject(new Error('rega getValues ' + err.message));
                     } else {
                         const d = new Date();
+                        if (res.length > 0) {
+                            this.values = {};
+                        }
+
                         res.forEach(dp => {
                             const ts = (new Date(dp.ts + ' UTC+' + (d.getTimezoneOffset() / -60))).getTime();
                             const [iface, channel, datapoint] = dp.name.split('.');
@@ -819,6 +917,7 @@ module.exports = function (RED) {
                             }
                         });
                         this.cachedValuesReceived = true;
+                        this.saveValues();
                         resolve();
                     }
                 });
@@ -834,8 +933,14 @@ module.exports = function (RED) {
                 this.logger.debug('rega getChannels');
                 this.rega.getChannels((err, res) => {
                     if (err) {
-                        reject(err);
+                        reject(new Error('rega getChannels ' + err.message));
                     } else {
+                        if (res.length > 0) {
+                            this.regaChannels = [];
+                            this.regaIdChannel = {};
+                            this.channelNames = {};
+                        }
+
                         res.forEach(ch => {
                             this.regaChannels.push(ch);
                             this.regaIdChannel[ch.id] = ch.address;
@@ -856,9 +961,13 @@ module.exports = function (RED) {
                 this.logger.debug('rega getRooms');
                 this.rega.getRooms((err, res) => {
                     if (err) {
-                        reject(err);
+                        reject(new Error('rega getRooms ' + err.message));
                     } else {
                         this.rooms = [];
+                        if (res.length > 0) {
+                            this.channelRooms = {};
+                        }
+
                         res.forEach(room => {
                             this.rooms.push(room.name);
                             room.channels.forEach(chId => {
@@ -888,9 +997,13 @@ module.exports = function (RED) {
                 this.logger.debug('rega getFunctions');
                 this.rega.getFunctions((err, res) => {
                     if (err) {
-                        reject(err);
+                        reject(new Error('rega getFunctions ' + err.message));
                     } else {
                         this.functions = [];
+                        if (res.length > 0) {
+                            this.channelFunctions = {};
+                        }
+
                         res.forEach(func => {
                             this.functions.push(func.name);
                             func.channels.forEach(chId => {
@@ -1052,6 +1165,11 @@ module.exports = function (RED) {
                             }, this.regaInterval * 1000);
                         }
 
+                        if (!this.firstRegaPollDone) {
+                            this.saveRegadata();
+                        }
+
+                        this.firstRegaPollDone = true;
                         this.regaPollPending = false;
                     });
             }
@@ -1096,6 +1214,7 @@ module.exports = function (RED) {
         updateRegaVariable(sysvar) {
             //this.logger.trace('updateRegaVariable', JSON.stringify(sysvar));
             let isNew = false;
+
             if (!this.sysvar[sysvar.name]) {
                 isNew = true;
                 this.sysvar[sysvar.name] = {
@@ -1132,6 +1251,9 @@ module.exports = function (RED) {
                         function: this.channelFunctions[channel] && this.channelFunctions[channel].length === 1 ? this.channelFunctions[channel][0] : undefined
                     });
                 }
+            } else if (this.sysvar[sysvar.name].fromFile) {
+                isNew = true;
+                delete this.sysvar[sysvar.name].fromFile;
             }
 
             if (isNew || this.sysvar[sysvar.name].ts !== sysvar.ts) {
@@ -1222,6 +1344,11 @@ module.exports = function (RED) {
                             prg.ts = (new Date(prg.ts + ' UTC+' + (d.getTimezoneOffset() / -60))).getTime();
                             if (!this.program[prg.name]) {
                                 this.program[prg.name] = {};
+                            }
+
+                            if (this.program[prg.name].fromFile) {
+                                delete this.program[prg.name].fromFile;
+                                return;
                             }
 
                             if (this.program[prg.name].active !== prg.active || this.program[prg.name].ts !== prg.ts) {
