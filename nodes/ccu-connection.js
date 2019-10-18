@@ -2128,7 +2128,7 @@ module.exports = function (RED) {
                             } else if (call && this.rpcMethods[call.methodName]) {
                                 pong = false;
                                 if (isIterable(call.params)) {
-                                    this.rpcMethods[call.methodName](call.methodName, call.params, res => result.push(res));
+                                    this.rpcMethods[call.methodName](call.methodName, call.params, (_, res) => result.push(res));
                                 } else {
                                     this.logger.error('rpc <', call.methodName, 'params not iterable', JSON.stringify(call.params));
                                 }
@@ -2149,7 +2149,7 @@ module.exports = function (RED) {
                         }
                     }
 
-                    callback(null, '');
+                    callback(null, result);
                 }
             };
         }
