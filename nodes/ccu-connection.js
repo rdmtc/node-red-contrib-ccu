@@ -667,8 +667,7 @@ module.exports = function (RED) {
                     channelFunctions: this.channelFunctions,
                     groups: this.groups,
                     sysvar: this.sysvar,
-                    program: this.program,
-                    values: this.values
+                    program: this.program
                 }));
                 this.logger.info('regadata saved to', this.regadataFile);
                 resolve();
@@ -901,10 +900,6 @@ module.exports = function (RED) {
                         reject(new Error('rega getValues ' + err.message));
                     } else {
                         const d = new Date();
-                        if (res.length > 0) {
-                            this.values = {};
-                        }
-
                         res.forEach(dp => {
                             const ts = (new Date(dp.ts + ' UTC+' + (d.getTimezoneOffset() / -60))).getTime();
                             const [iface, channel, datapoint] = dp.name.split('.');
