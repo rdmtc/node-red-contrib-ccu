@@ -29,7 +29,7 @@ module.exports = function (RED) {
                 }
 
                 const method = config.method || msg.method || msg.topic;
-                const iface = config.iface || msg.iface;
+                const iface = config.iface || msg.iface || msg.interface;
 
                 if (method === 'setValue') {
                     const [address, param, value] = params;
