@@ -2345,7 +2345,7 @@ module.exports = function (RED) {
                         rkey = 'iface';
                     }
 
-                    topic = topic.replace(rx, msgLower[rkey] || '');
+                    topic = topic.replace(rx, typeof msgLower[rkey] === 'undefined' ? '' : msgLower[rkey]);
                 });
             }
 
