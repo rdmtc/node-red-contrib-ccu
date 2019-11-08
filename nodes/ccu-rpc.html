@@ -10,7 +10,7 @@
             params: {value: '[]', validate: params => {
                 try {
                     return $.trim(params) === '' || Array.isArray(JSON.parse(params));
-                } catch (err) {
+                } catch (_) {
                     return false;
                 }
             }},

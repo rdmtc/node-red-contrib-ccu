@@ -348,7 +348,7 @@ module.exports = function (RED) {
                         this.logger.info('local connection on ccu >= v3.41 detected');
                         this.isLocal = true;
                     }
-                } catch (error) {}
+                } catch (_) {}
             }
 
             this.ifaceTypes = {
@@ -698,7 +698,7 @@ module.exports = function (RED) {
                     this.metadata = JSON.parse(fs.readFileSync(this.metadataFile));
                     this.logger.info('metadata loaded from', this.metadataFile);
                     resolve();
-                } catch (err) {
+                } catch (_) {
                     this.logger.warn('metadata new empty');
                     this.metadata = {
                         devices: {},
@@ -782,7 +782,7 @@ module.exports = function (RED) {
                     try {
                         this.paramsetDescriptions = JSON.parse(fs.readFileSync(file));
                         this.logger.info('paramsets loaded from', file);
-                    } catch (err) {
+                    } catch (_) {
                         this.logger.info('paramsets new empty');
                         this.paramsetDescriptions = {};
                     }
@@ -842,9 +842,9 @@ module.exports = function (RED) {
                 return {};
             }
 
-            for (let i = 0; i < data.length; i++) {
-                if (data[i][key] === val) {
-                    return data[i];
+            for (const element of data) {
+                if (element[key] === val) {
+                    return element;
                 }
             }
         }
@@ -867,7 +867,7 @@ module.exports = function (RED) {
                             groups.forEach(group => {
                                 this.groups[group.id] = group;
                             });
-                        } catch (error) {}
+                        } catch (_) {}
                     }
 
                     resolve();
@@ -1098,7 +1098,7 @@ module.exports = function (RED) {
                     switch (sysvar.valueType) {
                         case 'boolean':
                             if (typeof value === 'string') {
-                                if (sysvar.enum.indexOf(value) !== -1) {
+                                if (sysvar.enum.includes(value)) {
                                     value = sysvar.enum.indexOf(value);
                                 }
                             }
@@ -1110,7 +1110,7 @@ module.exports = function (RED) {
                             break;
                         default:
                             if (typeof value === 'string') {
-                                if (sysvar.enum.indexOf(value) !== -1) {
+                                if (sysvar.enum.includes(value)) {
                                     value = sysvar.enum.indexOf(value);
                                 }
                             }
@@ -1873,7 +1873,7 @@ module.exports = function (RED) {
                 throw new Error('device type undefined: ' + JSON.stringify(device));
             }
 
-            if (this.metadata.types[iface][device.TYPE] && this.metadata.types[iface][device.TYPE].indexOf(device.ADDRESS) === -1) {
+            if (this.metadata.types[iface][device.TYPE] && !this.metadata.types[iface][device.TYPE].includes(device.ADDRESS)) {
                 this.metadata.types[iface][device.TYPE].push(device.ADDRESS);
             } else {
                 this.metadata.types[iface][device.TYPE] = [device.ADDRESS];
@@ -2841,7 +2841,7 @@ module.exports = function (RED) {
                         break;
                     case 'ENUM':
                         if (typeof value === 'string') {
-                            if (paramset.ENUM && (paramset.ENUM.indexOf(value) !== -1)) {
+                            if (paramset.ENUM && (paramset.ENUM.includes(value))) {
                                 value = paramset.ENUM.indexOf(value);
                             }
                         }

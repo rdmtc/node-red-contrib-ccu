@@ -182,7 +182,7 @@
                 if (c) {
                     c.datapoints.sort((a, b) => a.localeCompare(b));
                     $nodeInputDatapoint.autocomplete('option', 'source', c.datapoints);
-                    if (c.datapoints.indexOf($nodeInputDatapoint.val()) === -1) {
+                    if (!c.datapoints.includes($nodeInputDatapoint.val())) {
                         $nodeInputDatapoint.val('').autocomplete('search');
                     }
 

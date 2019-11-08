@@ -362,7 +362,7 @@ module.exports = function (RED) {
                     break;
                 case 'ENUM':
                     if (typeof val === 'string') {
-                        if (paramset.ENUM && (paramset.ENUM.indexOf(val) !== -1)) {
+                        if (paramset.ENUM && (paramset.ENUM.includes(val))) {
                             val = paramset.ENUM.indexOf(val);
                         }
                     }

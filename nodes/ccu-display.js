@@ -38,7 +38,7 @@ module.exports = function (RED) {
                     col = map[col];
                 }
 
-                if (['0x80', '0x81', '0x82', '0x83', '0x84', '0x85'].indexOf(col) === -1) {
+                if (!['0x80', '0x81', '0x82', '0x83', '0x84', '0x85'].includes(col)) {
                     col = '0x80';
                 }
 
