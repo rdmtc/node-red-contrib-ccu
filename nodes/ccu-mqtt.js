@@ -195,7 +195,7 @@ module.exports = function (RED) {
                 if (this.ccu.channelNames[filter.channelNameOrAddress]) {
                     filter.channel = filter.channelNameOrAddress;
                 } else {
-                    filter.channel = this.ccu.findChannel(filter.channelNameOrAddress);
+                    filter.channel = this.ccu.findChannel(filter.channelNameOrAddress, true);
                 }
 
                 if (!filter.channel) {

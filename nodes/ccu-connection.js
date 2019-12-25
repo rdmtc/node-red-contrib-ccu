@@ -1173,33 +1173,30 @@ module.exports = function (RED) {
         /**
          * Find interface of a given channel
          * @param channel
-         * @returns {String|null}
+         * @returns {String|undefined}
          */
         findIface(channel) {
-            let found = null;
-            Object.keys(this.metadata.devices).forEach(iface => {
+            for (const iface in this.metadata.devices) {
                 if (this.metadata.devices[iface][channel]) {
-                    found = iface;
+                    return iface;
                 }
-            });
-            return found;
+            }
         }
 
         /**
-         * Find channel by name
-         * @param name
-         * @returns {String|null}
+         * Find channel or device by name
+         * @param {string} name
+         * @param {boolean} noDevices
+         * @returns {String|undefined} channel/device address
          */
-        findChannel(name) {
-            let found;
-            Object.keys(this.channelNames).forEach(n => {
-                if (!found) {
-                    if (this.channelNames[n] === name) {
-                        found = n;
+        findChannel(name, noDevices) {
+            for (const addr in this.channelNames) {
+                if (this.channelNames[addr] === name) {
+                    if (!noDevices || addr.includes(':')) {
+                        return addr;
                     }
                 }
-            });
-            return found;
+            }
         }
 
         /**
