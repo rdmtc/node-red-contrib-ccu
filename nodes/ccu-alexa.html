@@ -1,0 +1,183 @@
+<script type="text/javascript">
+    RED.nodes.registerType('ccu-alexa', {
+
+        category: 'ccu',
+        defaults: {
+            name: {value: ''},
+            iface: {value: ''},
+            channel: {value: ''},
+            ccuConfig: {value: 'localhost', type: 'ccu-connection', required: true}
+        },
+        inputs: 1,
+        outputs: 1,
+        icon: 'ccu.png',
+        color: '#c2d5e4',
+        paletteLabel: 'alexa',
+        align: 'right',
+        label() {
+            return this.name || this.channel || 'alexa';
+        },
+        labelStyle() {
+            return this.name ? 'node_label_italic' : '';
+        },
+        oneditprepare() {
+            console.log(this);
+
+            const $nodeInputIface = $('#node-input-iface');
+            const $nodeInputCcuConfig = $('#node-input-ccuConfig');
+            const $nodeInputChannel = $('#node-input-channel');
+
+            let data;
+            let ifacesLoaded = false;
+            let ifacesPending = false;
+
+            function loadIfaces(iface, cb) {
+                if (ifacesPending) {
+                    return;
+                }
+
+                ifacesPending = true;
+                console.log('loadIfaces()');
+                $nodeInputIface.html('<option value=""></option>');
+                const nodeId = $nodeInputCcuConfig.val();
+                if (nodeId === '_ADD_') {
+                    if (typeof cb === 'function') {
+                        cb();
+                        ifacesPending = false;
+                    }
+                } else {
+                    const url = 'ccu?config=' + nodeId + '&type=ifaces';
+                    $.getJSON(url, d => {
+                        Object.keys(d).forEach(i => {
+                            if (i !== 'ReGaHSS') {
+                                $nodeInputIface.append('<option' + (d[i].enabled ? '' : ' disabled') + (i === iface ? ' selected' : '') + '>' + i + '</option>');
+                            }
+                        });
+                        if (typeof cb === 'function') {
+                            cb();
+                            ifacesPending = false;
+                        }
+                    });
+                }
+            }
+
+            function loadConfig() {
+                if (!ifacesLoaded) {
+                    return;
+                }
+
+                console.log('loadConfig()');
+                const nodeId = $nodeInputCcuConfig.val();
+                const url = 'ccu?config=' + nodeId + '&type=channels&iface=' + $nodeInputIface.val();
+                $.getJSON(url, d => {
+                    data = d;
+                    console.log(d);
+                    autocompleteChannel();
+                });
+            }
+
+            $nodeInputCcuConfig.change(() => {
+                console.log('$nodeInputCcuConfig change');
+                loadIfaces(this.iface, () => {
+                    ifacesLoaded = true;
+                    $nodeInputIface.removeAttr('disabled');
+                    loadConfig();
+                });
+            });
+
+            $nodeInputChannel.autocomplete({
+                source: [],
+                close: () => {
+                    // autocompleteDatapoint();
+                },
+                delay: 0,
+                minLength: 0
+            });
+
+            $nodeInputChannel.on('focus', () => {
+                $nodeInputChannel.autocomplete('search');
+            });
+
+            function autocompleteChannel() {
+                if (!data) {
+                    return;
+                }
+
+                const arr = [];
+                Object.keys(data).forEach(addr => {
+                    if (addr.match(/:\d+$/)) {
+                        if (data[addr].name) {
+                            addr += ' ' + data[addr].name;
+                        }
+
+                        arr.push(addr);
+                    }
+                });
+                arr.sort((a, b) => a.localeCompare(b));
+                $nodeInputChannel.autocomplete('option', 'source', arr);
+
+                if (!data[$nodeInputChannel.val().split(' ')[0]]) {
+                    $nodeInputChannel.val('');
+                }
+            }
+
+            $nodeInputIface.change(() => {
+                console.log('$nodeInputIface change');
+                loadConfig();
+            });
+        },
+
+        oneditsave() {
+
+        }
+    });
+</script>
+
+<script type="text/x-red" data-template-name="ccu-alexa">
+    <style>
+        label.ccu-checkbox {
+            display: block !important;
+            width: auto !important;
+        }
+        label.ccu-checkbox input {
+            width: auto !important;
+            margin-top: -3px !important;
+        }
+    </style>
+    <div class="form-row">
+        <label for="node-input-ccuConfig"><i class="icon-globe"></i> CCU</label>
+        <input type="text" id="node-input-ccuConfig">
+    </div>
+
+    <div class="form-row">
+        <label for="node-input-iface"><i class="fa fa-empire"></i> Interface</label>
+        <div style="display: inline-block; position: relative; width: 70%;">
+            <select id="node-input-iface" style="width:calc(100% - 40px);" disabled>
+                <option></option>
+            </select>
+       </div>
+    </div>
+
+    <div class="form-row">
+        <label for="node-input-channel"><i class="icon-tags"></i> channel</label>
+        <input type="text" id="node-input-channel">
+    </div>
+
+
+    <div class="form-row">
+        <label for="node-input-name"><i class="icon-bookmark"></i> Name</label>
+        <input type="text" id="node-input-name">
+    </div>
+
+
+</script>
+
+<script type="text/x-red" data-template-name="ccu-alexa">
+    <p>Homematic Geräte mit node-red-contrib-alexa-smart-home verbinden. Am Eingang den Node "alexa smart home v3"
+    anschließen, am Ausgang "alexa smart home v3 state".</p>
+</script>
+
+<script type="text/x-red" data-help-name="ccu-alexa" lang="en-US">
+    <p>Connect Homematic Devices with node-red-contrib-alexa-smart-home. Connect a Node "alexa smart home v3" to the
+    input and "alexa smart home v3 state" to the output.</p>
+</script>

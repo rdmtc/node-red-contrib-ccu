@@ -1,6 +1,6 @@
 {
     "name": "node-red-contrib-ccu",
-    "version": "3.1.4",
+    "version": "3.2.0",
     "description": "Node-RED Nodes for the Homematic CCU",
     "repository": "https://github.com/rdmtc/node-red-contrib-ccu",
     "keywords": [
@@ -66,7 +66,8 @@
             "ccu-poll": "nodes/ccu-poll.js",
             "ccu-get-value": "nodes/ccu-get-value.js",
             "ccu-switch": "nodes/ccu-switch.js",
-            "ccu-hm2mqtt": "nodes/ccu-mqtt.js"
+            "ccu-hm2mqtt": "nodes/ccu-mqtt.js",
+            "ccu-alexa": "nodes/ccu-alexa.js"
         }
     },
     "devDependencies": {
