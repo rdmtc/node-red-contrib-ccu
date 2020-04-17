@@ -735,8 +735,8 @@ module.exports = function (RED) {
                     });
                     */
                     resolve();
-                } catch (err) {
-                    this.logger.error('error loading regadata ' + err.message);
+                } catch (error) {
+                    this.logger.error('error loading regadata ' + error.message);
                     resolve();
                 }
             });
@@ -753,8 +753,8 @@ module.exports = function (RED) {
                     this.logger.info('values loaded from', this.valuesFile);
                     this.values = valuesdata.values;
                     resolve();
-                } catch (err) {
-                    this.logger.error('error loading values ' + err.message);
+                } catch (error) {
+                    this.logger.error('error loading values ' + error.message);
                     resolve();
                 }
             });
@@ -822,8 +822,8 @@ module.exports = function (RED) {
                 .then(() => {
                     this.logger.info('rpc close done');
                     done();
-                }).catch(err => {
-                    this.logger.warn(err);
+                }).catch(error => {
+                    this.logger.warn(error);
                     done();
                 });
 
@@ -1539,7 +1539,7 @@ module.exports = function (RED) {
                 this.hadTimeout.add(iface);
                 this.setIfaceStatus(iface, false);
                 this.logger.warn('ping timeout', iface, elapsed);
-                this.rpcInit(iface).catch(err => this.logger.error(err.message));
+                this.rpcInit(iface).catch(error => this.logger.error(error.message));
                 return;
             }
 
@@ -1732,7 +1732,7 @@ module.exports = function (RED) {
                     .then(res => {
                         this.params[paramset][address] = res;
                     })
-                    .catch(err => this.logger.error(err))
+                    .catch(error => this.logger.error(error))
                     .then(() => {
                         clearTimeout(this.getParamsTimeout);
                         this.getParamsTimeout = setTimeout(() => {
@@ -1801,7 +1801,7 @@ module.exports = function (RED) {
                                 this.saveParamsets();
                             }
                         })
-                        .catch(err => this.logger.error(err))
+                        .catch(error => this.logger.error(error))
                         .then(() => {
                             this.paramsetPending = false;
                             clearTimeout(this.getParamsetTimeout);
@@ -2273,7 +2273,7 @@ module.exports = function (RED) {
 
             if (filter.cache && this.cachedValuesReceived) {
                 Object.keys(this.values).forEach(dp => {
-                    const msg = Object.assign({}, this.values[dp]);
+                    const msg = {...this.values[dp]};
                     msg.cache = true;
                     msg.change = false;
                     if (!this.callbackBlacklists[msg.datapointName]) {
@@ -2385,8 +2385,7 @@ module.exports = function (RED) {
 
             this.logger.trace('createMessage', channel, datapoint, payload, 'change=' + change);
 
-            const msg = Object.assign({
-                topic: '',
+            const msg = {topic: '',
                 payload,
                 ccu: this.host,
                 iface,
@@ -2416,7 +2415,7 @@ module.exports = function (RED) {
                 ts,
                 tsPrevious: this.values[datapointName].ts,
                 lc: change ? ts : this.values[datapointName].lc,
-                change}, additions);
+                change, ...additions};
 
             msg.stable = !msg.working;
 
@@ -2773,9 +2772,9 @@ module.exports = function (RED) {
                         }, this.setValueThrottle);
                     }
 
-                    this.methodCall(iface, 'setValue', params).then(resolve).catch(err => {
-                        this.logger.error('rpc >', iface, 'setValue', JSON.stringify(params), '<', err);
-                        reject(err);
+                    this.methodCall(iface, 'setValue', params).then(resolve).catch(error => {
+                        this.logger.error('rpc >', iface, 'setValue', JSON.stringify(params), '<', error);
+                        reject(error);
                     });
                 }
             });
@@ -2792,9 +2791,9 @@ module.exports = function (RED) {
                 const [iface] = id.split('.');
                 const {params, resolve, reject} = this.setValueCache[id];
                 delete this.setValueCache[id];
-                return this.methodCall(iface, 'setValue', params).then(resolve).catch(err => {
-                    this.logger.error('rpc >', iface, 'setValue', JSON.stringify(params), '<', err);
-                    reject(err);
+                return this.methodCall(iface, 'setValue', params).then(resolve).catch(error => {
+                    this.logger.error('rpc >', iface, 'setValue', JSON.stringify(params), '<', error);
+                    reject(error);
                 });
             }
         }

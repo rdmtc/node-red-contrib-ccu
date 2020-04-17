@@ -110,8 +110,8 @@ module.exports = function (RED) {
                     // Todo queue
                     this.ccu.methodCall(iface, 'putParamset', [channel, 'VALUES', params]).then(() => {
                         done();
-                    }).catch(err => {
-                        done(err);
+                    }).catch(error => {
+                        done(error);
                     });
                 }
             });

@@ -39,9 +39,9 @@ module.exports = function (RED) {
                             this.status({fill: 'green', shape: 'dot', text: 'connected'});
                             done();
                         })
-                        .catch(err => {
+                        .catch(error => {
                             this.status({fill: 'red', shape: 'dot', text: 'error'});
-                            done(err);
+                            done(error);
                         });
                     break;
                 default:
@@ -52,9 +52,9 @@ module.exports = function (RED) {
                             this.status({fill: 'green', shape: 'dot', text: 'connected'});
                             done();
                         })
-                        .catch(err => {
+                        .catch(error => {
                             this.status({fill: 'red', shape: 'dot', text: 'error'});
-                            done(err);
+                            done(error);
                         });
             }
         }

@@ -20,8 +20,8 @@ module.exports = function (RED) {
                 if (params && typeof params === 'string') {
                     try {
                         params = JSON.parse(params);
-                    } catch (err) {
-                        this.error(err);
+                    } catch (error) {
+                        this.error(error);
                         return;
                     }
                 } else if (!params) {
@@ -57,8 +57,8 @@ module.exports = function (RED) {
                         send(msg);
 
                         done();
-                    }).catch(err => {
-                        done(err);
+                    }).catch(error => {
+                        done(error);
                     });
             });
         }

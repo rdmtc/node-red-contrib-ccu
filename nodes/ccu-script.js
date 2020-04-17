@@ -36,9 +36,9 @@ module.exports = function (RED) {
                         done(new Error('Script call failed'));
                     }
                 })
-                .catch(err => {
+                .catch(error => {
                     this.status({fill: 'red', shape: 'dot', text: 'error'});
-                    done(err);
+                    done(error);
                 });
         }
     }

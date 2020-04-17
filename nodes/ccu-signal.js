@@ -29,14 +29,14 @@ module.exports = function (RED) {
                     .then(() => this.getValue(values, 'repeat', msg))
                     .then(() => this.getValue(values, 'volume', msg))
                     .then(() => this.getValue(values, 'soundLevel', msg))
-                    .catch(err => {
-                        this.error(err.message);
+                    .catch(error => {
+                        this.error(error.message);
                     })
                     .then(() => {
-                        this.sendCommand(Object.assign({}, this.config, values)).then(() => {
+                        this.sendCommand({...this.config, ...values}).then(() => {
                             done();
-                        }).catch(err => {
-                            done(err);
+                        }).catch(error => {
+                            done(error);
                         });
                     });
             });

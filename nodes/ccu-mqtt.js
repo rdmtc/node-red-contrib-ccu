@@ -280,7 +280,7 @@ module.exports = function (RED) {
             paramset[filter.param] = payload;
 
             this.ccu.methodCall(iface, 'putParamset', [filter.channel, filter.paramset, paramset])
-                .catch(err => this.error(err.message));
+                .catch(error => this.error(error.message));
         }
 
         putParamset(filter, payload) {
@@ -333,7 +333,7 @@ module.exports = function (RED) {
             });
 
             this.ccu.methodCall(iface, 'putParamset', [filter.channel, filter.paramset, paramset])
-                .catch(err => this.error(err.message));
+                .catch(error => this.error(error.message));
         }
 
         paramCast(val, paramset) {

@@ -197,8 +197,8 @@ module.exports = function (RED) {
 
                 this.ccu.setValue(config.iface, config.channel, 'SUBMIT', payload).then(() => {
                     done();
-                }).catch(err => {
-                    done(err);
+                }).catch(error => {
+                    done(error);
                 });
             });
         }

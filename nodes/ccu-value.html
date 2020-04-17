@@ -43,6 +43,8 @@
             return this.name ? 'node_label_italic' : '';
         },
         oneditprepare() {
+            console.log(this);
+
             const $nodeInputIface = $('#node-input-iface');
             const $nodeInputCcuConfig = $('#node-input-ccuConfig');
             const $nodeInputChannel = $('#node-input-channel');
@@ -231,6 +233,8 @@
                     typeUndefined
                 ]
             });
+
+            // $('#node-input-on').val(this.on);
 
             $('#node-input-ramp').typedInput({
                 default: 'undefined',
