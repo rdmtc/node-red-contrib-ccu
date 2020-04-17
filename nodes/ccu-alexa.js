@@ -46,6 +46,7 @@ module.exports = function (RED) {
                 let change = false;
                 switch (channelType) {
                     case 'SHUTTER_CONTACT':
+                    case 'ROTARY_HANDLE_SENSOR':
                         if (msg.datapoint === 'STATE') {
                             payload.state.contact = msg.payload ? 'NOT_DETECTED' : 'DETECTED';
                             change = true;
@@ -110,6 +111,32 @@ module.exports = function (RED) {
 
                         break;
 
+                    case 'MOTION_DETECTOR':
+                    case 'MOTIONDETECTOR_TRANSCEIVER':
+                        if (msg.datapoint === 'MOTION') {
+                            payload.state.power = msg.payload ? 'DETECTED' : 'NOT_DETECTED';
+                            change = true;
+                        }
+
+                        break;
+
+                    case 'WEATHER':
+                    case 'WEATHER_TRANSMIT':
+                        if (msg.datapoint === 'TEMPERATURE') {
+                            payload.state.temperature = msg.payload;
+                            change = true;
+                        }
+
+                        break;
+
+                    case 'KEYMATIC':
+                        if (msg.datapoint === 'STATE') {
+                            payload.state.lock = msg.payload ? 'UNLOCKED' : 'LOCKED';
+                            change = true;
+                        }
+
+                        break;
+
                     default:
                         this.warn('unsupported channel type ' + channelType);
                         return;
@@ -154,7 +181,7 @@ module.exports = function (RED) {
                         if (channelType.startsWith('DIMMER')) {
                             this.ccu.setValueQueued(this.iface, this.channel, 'LEVEL', msg.payload / 100);
                         } else {
-                            this.ccu.setValueQueued(this.iface, this.channel, 'STATE', msg.payload / 100);
+                            this.ccu.setValueQueued(this.iface, this.channel, 'STATE', msg.payload > 0);
                         }
 
                         break;
