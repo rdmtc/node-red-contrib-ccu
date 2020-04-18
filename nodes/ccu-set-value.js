@@ -245,7 +245,7 @@ module.exports = function (RED) {
                             const currentValue = this.ccu.values[datapointName] && this.ccu.values[datapointName].value;
                             count += 1;
                             if (dp.startsWith('PRESS_') || typeof currentValue === 'undefined' || currentValue !== msg.payload) {
-                                this.ccu.setValueQueued(iface, address, dp, msg.payload, false, this.force);
+                                this.ccu.setValueQueued(iface, address, dp, msg.payload, false, this.force).catch(() => {});
                             }
                         });
                     }

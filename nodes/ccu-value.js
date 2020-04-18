@@ -95,7 +95,11 @@ module.exports = function (RED) {
                 on = parseFloat(on);
 
                 if (!ramp && !on) {
-                    this.ccu[this.queue ? 'setValueQueued' : 'setValue'](iface, channel, datapoint, msg.payload, config.burst);
+                    this.ccu[this.queue ? 'setValueQueued' : 'setValue'](iface, channel, datapoint, msg.payload, config.burst).then(() => {
+                        done();
+                    }).catch(error => {
+                        done(error);
+                    });
                 } else {
                     const params = {};
                     if (on) {
