@@ -164,8 +164,8 @@ describe('rpc flow1', () => {
     describe('node rpc', () => {
         it('should call setValue method', function (done) {
             this.timeout(10000);
-            nh.once('input', msg => {
-                msg.should.have.properties({
+            nh.once('input', message => {
+                message.should.have.properties({
                     topic: 'localhost/BidCos-RF/HM-RCV-50:2/PRESS_SHORT',
                     payload: true
                 });
@@ -178,8 +178,8 @@ describe('rpc flow1', () => {
     describe('node rpc-event', () => {
         it('should send msg on BidCos-RF/HM-RCV-50:1/PRESS_SHORT event', function (done) {
             this.timeout(10000);
-            nh.once('input', msg => {
-                msg.should.have.properties({
+            nh.once('input', message => {
+                message.should.have.properties({
                     topic: 'localhost/BidCos-RF/HM-RCV-50:1/PRESS_SHORT',
                     payload: true,
                     ccu: 'localhost',
@@ -214,8 +214,8 @@ describe('rpc flow1', () => {
         });
         it('should send msg on HmIP-RF/Test-WGC:1/PRESS_SHORT event', function (done) {
             this.timeout(10000);
-            nh.once('input', msg => {
-                msg.should.have.properties({
+            nh.once('input', message => {
+                message.should.have.properties({
                     topic: 'localhost/HmIP-RF/Test-WGC:1/PRESS_SHORT',
                     payload: true,
                     ccu: 'localhost',
@@ -253,9 +253,9 @@ describe('rpc flow1', () => {
     describe('node rpc-value', () => {
         it('should set HmIP-RF/Test-WGC:3/STATE to true', function (done) {
             this.timeout(10000);
-            function handler(msg) {
-                if (msg.topic === 'localhost/HmIP-RF/Test-WGC:3/STATE') {
-                    msg.should.have.properties({topic: 'localhost/HmIP-RF/Test-WGC:3/STATE',
+            function handler(message) {
+                if (message.topic === 'localhost/HmIP-RF/Test-WGC:3/STATE') {
+                    message.should.have.properties({topic: 'localhost/HmIP-RF/Test-WGC:3/STATE',
                         payload: true,
                         ccu: 'localhost',
                         iface: 'HmIP-RF',
@@ -292,9 +292,9 @@ describe('rpc flow1', () => {
 
         it('should set HmIP-RF/Test-WGC:3/STATE to false', function (done) {
             this.timeout(10000);
-            function handler(msg) {
-                if (msg.topic === 'localhost/HmIP-RF/Test-WGC:3/STATE') {
-                    msg.should.have.properties({topic: 'localhost/HmIP-RF/Test-WGC:3/STATE',
+            function handler(message) {
+                if (message.topic === 'localhost/HmIP-RF/Test-WGC:3/STATE') {
+                    message.should.have.properties({topic: 'localhost/HmIP-RF/Test-WGC:3/STATE',
                         payload: false,
                         ccu: 'localhost',
                         iface: 'HmIP-RF',

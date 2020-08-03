@@ -172,8 +172,8 @@ describe('context flow1', () => {
     describe('node get value', () => {
         it('should send value of if HmIP-RF/Test-WGC:3/STATE', function (done) {
             this.timeout(10000);
-            nh.once('input', msg => {
-                msg.payload.should.equal(false);
+            nh.once('input', message => {
+                message.payload.should.equal(false);
                 done();
             });
             hmSim.api.emit('setValue', 'hmip', '00131709AE37B4:3', 'STATE', false);
@@ -184,8 +184,8 @@ describe('context flow1', () => {
         });
         it('should send value of if HmIP-RF/Test-WGC:3/STATE', function (done) {
             this.timeout(10000);
-            nh.once('input', msg => {
-                msg.payload.should.equal(true);
+            nh.once('input', message => {
+                message.payload.should.equal(true);
                 done();
             });
             hmSim.api.emit('setValue', 'hmip', '00131709AE37B4:3', 'STATE', true);

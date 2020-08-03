@@ -28,18 +28,18 @@ module.exports = function (RED) {
                     datapoint: config.datapoint
                 };
 
-                this.idSubscription = this.ccu.subscribe(filter, msg => {
-                    this.status({fill: 'green', shape: 'ring', text: String(msg.payload)});
-                    msg.topic = this.ccu.topicReplace(config.topic, msg);
-                    this.send(msg);
+                this.idSubscription = this.ccu.subscribe(filter, message => {
+                    this.status({fill: 'green', shape: 'ring', text: String(message.payload)});
+                    message.topic = this.ccu.topicReplace(config.topic, message);
+                    this.send(message);
                 });
             }
 
-            this.on('input', (msg, send, done) => {
-                const [tIface, tChannel, tDatapoint] = (msg.topic || '').split('.');
-                const iface = config.iface || msg.interface || msg.iface || tIface;
-                const channel = (config.channel || this.ccu.findChannel(msg.channelName, true) || msg.channel || tChannel || '').split(' ')[0];
-                const datapoint = config.datapoint || msg.datapoint || tDatapoint;
+            this.on('input', (message, send, done) => {
+                const [tIface, tChannel, tDatapoint] = (message.topic || '').split('.');
+                const iface = config.iface || message.interface || message.iface || tIface;
+                const channel = (config.channel || this.ccu.findChannel(message.channelName, true) || message.channel || tChannel || '').split(' ')[0];
+                const datapoint = config.datapoint || message.datapoint || tDatapoint;
 
                 if (!iface) {
                     this.error('interface undefined');
@@ -59,7 +59,7 @@ module.exports = function (RED) {
                 let ramp;
                 switch (config.rampType) {
                     case 'msg':
-                        ramp = msg[config.ramp];
+                        ramp = message[config.ramp];
                         break;
                     case 'flow':
                         ramp = this.context().flow.get(config.ramp);
@@ -73,12 +73,12 @@ module.exports = function (RED) {
                     default:
                 }
 
-                ramp = parseFloat(ramp);
+                ramp = Number.parseFloat(ramp);
 
                 let on;
                 switch (config.onType) {
                     case 'msg':
-                        on = msg[config.on];
+                        on = message[config.on];
                         break;
                     case 'flow':
                         on = this.context().flow.get(config.on);
@@ -92,27 +92,27 @@ module.exports = function (RED) {
                     default:
                 }
 
-                on = parseFloat(on);
+                on = Number.parseFloat(on);
 
                 if (!ramp && !on) {
-                    this.ccu[this.queue ? 'setValueQueued' : 'setValue'](iface, channel, datapoint, msg.payload, config.burst).then(() => {
+                    this.ccu[this.queue ? 'setValueQueued' : 'setValue'](iface, channel, datapoint, message.payload, config.burst).then(() => {
                         done();
                     }).catch(error => {
                         done(error);
                     });
                 } else {
-                    const params = {};
+                    const parameters = {};
                     if (on) {
-                        params.ON_TIME = this.ccu.paramCast(iface, channel, 'VALUES', 'ON_TIME', on);
+                        parameters.ON_TIME = this.ccu.paramCast(iface, channel, 'VALUES', 'ON_TIME', on);
                     }
 
                     if (ramp) {
-                        params.RAMP_TIME = this.ccu.paramCast(iface, channel, 'VALUES', 'RAMP_TIME', ramp);
+                        parameters.RAMP_TIME = this.ccu.paramCast(iface, channel, 'VALUES', 'RAMP_TIME', ramp);
                     }
 
-                    params[datapoint] = this.ccu.paramCast(iface, channel, 'VALUES', datapoint, msg.payload);
+                    parameters[datapoint] = this.ccu.paramCast(iface, channel, 'VALUES', datapoint, message.payload);
                     // Todo queue
-                    this.ccu.methodCall(iface, 'putParamset', [channel, 'VALUES', params]).then(() => {
+                    this.ccu.methodCall(iface, 'putParamset', [channel, 'VALUES', parameters]).then(() => {
                         done();
                     }).catch(error => {
                         done(error);

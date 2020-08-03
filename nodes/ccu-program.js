@@ -19,9 +19,9 @@ module.exports = function (RED) {
             this.name = config.name;
 
             if (this.name) {
-                this.idSubscription = this.ccu.subscribeProgram(this.name, msg => {
-                    msg.topic = this.ccu.topicReplace(config.topic, msg);
-                    this.send(msg);
+                this.idSubscription = this.ccu.subscribeProgram(this.name, message => {
+                    message.topic = this.ccu.topicReplace(config.topic, message);
+                    this.send(message);
                 });
             }
 
@@ -29,12 +29,12 @@ module.exports = function (RED) {
             this.on('close', this._destructor);
         }
 
-        _input(msg, send, done) {
-            switch (typeof msg.payload) {
+        _input(message, send, done) {
+            switch (typeof message.payload) {
                 case 'boolean':
-                    this.ccu.programActive(this.name || msg.topic, msg.payload)
-                        .then(msg => {
-                            send(msg);
+                    this.ccu.programActive(this.name || message.topic, message.payload)
+                        .then(message_ => {
+                            send(message_);
 
                             this.status({fill: 'green', shape: 'dot', text: 'connected'});
                             done();
@@ -45,9 +45,9 @@ module.exports = function (RED) {
                         });
                     break;
                 default:
-                    this.ccu.programExecute(this.name || msg.topic)
-                        .then(msg => {
-                            send(msg);
+                    this.ccu.programExecute(this.name || message.topic)
+                        .then(message => {
+                            send(message);
 
                             this.status({fill: 'green', shape: 'dot', text: 'connected'});
                             done();

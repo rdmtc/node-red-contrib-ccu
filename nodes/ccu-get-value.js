@@ -11,12 +11,12 @@ module.exports = function (RED) {
                 return;
             }
 
-            this.on('input', (msg, send, done) => {
+            this.on('input', (message, send, done) => {
                 let value;
-                const iface = config.iface || msg.iface || msg.interface;
-                const channel = String(config.channel || msg.channel).split(' ')[0];
-                const datapoint = config.datapoint || msg.datapoint;
-                const sysvar = config.sysvar || msg.sysvar;
+                const iface = config.iface || message.iface || message.interface;
+                const channel = String(config.channel || message.channel).split(' ')[0];
+                const datapoint = config.datapoint || message.datapoint;
+                const sysvar = config.sysvar || message.sysvar;
 
                 if (iface === 'ReGaHSS') {
                     value = this.ccu.sysvar[sysvar];
@@ -41,8 +41,8 @@ module.exports = function (RED) {
 
                 this.status({fill: 'green', shape: 'ring', text: String(value.payload)});
                 if (config.setPropType === 'cmsg') {
-                    Object.assign(msg, value);
-                    send(msg);
+                    Object.assign(message, value);
+                    send(message);
 
                     done();
                 } else {
@@ -51,11 +51,11 @@ module.exports = function (RED) {
                     }
 
                     if (config.setPropType === 'msg') {
-                        RED.util.setMessageProperty(msg, config.setProp, value);
+                        RED.util.setMessageProperty(message, config.setProp, value);
                         if (send) {
-                            send(msg);
+                            send(message);
                         } else {
-                            this.send(msg);
+                            this.send(message);
                         }
 
                         if (done) {
@@ -68,7 +68,7 @@ module.exports = function (RED) {
                             if (err) {
                                 done(err);
                             } else {
-                                send(msg);
+                                send(message);
 
                                 done();
                             }

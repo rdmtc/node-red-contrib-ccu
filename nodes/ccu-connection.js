@@ -24,9 +24,9 @@ const pkg = require(path.join(__dirname, '..', 'package.json'));
  * @param obj
  * @returns {boolean}
  */
-function isIterable(obj) {
+function isIterable(object) {
     // eslint-disable-next-line eqeqeq, no-eq-null
-    return obj != null && typeof obj[Symbol.iterator] === 'function' && typeof obj.forEach === 'function';
+    return object != null && typeof object[Symbol.iterator] === 'function' && typeof object.forEach === 'function';
 }
 
 module.exports = function (RED) {
@@ -66,36 +66,36 @@ module.exports = function (RED) {
     });
     ccu.network.listen.push('0.0.0.0');
 
-    RED.httpAdmin.get('/ccu', RED.auth.needsPermission('ccu.read'), (req, res) => {
-        if (req.query.config && req.query.config !== '_ADD_') {
-            const config = RED.nodes.getNode(req.query.config);
+    RED.httpAdmin.get('/ccu', RED.auth.needsPermission('ccu.read'), (request, res) => {
+        if (request.query.config && request.query.config !== '_ADD_') {
+            const config = RED.nodes.getNode(request.query.config);
             if (!config) {
                 res.status(500).send(JSON.stringify({}));
                 return;
             }
 
-            const obj = {};
+            const object = {};
 
-            switch (req.query.type) {
+            switch (request.query.type) {
                 case 'ifaces': {
                     Object.keys(config.ifaceTypes).forEach(iface => {
-                        obj[iface] = {
+                        object[iface] = {
                             enabled: Boolean(config.ifaceTypes[iface].enabled),
                             connected: Boolean(config.ifaceStatus[iface])
                         };
                     });
-                    res.status(200).send(JSON.stringify(obj));
+                    res.status(200).send(JSON.stringify(object));
                     break;
                 }
 
                 case 'channels': {
-                    const devices = config.metadata.devices[req.query.iface];
+                    const devices = config.metadata.devices[request.query.iface];
                     if (devices) {
                         Object.keys(devices).forEach(addr => {
                             if (addr.match(/:\d+$/)) {
-                                const psKey = config.paramsetName(req.query.iface, devices[addr], 'VALUES');
+                                const psKey = config.paramsetName(request.query.iface, devices[addr], 'VALUES');
                                 if (config.paramsetDescriptions[psKey]) {
-                                    obj[addr] = {
+                                    object[addr] = {
                                         name: config.channelNames[addr],
                                         datapoints: Object.keys(config.paramsetDescriptions[psKey]),
                                         rxMode: devices[devices[addr].PARENT] && devices[devices[addr].PARENT].RX_MODE
@@ -105,7 +105,7 @@ module.exports = function (RED) {
                         });
                     }
 
-                    res.status(200).send(JSON.stringify(obj));
+                    res.status(200).send(JSON.stringify(object));
                     break;
                 }
 
@@ -130,7 +130,7 @@ module.exports = function (RED) {
                                             channel: (chName) ? addr + ' ' + chName : addr,
                                             label: dp,
                                             icon: 'fa fa-tag fa-fw',
-                                            class: req.query.classDp
+                                            class: request.query.classDp
                                         });
                                     });
                                     dps.sort((a, b) => a.label.localeCompare(b.label));
@@ -142,7 +142,7 @@ module.exports = function (RED) {
                                         rooms: config.channelRooms[addr],
                                         functions: config.channelFunctions[addr],
                                         icon: 'fa fa-tags fa-fw',
-                                        class: req.query.classCh
+                                        class: request.query.classCh
                                     };
                                     callback(iface, devID, channel, addr);
                                 }
@@ -150,15 +150,15 @@ module.exports = function (RED) {
                         });
                     };
 
-                    if (req.query.iface) {
-                        const devices = config.metadata.devices[req.query.iface];
-                        processChannels(req.query.iface, devices, (iface, devID, channel, chID) => {
+                    if (request.query.iface) {
+                        const devices = config.metadata.devices[request.query.iface];
+                        processChannels(request.query.iface, devices, (iface, devID, channel, chID) => {
                             if (!channel.children || channel.children.length === 0) {
                                 return;
                             }
 
-                            if (!obj[devID]) {
-                                obj[devID] = {
+                            if (!object[devID]) {
+                                object[devID] = {
                                     id: iface + '.' + devID,
                                     name: config.channelNames[devID],
                                     label: (config.channelNames[devID]) ? config.channelNames[devID] + '  (' + devID + ')' : devID,
@@ -170,8 +170,8 @@ module.exports = function (RED) {
                                 };
                             }
 
-                            obj[devID].channels[chID] = channel;
-                            obj[devID].children.push(channel);
+                            object[devID].channels[chID] = channel;
+                            object[devID].children.push(channel);
                         });
                     } else {
                         Object.keys(config.metadata.devices).forEach(iface => {
@@ -181,12 +181,12 @@ module.exports = function (RED) {
                                     return;
                                 }
 
-                                obj[chID] = channel;
+                                object[chID] = channel;
                             });
                         });
                     }
 
-                    res.status(200).send(JSON.stringify(obj));
+                    res.status(200).send(JSON.stringify(object));
                     break;
                 }
 
@@ -211,7 +211,7 @@ module.exports = function (RED) {
                     break;
 
                 case 'signal': {
-                    const devices = config.metadata.devices[req.query.iface];
+                    const devices = config.metadata.devices[request.query.iface];
                     if (devices) {
                         Object.keys(devices).forEach(addr => {
                             if ([
@@ -219,7 +219,7 @@ module.exports = function (RED) {
                                 'SIGNAL_LED',
                                 'ALARM_SWITCH_VIRTUAL_RECEIVER'
                             ].includes(devices[addr].TYPE)) {
-                                obj[addr] = {
+                                object[addr] = {
                                     name: config.channelNames[addr],
                                     type: devices[addr].TYPE,
                                     deviceType: devices[addr].PARENT_TYPE
@@ -233,7 +233,7 @@ module.exports = function (RED) {
                                 'ACOUSTIC_SIGNAL_VIRTUAL_RECEIVER',
                                 'DIMMER_VIRTUAL_RECEIVER'
                             ].includes(devices[addr].TYPE)) {
-                                obj[addr] = {
+                                object[addr] = {
                                     name: config.channelNames[addr],
                                     type: devices[addr].TYPE,
                                     deviceType: devices[addr].PARENT_TYPE
@@ -242,19 +242,19 @@ module.exports = function (RED) {
                         });
                     }
 
-                    res.status(200).send(JSON.stringify(obj));
+                    res.status(200).send(JSON.stringify(object));
                     break;
                 }
 
                 case 'display': {
-                    const devices = config.metadata.devices[req.query.iface];
+                    const devices = config.metadata.devices[request.query.iface];
                     if (devices) {
                         Object.keys(devices).forEach(addr => {
                             if (
                                 (addr.endsWith(':3') && devices[addr].PARENT_TYPE.match(/HM-Dis-EP-WM55/)) ||
                                 ((addr.endsWith(':1') || addr.endsWith(':2')) && devices[addr].PARENT_TYPE.match(/HM-Dis-WM55/))
                             ) {
-                                obj[addr] = {
+                                object[addr] = {
                                     name: config.channelNames[addr],
                                     type: devices[addr].PARENT_TYPE
                                 };
@@ -262,7 +262,7 @@ module.exports = function (RED) {
                         });
                     }
 
-                    res.status(200).send(JSON.stringify(obj));
+                    res.status(200).send(JSON.stringify(object));
                     break;
                 }
 
@@ -314,7 +314,7 @@ module.exports = function (RED) {
         return new Promise(resolve => {
             if (/^([01]?\d?\d|2[0-4]\d|25[0-5])\\.([01]?\d?\d|2[0-4]\d|25[0-5])\\.([01]?\d?\d|2[0-4]\d|25[0-5])\\.([01]?\d?\d|2[0-4]\d|25[0-5])$/g.test(host)) {
                 resolve(unifyLoopback(host));
-            } else if (/^((?:[0-9A-Fa-f]{1,4}))((?::[0-9A-Fa-f]{1,4}))*::((?:[0-9A-Fa-f]{1,4}))((?::[0-9A-Fa-f]{1,4}))*|((?:[0-9A-Fa-f]{1,4}))((?::[0-9A-Fa-f]{1,4})){7}$/g.test(host)) {
+            } else if (/^([\dA-Fa-f]{1,4})((?::[\dA-Fa-f]{1,4}))*::([\dA-Fa-f]{1,4})((?::[\dA-Fa-f]{1,4}))*|([\dA-Fa-f]{1,4})((?::[\dA-Fa-f]{1,4})){7}$/g.test(host)) {
                 resolve(host);
             } else {
                 dns.lookup(host, (err, addr) => {
@@ -348,7 +348,7 @@ module.exports = function (RED) {
                         this.logger.info('local connection on ccu >= v3.41 detected');
                         this.isLocal = true;
                     }
-                } catch (_) {}
+                } catch {}
             }
 
             this.ifaceTypes = {
@@ -419,20 +419,20 @@ module.exports = function (RED) {
             }
 
             this.rpcInitAddress = config.rpcInitAddress || this.rpcServerHost;
-            this.rpcBinPort = parseInt(config.rpcBinPort, 10);
-            this.rpcXmlPort = parseInt(config.rpcXmlPort, 10);
-            this.rpcPingTimeout = parseInt(config.rpcPingTimeout, 10) || 60;
+            this.rpcBinPort = Number.parseInt(config.rpcBinPort, 10);
+            this.rpcXmlPort = Number.parseInt(config.rpcXmlPort, 10);
+            this.rpcPingTimeout = Number.parseInt(config.rpcPingTimeout, 10) || 60;
             this.rpcPingTimer = {};
             this.ifaceStatus = {};
             this.serverError = {};
-            this.queueTimeout = parseInt(config.queueTimeout, 10) || 5000;
-            this.queuePause = parseInt(config.queuePause, 10) || 0;
+            this.queueTimeout = Number.parseInt(config.queueTimeout, 10) || 5000;
+            this.queuePause = Number.parseInt(config.queuePause, 10) || 0;
 
             this.methodCallQueue = {};
 
             this.regaEnabled = config.regaEnabled;
             this.regaPollEnabled = config.regaPoll;
-            this.regaInterval = parseInt(config.regaInterval, 10);
+            this.regaInterval = Number.parseInt(config.regaInterval, 10);
             this.hadTimeout = new Set();
 
             this.enabledIfaces = [];
@@ -528,19 +528,19 @@ module.exports = function (RED) {
         get logger() {
             return {
                 trace: (...args) => {
-                    this.trace(args.join(' ').substr(0, 300));
+                    this.trace(args.join(' ').slice(0, 300));
                 },
                 debug: (...args) => {
-                    this.debug(args.join(' ').substr(0, 300));
+                    this.debug(args.join(' ').slice(0, 300));
                 },
                 info: (...args) => {
-                    this.log(args.join(' ').substr(0, 300));
+                    this.log(args.join(' ').slice(0, 300));
                 },
                 warn: (...args) => {
-                    this.warn(args.join(' ').substr(0, 300));
+                    this.warn(args.join(' ').slice(0, 300));
                 },
                 error: (...args) => {
-                    this.error(args.join(' ').substr(0, 300));
+                    this.error(args.join(' ').slice(0, 300));
                 }
             };
         }
@@ -698,7 +698,7 @@ module.exports = function (RED) {
                     this.metadata = JSON.parse(fs.readFileSync(this.metadataFile));
                     this.logger.info('metadata loaded from', this.metadataFile);
                     resolve();
-                } catch (_) {
+                } catch {
                     this.logger.warn('metadata new empty');
                     this.metadata = {
                         devices: {},
@@ -782,7 +782,7 @@ module.exports = function (RED) {
                     try {
                         this.paramsetDescriptions = JSON.parse(fs.readFileSync(file));
                         this.logger.info('paramsets loaded from', file);
-                    } catch (_) {
+                    } catch {
                         this.logger.info('paramsets new empty');
                         this.paramsetDescriptions = {};
                     }
@@ -837,13 +837,13 @@ module.exports = function (RED) {
          * @param val
          * @returns {*}
          */
-        getEntry(data, key, val) {
+        getEntry(data, key, value) {
             if (!data) {
                 return {};
             }
 
             for (const element of data) {
-                if (element[key] === val) {
+                if (element[key] === value) {
                     return element;
                 }
             }
@@ -867,7 +867,7 @@ module.exports = function (RED) {
                             groups.forEach(group => {
                                 this.groups[group.id] = group;
                             });
-                        } catch (_) {}
+                        } catch {}
                     }
 
                     resolve();
@@ -904,10 +904,10 @@ module.exports = function (RED) {
                             const ts = (new Date(dp.ts + ' UTC+' + (d.getTimezoneOffset() / -60))).getTime();
                             const [iface, channel, datapoint] = dp.name.split('.');
                             if (this.enabledIfaces.includes(iface) && datapoint) {
-                                const msg = this.createMessage(iface, channel, datapoint, dp.value, {cache: true, change: false, working: false, uncertain: dp.ts === '1970-01-01 01:00:00', ts, lc: ts});
-                                this.values[msg.datapointName] = msg;
+                                const message = this.createMessage(iface, channel, datapoint, dp.value, {cache: true, change: false, working: false, uncertain: dp.ts === '1970-01-01 01:00:00', ts, lc: ts});
+                                this.values[message.datapointName] = message;
                                 if (!datapoint.startsWith('PRESS_')) {
-                                    this.callCallbacks(msg);
+                                    this.callCallbacks(message);
                                 }
                             }
                         });
@@ -1115,7 +1115,7 @@ module.exports = function (RED) {
                                 }
                             }
 
-                            value = parseFloat(value) || 0;
+                            value = Number.parseFloat(value) || 0;
                             break;
                     }
 
@@ -1149,9 +1149,9 @@ module.exports = function (RED) {
                 this.regaPollPending = true;
                 clearTimeout(this.regaPollTimeout);
                 this.getRegaVariables()
-                    .catch(err => this.logger.error('getRegaVariables', err))
+                    .catch(error => this.logger.error('getRegaVariables', error))
                     .then(() => this.getRegaPrograms())
-                    .catch(err => this.logger.error('getRegaPrograms', err))
+                    .catch(error => this.logger.error('getRegaPrograms', error))
                     .finally(() => {
                         if (this.regaInterval && this.regaPollEnabled && !this.cancelRegaPoll) {
                             //this.logger.trace('rega next poll in', this.regaInterval, 'seconds');
@@ -1236,7 +1236,7 @@ module.exports = function (RED) {
                         channel,
                         channelName: this.channelNames[channel],
                         channelType: this.metadata.devices[iface] && this.metadata.devices[iface][channel] && this.metadata.devices[iface][channel].TYPE,
-                        channelIndex: channel && parseInt(channel.split(':')[1], 10),
+                        channelIndex: channel && Number.parseInt(channel.split(':')[1], 10),
                         rooms: this.channelRooms[channel],
                         room: this.channelRooms[channel] && this.channelRooms[channel].length === 1 ? this.channelRooms[channel][0] : undefined,
                         functions: this.channelFunctions[channel],
@@ -1457,7 +1457,7 @@ module.exports = function (RED) {
                         } else {
                             resolve(iface);
                         }
-                    }).catch(err => reject(err)).finally(() => {
+                    }).catch(error => reject(error)).finally(() => {
                         if (this.ifaceTypes[iface].ping) {
                             this.rpcCheckInit(iface);
                         }
@@ -1667,26 +1667,26 @@ module.exports = function (RED) {
                 });
 
                 Object.keys(this.rpcMethods).forEach(method => {
-                    this.servers[protocol].on(method, (err, params, callback) => {
+                    this.servers[protocol].on(method, (err, parameters, callback) => {
                         if (err) {
                             this.logger.error('rpc <', protocol, method, err);
                         }
 
-                        this.logger.debug('rpc <', protocol, method, JSON.stringify(params));
+                        this.logger.debug('rpc <', protocol, method, JSON.stringify(parameters));
                         if (method === 'event') {
                             method = 'eventSingle';
                         }
 
-                        if (isIterable(params)) {
-                            this.rpcMethods[method](err, params, callback);
+                        if (isIterable(parameters)) {
+                            this.rpcMethods[method](err, parameters, callback);
                         } else {
-                            this.logger.error('rpc <', protocol, 'method', method, 'params not iterable', JSON.stringify(params));
+                            this.logger.error('rpc <', protocol, 'method', method, 'params not iterable', JSON.stringify(parameters));
                             callback(null, '');
                         }
                     });
                 });
-                this.servers[protocol].on('NotFound', (method, params) => {
-                    this.logger.error('rpc <', protocol, 'method', method, 'not found:', JSON.stringify(params));
+                this.servers[protocol].on('NotFound', (method, parameters) => {
+                    this.logger.error('rpc <', protocol, 'method', method, 'not found:', JSON.stringify(parameters));
                 });
             }
 
@@ -1830,11 +1830,11 @@ module.exports = function (RED) {
          * @param param
          * @returns {*}
          */
-        getParamsetDescription(iface, device, paramset, param) {
+        getParamsetDescription(iface, device, paramset, parameter) {
             const name = this.paramsetName(iface, device, paramset);
             if (this.paramsetDescriptions[name]) {
-                if (param) {
-                    return this.paramsetDescriptions[name][param];
+                if (parameter) {
+                    return this.paramsetDescriptions[name][parameter];
                 }
 
                 return this.paramsetDescriptions[name];
@@ -1983,14 +1983,14 @@ module.exports = function (RED) {
                 return idInit;
             }
 
-            const match = idInit.match(/^nr_[0-9a-zA-Z]{6}_([a-zA-Z-]+)$/);
+            const match = idInit.match(/^nr_[\da-zA-Z]{6}_([a-zA-Z-]+)$/);
             return match && match[1];
         }
 
         get rpcMethods() {
             return {
-                'system.listMethods': (_, params, callback) => {
-                    const [idInit] = params;
+                'system.listMethods': (_, parameters, callback) => {
+                    const [idInit] = parameters;
                     const iface = this.getIfaceFromIdInit(idInit);
                     this.lastEvent[iface] = now();
                     this.setIfaceStatus(iface, true);
@@ -1998,32 +1998,32 @@ module.exports = function (RED) {
                     this.logger.debug('    >', iface, 'system.listMethods', JSON.stringify(res));
                     callback(null, res);
                 },
-                setReadyConfig: (_, params, callback) => {
-                    const [idInit] = params;
+                setReadyConfig: (_, parameters, callback) => {
+                    const [idInit] = parameters;
                     const iface = this.getIfaceFromIdInit(idInit);
                     this.logger.debug('    >', iface, 'setReadyConfig ""');
                     callback(null, '');
                 },
-                updateDevice: (_, params, callback) => {
-                    const [idInit] = params;
+                updateDevice: (_, parameters, callback) => {
+                    const [idInit] = parameters;
                     const iface = this.getIfaceFromIdInit(idInit);
                     this.logger.debug('    >', iface, 'updateDevice ""');
                     callback(null, '');
                 },
-                replaceDevice: (_, params, callback) => {
-                    const [idInit] = params;
+                replaceDevice: (_, parameters, callback) => {
+                    const [idInit] = parameters;
                     const iface = this.getIfaceFromIdInit(idInit);
                     this.logger.debug('    >', iface, 'replaceDevice ""');
                     callback(null, '');
                 },
-                readdedDevice: (_, params, callback) => {
-                    const [idInit] = params;
+                readdedDevice: (_, parameters, callback) => {
+                    const [idInit] = parameters;
                     const iface = this.getIfaceFromIdInit(idInit);
                     this.logger.debug('    >', iface, 'readdedDevice ""');
                     callback(null, '');
                 },
-                newDevices: (_, params, callback) => {
-                    const [idInit, devices] = params;
+                newDevices: (_, parameters, callback) => {
+                    const [idInit, devices] = parameters;
                     const iface = this.getIfaceFromIdInit(idInit);
 
                     devices.forEach(device => {
@@ -2035,8 +2035,8 @@ module.exports = function (RED) {
 
                     this.saveMetadata();
                 },
-                deleteDevices: (_, params, callback) => {
-                    const [idInit, devices] = params;
+                deleteDevices: (_, parameters, callback) => {
+                    const [idInit, devices] = parameters;
                     const iface = this.getIfaceFromIdInit(idInit);
 
                     devices.forEach(device => {
@@ -2048,8 +2048,8 @@ module.exports = function (RED) {
 
                     this.saveMetadata();
                 },
-                listDevices: (_, params, callback) => {
-                    const [idInit] = params;
+                listDevices: (_, parameters, callback) => {
+                    const [idInit] = parameters;
                     const iface = this.getIfaceFromIdInit(idInit);
                     this.lastEvent[iface] = now();
                     this.setIfaceStatus(iface, true);
@@ -2057,20 +2057,20 @@ module.exports = function (RED) {
                     this.logger.debug('    >', iface, 'listDevices', JSON.stringify(res));
                     callback(null, res);
                 },
-                event: (_, params, callback) => {
-                    const [idInit] = params;
+                event: (_, parameters, callback) => {
+                    const [idInit] = parameters;
                     const iface = this.getIfaceFromIdInit(idInit);
                     this.logger.debug('    >', iface, 'event ""');
-                    this.publishEvent(params);
+                    this.publishEvent(parameters);
                     callback(null, '');
                 },
-                eventSingle: (_, params, callback) => {
-                    const [idInit] = params;
+                eventSingle: (_, parameters, callback) => {
+                    const [idInit] = parameters;
                     const iface = this.getIfaceFromIdInit(idInit);
                     this.logger.debug('    >', iface, 'event ""');
-                    this.publishEvent(params);
+                    this.publishEvent(parameters);
 
-                    if (params[2] !== 'PONG') {
+                    if (parameters[2] !== 'PONG') {
                         if (this.rxCounters[iface]) {
                             this.rxCounters[iface] += 1;
                         } else {
@@ -2080,7 +2080,7 @@ module.exports = function (RED) {
 
                     callback(null, '');
                 },
-                'system.multicall': (_, params, callback) => {
+                'system.multicall': (_, parameters, callback) => {
                     const result = [];
                     let iface;
 
@@ -2088,8 +2088,8 @@ module.exports = function (RED) {
                     let working;
                     let direction;
                     let pong = true;
-                    if (isIterable(params[0])) {
-                        params[0].forEach(call => {
+                    if (isIterable(parameters[0])) {
+                        parameters[0].forEach(call => {
                             if (call && call.methodName === 'event') {
                                 queue.push(call);
                                 if (isIterable(call.params)) {
@@ -2237,7 +2237,7 @@ module.exports = function (RED) {
                 delete filter.interface;
             }
 
-            const validFilterProperties = [
+            const validFilterProperties = new Set([
                 'change',
                 'cache',
                 'stable',
@@ -2255,13 +2255,13 @@ module.exports = function (RED) {
                 'function',
                 'rooms',
                 'functions'
-            ];
+            ]);
 
-            const propertiesArr = Object.keys(filter);
+            const propertiesArray = Object.keys(filter);
 
-            for (let i = 0, len = propertiesArr.length; i < len; i++) {
-                if (!validFilterProperties.includes(propertiesArr[i])) {
-                    this.logger.error('subscribe called with invalid filter property ' + propertiesArr[i]);
+            for (let i = 0, {length} = propertiesArray; i < length; i++) {
+                if (!validFilterProperties.has(propertiesArray[i])) {
+                    this.logger.error('subscribe called with invalid filter property ' + propertiesArray[i]);
                     return null;
                 }
             }
@@ -2274,18 +2274,18 @@ module.exports = function (RED) {
 
             if (filter.cache && this.cachedValuesReceived) {
                 Object.keys(this.values).forEach(dp => {
-                    const msg = {...this.values[dp]};
-                    msg.cache = true;
-                    msg.change = false;
-                    if (!this.callbackBlacklists[msg.datapointName]) {
-                        this.callbackBlacklists[msg.datapointName] = new Set();
+                    const message = {...this.values[dp]};
+                    message.cache = true;
+                    message.change = false;
+                    if (!this.callbackBlacklists[message.datapointName]) {
+                        this.callbackBlacklists[message.datapointName] = new Set();
                     }
 
-                    if (!this.callbackWhitelists[msg.datapointName]) {
-                        this.callbackWhitelists[msg.datapointName] = new Set();
+                    if (!this.callbackWhitelists[message.datapointName]) {
+                        this.callbackWhitelists[message.datapointName] = new Set();
                     }
 
-                    this.callCallback(msg, id);
+                    this.callCallback(message, id);
                 });
             }
 
@@ -2323,14 +2323,14 @@ module.exports = function (RED) {
          * @param msg
          * @returns {*}
          */
-        topicReplace(topic, msg) {
-            if (!topic || typeof msg !== 'object') {
+        topicReplace(topic, message) {
+            if (!topic || typeof message !== 'object') {
                 return topic;
             }
 
-            const msgLower = {};
-            Object.keys(msg).forEach(k => {
-                msgLower[k.toLowerCase()] = msg[k];
+            const messageLower = {};
+            Object.keys(message).forEach(k => {
+                messageLower[k.toLowerCase()] = message[k];
             });
 
             const match = topic.match(/\${[^}]+}/g);
@@ -2343,7 +2343,7 @@ module.exports = function (RED) {
                         rkey = 'iface';
                     }
 
-                    topic = topic.replace(rx, typeof msgLower[rkey] === 'undefined' ? '' : msgLower[rkey]);
+                    topic = topic.replace(rx, typeof messageLower[rkey] === 'undefined' ? '' : messageLower[rkey]);
                 });
             }
 
@@ -2386,7 +2386,7 @@ module.exports = function (RED) {
 
             this.logger.trace('createMessage', channel, datapoint, payload, 'change=' + change);
 
-            const msg = {topic: '',
+            const message = {topic: '',
                 payload,
                 ccu: this.host,
                 iface,
@@ -2396,7 +2396,7 @@ module.exports = function (RED) {
                 channel,
                 channelName: this.channelNames[channel],
                 channelType: this.metadata.devices[iface] && this.metadata.devices[iface][channel] && this.metadata.devices[iface][channel].TYPE,
-                channelIndex: channel && parseInt(channel.split(':')[1], 10),
+                channelIndex: channel && Number.parseInt(channel.split(':')[1], 10),
                 datapoint,
                 datapointName,
                 datapointType: description.TYPE,
@@ -2418,9 +2418,9 @@ module.exports = function (RED) {
                 lc: change ? ts : this.values[datapointName].lc,
                 change, ...additions};
 
-            msg.stable = !msg.working;
+            message.stable = !message.working;
 
-            return msg;
+            return message;
         }
 
         /**
@@ -2429,8 +2429,8 @@ module.exports = function (RED) {
          * @param working
          * @param direction
          */
-        publishEvent(params, working, direction) {
-            const [idInit, channel, datapoint, payload] = params;
+        publishEvent(parameters, working, direction) {
+            const [idInit, channel, datapoint, payload] = parameters;
             const iface = this.getIfaceFromIdInit(idInit);
 
             this.lastEvent[iface] = now();
@@ -2445,53 +2445,53 @@ module.exports = function (RED) {
 
             //this.logger.trace('publishEvent', JSON.stringify(params));
 
-            const msg = this.createMessage(iface, channel, datapoint, payload, {cache: false, uncertain: false, working, direction});
+            const message = this.createMessage(iface, channel, datapoint, payload, {cache: false, uncertain: false, working, direction});
 
             let waitForWorking = false;
 
-            if (msg.channelType && !working) {
-                if (msg.datapoint === 'STATE' && msg.channelType.match(/SIGNAL|SWITCH|RAINDETECTOR_HEAT|ALARMACTUATOR/)) {
+            if (message.channelType && !working) {
+                if (message.datapoint === 'STATE' && message.channelType.match(/SIGNAL|SWITCH|RAINDETECTOR_HEAT|ALARMACTUATOR/)) {
                     waitForWorking = true;
-                } else if (msg.datapoint === 'ARMSTATE' && msg.channelType === 'ARMING') {
+                } else if (message.datapoint === 'ARMSTATE' && message.channelType === 'ARMING') {
                     waitForWorking = true;
-                } else if (msg.datapoint.startsWith('LEVEL') && msg.channelType.match(/DIMMER|DUAL_WHITE|BLIND|SHUTTER|JALOUSIE|WINMATIC|KEYMATIC/)) {
+                } else if (message.datapoint.startsWith('LEVEL') && message.channelType.match(/DIMMER|DUAL_WHITE|BLIND|SHUTTER|JALOUSIE|WINMATIC|KEYMATIC/)) {
                     waitForWorking = true;
                 }
             }
 
             if (waitForWorking) {
-                clearTimeout(this.workingTimeout[msg.datapointName]);
-                this.workingTimeout[msg.datapointName] = setTimeout(() => {
+                clearTimeout(this.workingTimeout[message.datapointName]);
+                this.workingTimeout[message.datapointName] = setTimeout(() => {
                     const datapointNamePrefix = iface + '.' + channel + '.';
 
                     if (this.values[datapointNamePrefix + 'WORKING'] || this.values[datapointNamePrefix + 'WORKING_SLATS']) {
-                        msg.working = this.values[datapointNamePrefix + 'WORKING'] && this.values[datapointNamePrefix + 'WORKING'].value;
-                        msg.working = msg.working || (this.values[datapointNamePrefix + 'WORKING_SLATS'] && this.values[datapointNamePrefix + 'WORKING_SLATS'].value);
-                        msg.working = Boolean(msg.working);
+                        message.working = this.values[datapointNamePrefix + 'WORKING'] && this.values[datapointNamePrefix + 'WORKING'].value;
+                        message.working = message.working || (this.values[datapointNamePrefix + 'WORKING_SLATS'] && this.values[datapointNamePrefix + 'WORKING_SLATS'].value);
+                        message.working = Boolean(message.working);
                     } else if (this.values[datapointNamePrefix + 'PROCESS']) {
-                        msg.working = Boolean(this.values[datapointNamePrefix + 'PROCESS'].value);
+                        message.working = Boolean(this.values[datapointNamePrefix + 'PROCESS'].value);
                     }
 
                     if (this.values[datapointNamePrefix + 'DIRECTION']) {
-                        msg.direction = this.values[datapointNamePrefix + 'DIRECTION'].value;
+                        message.direction = this.values[datapointNamePrefix + 'DIRECTION'].value;
                     } else if (this.values[datapointNamePrefix + 'ACTIVITY_STATE']) {
                         const activityState = this.values[datapointNamePrefix + 'ACTIVITY_STATE'].value;
                         if (activityState === 0) {
-                            msg.direction = 3;
+                            message.direction = 3;
                         } else if (activityState === 3) {
-                            msg.direction = 0;
+                            message.direction = 0;
                         } else {
-                            msg.direction = activityState;
+                            message.direction = activityState;
                         }
                     }
 
-                    msg.stable = !msg.working;
-                    this.values[msg.datapointName] = msg;
-                    this.callCallbacks(msg);
+                    message.stable = !message.working;
+                    this.values[message.datapointName] = message;
+                    this.callCallbacks(message);
                 }, 300);
             } else {
-                this.values[msg.datapointName] = msg;
-                this.callCallbacks(msg);
+                this.values[message.datapointName] = message;
+                this.callCallbacks(message);
             }
         }
 
@@ -2501,7 +2501,7 @@ module.exports = function (RED) {
          * @param id
          * @returns {boolean}
          */
-        callCallback(msg, id) {
+        callCallback(message, id) {
             const {filter, callback} = this.callbacks[id];
             //this.logger.trace('filter', JSON.stringify(filter));
 
@@ -2511,14 +2511,14 @@ module.exports = function (RED) {
             let matchStable;
 
             if (filter) {
-                const arrAttr = Object.keys(filter);
+                const arrayAttr = Object.keys(filter);
 
-                for (let i = 0, len = arrAttr.length; match && (i < len); i++) {
-                    const attr = arrAttr[i];
+                for (let i = 0, {length} = arrayAttr; match && (i < length); i++) {
+                    const attr = arrayAttr[i];
 
                     if (attr === 'cache') {
                         // if filter.cache==false - Drop messages with msg.cache==true
-                        if (!filter.cache && msg.cache) {
+                        if (!filter.cache && message.cache) {
                             //this.logger.trace('cb mismatch cache ' + id + ' ' + filter.cache + ' ' + msg.cache);
                             return false;
                         }
@@ -2529,7 +2529,7 @@ module.exports = function (RED) {
 
                     if (attr === 'change') {
                         // if filter.change==true - Drop messages with msg.change==false - except msg.cache==true && filter.cache==true
-                        if ((filter.change && !msg.change) && !(filter.cache && msg.cache)) {
+                        if ((filter.change && !message.change) && !(filter.cache && message.cache)) {
                             //this.logger.trace('cb mismatch change ' + id + ' ' + filter.change + ' ' + msg.change + ' ' + msg.cache);
                             return false;
                         }
@@ -2540,7 +2540,7 @@ module.exports = function (RED) {
 
                     if (attr === 'stable') {
                         // if filter.stable==true - Drop messages with msg.stable==false
-                        if (filter.stable && !msg.stable) {
+                        if (filter.stable && !message.stable) {
                             //this.logger.trace('cb mismatch stable ' + id + ' ' + filter.stable + ' ' + msg.stable);
                             return false;
                         }
@@ -2549,7 +2549,7 @@ module.exports = function (RED) {
                         continue;
                     }
 
-                    if (this.callbackWhitelists[msg.datapointName].has(id)) {
+                    if (this.callbackWhitelists[message.datapointName].has(id)) {
                         if (matchCache && matchChange && matchStable) {
                             break;
                         }
@@ -2562,29 +2562,29 @@ module.exports = function (RED) {
                     }
 
                     if (attr === 'channelIndex' && typeof filter[attr] !== 'undefined') {
-                        filter[attr] = parseInt(filter[attr], 10);
+                        filter[attr] = Number.parseInt(filter[attr], 10);
                     }
 
-                    if (Array.isArray(msg[attr])) {
+                    if (Array.isArray(message[attr])) {
                         if (filter[attr] instanceof RegExp) {
                             match = false;
-                            this.logger.trace('cb test regex array', id, attr, filter[attr], msg[attr]);
-                            msg[attr].forEach(item => {
+                            this.logger.trace('cb test regex array', id, attr, filter[attr], message[attr]);
+                            message[attr].forEach(item => {
                                 if (filter[attr].test(item)) {
                                     match = true;
                                 }
                             });
-                        } else if (!msg[attr].includes(filter[attr])) {
-                            this.logger.trace('cb mismatch array', id, attr, filter[attr], msg[attr]);
+                        } else if (!message[attr].includes(filter[attr])) {
+                            this.logger.trace('cb mismatch array', id, attr, filter[attr], message[attr]);
                             match = false;
                         }
                     } else if (filter[attr] instanceof RegExp) {
-                        if (!filter[attr].test(msg[attr])) {
-                            this.logger.trace('cb mismatch regex', id, attr, filter[attr], msg[attr]);
+                        if (!filter[attr].test(message[attr])) {
+                            this.logger.trace('cb mismatch regex', id, attr, filter[attr], message[attr]);
                             match = false;
                         }
-                    } else if (filter[attr] !== msg[attr]) {
-                        this.logger.trace('cb mismatch misc ' + id + ' ' + attr + ' ' + filter[attr] + ' ' + msg[attr]);
+                    } else if (filter[attr] !== message[attr]) {
+                        this.logger.trace('cb mismatch misc ' + id + ' ' + attr + ' ' + filter[attr] + ' ' + message[attr]);
                         match = false;
                     }
                 }
@@ -2592,11 +2592,11 @@ module.exports = function (RED) {
 
             if (match) {
                 //this.logger.trace('callCallback ' + id + ' ' + msg.datapointName + ' ' + msg.value);
-                callback(RED.util.cloneMessage(msg));
-                this.callbackWhitelists[msg.datapointName].add(id);
+                callback(RED.util.cloneMessage(message));
+                this.callbackWhitelists[message.datapointName].add(id);
             } else {
                 //this.logger.trace('add to blacklist ' + id + ' ' + msg.datapointName);
-                this.callbackBlacklists[msg.datapointName].add(id);
+                this.callbackBlacklists[message.datapointName].add(id);
             }
 
             return match;
@@ -2606,23 +2606,23 @@ module.exports = function (RED) {
          * Apply msg to callCallback() for all (not blacklisted) callbacks
          * @param msg
          */
-        callCallbacks(msg) {
+        callCallbacks(message) {
             //this.logger.trace('callCallbacks', this.callbacks.length, JSON.stringify({datapointName: msg.datapointName, value: msg.value, cache: msg.cache, change: msg.change, stable: msg.stable}));
-            if (!this.callbackBlacklists[msg.datapointName]) {
-                this.callbackBlacklists[msg.datapointName] = new Set();
+            if (!this.callbackBlacklists[message.datapointName]) {
+                this.callbackBlacklists[message.datapointName] = new Set();
             }
 
-            if (!this.callbackWhitelists[msg.datapointName]) {
-                this.callbackWhitelists[msg.datapointName] = new Set();
+            if (!this.callbackWhitelists[message.datapointName]) {
+                this.callbackWhitelists[message.datapointName] = new Set();
             }
 
             Object.keys(this.callbacks).forEach(key => {
-                if (this.callbackBlacklists[msg.datapointName].has(key)) {
+                if (this.callbackBlacklists[message.datapointName].has(key)) {
                     //this.logger.trace('blacklistet ' + key + ' ' + msg.datapointName);
                     return;
                 }
 
-                this.callCallback(msg, key);
+                this.callCallback(message, key);
             });
         }
 
@@ -2633,11 +2633,11 @@ module.exports = function (RED) {
          * @param params
          * @returns {Promise<any>}
          */
-        methodCall(iface, method, params) {
+        methodCall(iface, method, parameters) {
             return new Promise((resolve, reject) => {
                 if (this.clients[iface]) {
-                    this.logger.debug('rpc >', iface, method, JSON.stringify(params));
-                    this.clients[iface].methodCall(method, params, (err, res) => {
+                    this.logger.debug('rpc >', iface, method, JSON.stringify(parameters));
+                    this.clients[iface].methodCall(method, parameters, (err, res) => {
                         if (err) {
                             this.logger.error('    <', iface, method, err);
                             delete this.clients[iface];
@@ -2659,11 +2659,11 @@ module.exports = function (RED) {
                         }
                     }
                 } else if (this.ifaceTypes[iface]) {
-                    this.logger.debug('defering methodCall ' + iface + ' ' + method + ' ' + JSON.stringify(params));
+                    this.logger.debug('defering methodCall ' + iface + ' ' + method + ' ' + JSON.stringify(parameters));
                     if (this.methodCallQueue[iface]) {
-                        this.methodCallQueue[iface].push([method, params, resolve, reject]);
+                        this.methodCallQueue[iface].push([method, parameters, resolve, reject]);
                     } else {
-                        this.methodCallQueue[iface] = [[method, params, resolve, reject]];
+                        this.methodCallQueue[iface] = [[method, parameters, resolve, reject]];
                     }
                 } else {
                     reject(new Error('unknown interface ' + iface + ' ' + Object.keys(this.clients) + ' ' + Object.keys(this.ifaceTypes)));
@@ -2683,8 +2683,8 @@ module.exports = function (RED) {
          */
         setValueQueued(iface, address, datapoint, value, burst, force) {
             return new Promise((resolve, reject) => {
-                this.setValueQueue = this.setValueQueue.filter(el => {
-                    return el.iface !== iface || el.address !== address || el.datapoint !== datapoint;
+                this.setValueQueue = this.setValueQueue.filter(element => {
+                    return element.iface !== iface || element.address !== address || element.datapoint !== datapoint;
                 });
                 const datapointName = iface + '.' + address + '.' + datapoint;
                 const currentValue = this.values[datapointName] && this.values[datapointName].value;
@@ -2753,9 +2753,9 @@ module.exports = function (RED) {
             return new Promise((resolve, reject) => {
                 const id = `${iface}.${address}.${datapoint}`;
                 value = this.paramCast(iface, address, 'VALUES', datapoint, value);
-                const params = [address, datapoint, value];
+                const parameters = [address, datapoint, value];
                 if (iface === 'BidCos-RF' && burst) {
-                    params.push(burst);
+                    parameters.push(burst);
                 }
 
                 if (this.setValueTimers[id]) {
@@ -2763,7 +2763,7 @@ module.exports = function (RED) {
                         this.setValueCache[id].reject(new Error('overwritten'));
                     }
 
-                    this.setValueCache[id] = {params, resolve, reject};
+                    this.setValueCache[id] = {params: parameters, resolve, reject};
                     this.logger.debug('deferred', id);
                 } else {
                     if (iface !== 'BidCos-Wired') {
@@ -2773,8 +2773,8 @@ module.exports = function (RED) {
                         }, this.setValueThrottle);
                     }
 
-                    this.methodCall(iface, 'setValue', params).then(resolve).catch(error => {
-                        this.logger.error('rpc >', iface, 'setValue', JSON.stringify(params), '<', error);
+                    this.methodCall(iface, 'setValue', parameters).then(resolve).catch(error => {
+                        this.logger.error('rpc >', iface, 'setValue', JSON.stringify(parameters), '<', error);
                         reject(error);
                     });
                 }
@@ -2826,7 +2826,7 @@ module.exports = function (RED) {
                         value = Boolean(value);
                         break;
                     case 'FLOAT':
-                        value = parseFloat(value) || 0;
+                        value = Number.parseFloat(value) || 0;
                         /* Todo: rethink, deactivate boundary check for now (https://github.com/rdmtc/node-red-contrib-ccu/issues/74)
                         if (typeof paramset.MIN !== 'undefined' && value < paramset.MIN) {
                             value = paramset.MIN;
@@ -2848,7 +2848,7 @@ module.exports = function (RED) {
                         if (typeof value === 'boolean') {
                             value = Number(value);
                         } else {
-                            value = parseInt(value, 10) || 0;
+                            value = Number.parseInt(value, 10) || 0;
                         }
                         /* Todo: rethink, deactivate boundary check for now (https://github.com/rdmtc/node-red-contrib-ccu/issues/74)
                         if (typeof paramset.MIN !== 'undefined' && value < paramset.MIN) {

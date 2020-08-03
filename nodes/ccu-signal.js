@@ -21,14 +21,14 @@ module.exports = function (RED) {
 
             this.values = {};
 
-            this.on('input', (msg, send, done) => {
+            this.on('input', (message, send, done) => {
                 const values = {};
 
-                this.getValue(values, 'rampTimeValue', msg)
-                    .then(() => this.getValue(values, 'durationValue', msg))
-                    .then(() => this.getValue(values, 'repeat', msg))
-                    .then(() => this.getValue(values, 'volume', msg))
-                    .then(() => this.getValue(values, 'soundLevel', msg))
+                this.getValue(values, 'rampTimeValue', message)
+                    .then(() => this.getValue(values, 'durationValue', message))
+                    .then(() => this.getValue(values, 'repeat', message))
+                    .then(() => this.getValue(values, 'volume', message))
+                    .then(() => this.getValue(values, 'soundLevel', message))
                     .catch(error => {
                         this.error(error.message);
                     })
@@ -59,25 +59,25 @@ module.exports = function (RED) {
                     return this.ccu.methodCall(config.iface, 'putParamset', [config.channel, 'VALUES', {
                         ACOUSTIC_ALARM_SELECTION: config.acousticAlarmSelection,
                         DURATION_UNIT: config.durationUnit,
-                        DURATION_VALUE: parseInt(config.durationValue, 10) || 0,
+                        DURATION_VALUE: Number.parseInt(config.durationValue, 10) || 0,
                         OPTICAL_ALARM_SELECTION: config.opticalAlarmSelection
                     }]);
                 case 'DIMMER_VIRTUAL_RECEIVER': {
-                    const params = {
+                    const parameters = {
                         LEVEL: config.dimmerLevel / 100,
                         RAMP_TIME_UNIT: config.rampTimeUnit,
                         RAMP_TIME_VALUE: Number(config.rampTimeValue),
                         DURATION_UNIT: config.durationUnit,
-                        DURATION_VALUE: parseInt(config.durationValue, 10) || 0,
+                        DURATION_VALUE: Number.parseInt(config.durationValue, 10) || 0,
                         REPETITIONS: Number(config.repetitions),
                         OUTPUT_SELECT_SIZE: config.dimmerList.length
                     };
                     config.dimmerList.forEach((item, i) => {
                         const index = i + 1;
-                        params['COLOR_LIST_' + index] = Number(item.color);
-                        params['ON_TIME_LIST_' + index] = Number(item.ontime);
+                        parameters['COLOR_LIST_' + index] = Number(item.color);
+                        parameters['ON_TIME_LIST_' + index] = Number(item.ontime);
                     });
-                    return this.ccu.methodCall(config.iface, 'putParamset', [config.channel, 'VALUES', params]);
+                    return this.ccu.methodCall(config.iface, 'putParamset', [config.channel, 'VALUES', parameters]);
                 }
 
                 case 'BSL_DIMMER_VIRTUAL_RECEIVER': {
@@ -86,26 +86,26 @@ module.exports = function (RED) {
                         RAMP_TIME_UNIT: config.rampTimeUnit,
                         RAMP_TIME_VALUE: Number(config.rampTimeValue),
                         DURATION_UNIT: config.durationUnit,
-                        DURATION_VALUE: parseInt(config.durationValue, 10) || 0,
+                        DURATION_VALUE: Number.parseInt(config.durationValue, 10) || 0,
                         COLOR: Number(config.dimmerColor)
                     }]);
                 }
 
                 case 'ACOUSTIC_SIGNAL_VIRTUAL_RECEIVER': {
-                    const params = {
+                    const parameters = {
                         LEVEL: config.soundLevel / 100,
                         RAMP_TIME_UNIT: config.rampTimeUnit,
                         RAMP_TIME_VALUE: Number(config.rampTimeValue),
                         DURATION_UNIT: config.durationUnit,
-                        DURATION_VALUE: parseInt(config.durationValue, 10) || 0,
+                        DURATION_VALUE: Number.parseInt(config.durationValue, 10) || 0,
                         REPETITIONS: Number(config.repetitions),
                         OUTPUT_SELECT_SIZE: config.soundList.length
                     };
                     config.soundList.forEach((item, i) => {
                         const index = i + 1;
-                        params['SOUNDFILE_LIST_' + index] = Number(item.sound);
+                        parameters['SOUNDFILE_LIST_' + index] = Number(item.sound);
                     });
-                    return this.ccu.methodCall(config.iface, 'putParamset', [config.channel, 'VALUES', params]);
+                    return this.ccu.methodCall(config.iface, 'putParamset', [config.channel, 'VALUES', parameters]);
                 }
 
                 default:
@@ -117,20 +117,20 @@ module.exports = function (RED) {
             statusHelper(this, data);
         }
 
-        getValue(values, name, msg) {
+        getValue(values, name, message) {
             return new Promise((resolve, reject) => {
                 const type = this.config[name + 'Type'];
-                const val = this.config[name];
+                const value = this.config[name];
 
                 switch (type) {
                     case 'msg':
-                        values[name] = RED.util.getMessageProperty(msg, val);
+                        values[name] = RED.util.getMessageProperty(message, value);
                         resolve();
                         break;
 
                     case 'flow':
                     case 'global': {
-                        const contextKey = RED.util.parseContextStore(val);
+                        const contextKey = RED.util.parseContextStore(value);
                         this.context()[type].get(contextKey.key, contextKey.store, (err, res) => {
                             if (err) {
                                 reject(err);
@@ -143,12 +143,12 @@ module.exports = function (RED) {
                     }
 
                     case 'env':
-                        values[name] = RED.util.evaluateNodeProperty(val, 'env', this);
+                        values[name] = RED.util.evaluateNodeProperty(value, 'env', this);
                         resolve();
                         break;
 
                     default:
-                        values[name] = val;
+                        values[name] = value;
                         resolve();
                 }
             });

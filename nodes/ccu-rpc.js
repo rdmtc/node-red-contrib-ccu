@@ -14,38 +14,38 @@ module.exports = function (RED) {
 
             this.ccu.register(this);
 
-            this.on('input', (msg, send, done) => {
-                let params = config.params || msg.payload;
+            this.on('input', (message, send, done) => {
+                let parameters = config.params || message.payload;
 
-                if (params && typeof params === 'string') {
+                if (parameters && typeof parameters === 'string') {
                     try {
-                        params = JSON.parse(params);
+                        parameters = JSON.parse(parameters);
                     } catch (error) {
                         this.error(error);
                         return;
                     }
-                } else if (!params) {
-                    params = [];
+                } else if (!parameters) {
+                    parameters = [];
                 }
 
-                const method = config.method || msg.method || msg.topic;
-                const iface = config.iface || msg.iface || msg.interface;
+                const method = config.method || message.method || message.topic;
+                const iface = config.iface || message.iface || message.interface;
 
                 if (method === 'setValue') {
-                    const [address, param, value] = params;
-                    params[2] = this.ccu.paramCast(iface, address, 'VALUES', param, value);
+                    const [address, parameter, value] = parameters;
+                    parameters[2] = this.ccu.paramCast(iface, address, 'VALUES', parameter, value);
                 } else if (method === 'putParamset') {
-                    let [address, paramset, values] = params;
+                    let [address, paramset, values] = parameters;
                     values = values || {};
-                    Object.keys(values).forEach(param => {
-                        values[param] = this.ccu.paramCast(iface, address, paramset, param, values[param]);
+                    Object.keys(values).forEach(parameter => {
+                        values[parameter] = this.ccu.paramCast(iface, address, paramset, parameter, values[parameter]);
                     });
-                    params[2] = values;
+                    parameters[2] = values;
                 }
 
-                this.ccu.methodCall(iface, method, params)
+                this.ccu.methodCall(iface, method, parameters)
                     .then(res => {
-                        const msg = {
+                        const message = {
                             ccu: this.ccu.host,
                             iface,
                             topic: config.topic,
@@ -53,8 +53,8 @@ module.exports = function (RED) {
                             ts: (new Date()).getTime(),
                             method
                         };
-                        msg.topic = this.ccu.topicReplace(config.topic, msg);
-                        send(msg);
+                        message.topic = this.ccu.topicReplace(config.topic, message);
+                        send(message);
 
                         done();
                     }).catch(error => {

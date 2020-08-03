@@ -28,22 +28,22 @@ module.exports = function (RED) {
             this.name = config.name;
             this.topic = config.topic;
 
-            this.idSubscription = this.ccu.subscribeSysvar({name: this.name, cache: config.cache, change: config.change}, msg => {
-                this.status({fill: 'green', shape: 'ring', text: String(msg.payload)});
-                msg.topic = this.ccu.topicReplace(config.topic, msg);
-                this.send(msg);
+            this.idSubscription = this.ccu.subscribeSysvar({name: this.name, cache: config.cache, change: config.change}, message => {
+                this.status({fill: 'green', shape: 'ring', text: String(message.payload)});
+                message.topic = this.ccu.topicReplace(config.topic, message);
+                this.send(message);
             });
 
             this.on('input', this._input);
             this.on('close', this._destructor);
         }
 
-        _input(msg, send, done) {
-            const name = this.name || msg.topic;
-            const val = msg.payload;
-            this.ccu.setVariable(name, val)
+        _input(message, send, done) {
+            const name = this.name || message.topic;
+            const value = message.payload;
+            this.ccu.setVariable(name, value)
                 .then(() => {
-                    this.status({fill: 'green', shape: 'ring', text: String(val)});
+                    this.status({fill: 'green', shape: 'ring', text: String(value)});
                     done();
                 })
                 .catch(error => {

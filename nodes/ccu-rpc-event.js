@@ -46,9 +46,9 @@ module.exports = function (RED) {
                     filter[attr] = config[attr];
                 }
             });
-            this.idSubscription = this.ccu.subscribe(filter, msg => {
-                msg.topic = this.ccu.topicReplace(config.topic, msg);
-                this.send(msg);
+            this.idSubscription = this.ccu.subscribe(filter, message => {
+                message.topic = this.ccu.topicReplace(config.topic, message);
+                this.send(message);
             });
             this.on('close', this._destructor);
         }

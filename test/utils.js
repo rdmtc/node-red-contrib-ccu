@@ -8,7 +8,7 @@ module.exports = {
             fs.unlinkSync(path.join(__dirname, '..', 'ccu_paramsets_v2.json'));
             fs.unlinkSync(path.join(__dirname, '..', 'ccu_rega_localhost.json'));
             fs.unlinkSync(path.join(__dirname, '..', 'ccu_values_localhost.json'));
-        } catch (_) {}
+        } catch {}
     },
     hmSimOptions() {
         const {devices} = JSON.parse(fs.readFileSync(path.join(__dirname, 'simulator-data/devices.json')));

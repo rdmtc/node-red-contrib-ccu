@@ -33,20 +33,20 @@ module.exports = function (RED) {
 
             this.ccu.register(this);
 
-            this.on('input', msg => {
-                this.input(msg);
+            this.on('input', message => {
+                this.input(message);
             });
 
-            this.idEventSubscription = this.ccu.subscribe({cache: config.cache}, msg => {
-                this.event(msg);
+            this.idEventSubscription = this.ccu.subscribe({cache: config.cache}, message => {
+                this.event(message);
             });
 
-            this.idSysvarSubscription = this.ccu.subscribeSysvar({cache: config.cache, change: true}, msg => {
-                this.sysvarOutput(msg);
+            this.idSysvarSubscription = this.ccu.subscribeSysvar({cache: config.cache, change: true}, message => {
+                this.sysvarOutput(message);
             });
 
-            this.idProgramSubscription = this.ccu.subscribeProgram({}, msg => {
-                this.programOutput(msg);
+            this.idProgramSubscription = this.ccu.subscribeProgram({}, message => {
+                this.programOutput(message);
             });
 
             this.on('close', this._destructor);
@@ -78,7 +78,7 @@ module.exports = function (RED) {
             Object.keys(this.ccu[c]).forEach(iface => {
                 if (this.ccu[c][iface] !== this[c][iface]) {
                     this[c][iface] = this.ccu[c][iface];
-                    const topic = this.ccu.topicReplace(this.topicCounters, {iface, rxtx: c.substr(0, 2)});
+                    const topic = this.ccu.topicReplace(this.topicCounters, {iface, rxtx: c.slice(0, 2)});
                     const payload = this[c][iface];
                     this.send({topic, payload, retain: true});
                 }
@@ -89,46 +89,46 @@ module.exports = function (RED) {
             statusHelper(this, data);
         }
 
-        event(msg) {
-            const topic = this.ccu.topicReplace(this.topicOutputEvent, msg);
-            const retain = !(msg.datapoint && msg.datapoint.startsWith('PRESS_'));
-            this.send({topic, payload: this.output(msg), retain});
+        event(message) {
+            const topic = this.ccu.topicReplace(this.topicOutputEvent, message);
+            const retain = !(message.datapoint && message.datapoint.startsWith('PRESS_'));
+            this.send({topic, payload: this.output(message), retain});
 
-            if (['LEVEL', 'STATE'].includes(msg.datapoint) && msg.working === false) {
-                const msgNotWorking = RED.util.cloneMessage(msg);
-                msgNotWorking.datapoint += '_NOTWORKING';
-                msgNotWorking.datapointName += '_NOTWORKING';
-                this.send({topic: this.ccu.topicReplace(this.topicOutputEvent, msgNotWorking), payload: this.output(msgNotWorking), retain: true});
+            if (['LEVEL', 'STATE'].includes(message.datapoint) && message.working === false) {
+                const messageNotWorking = RED.util.cloneMessage(message);
+                messageNotWorking.datapoint += '_NOTWORKING';
+                messageNotWorking.datapointName += '_NOTWORKING';
+                this.send({topic: this.ccu.topicReplace(this.topicOutputEvent, messageNotWorking), payload: this.output(messageNotWorking), retain: true});
             }
         }
 
-        sysvarOutput(msg) {
-            const topic = this.ccu.topicReplace(this.topicOutputSysvar, msg);
-            this.send({topic, payload: this.output(msg), retain: true});
+        sysvarOutput(message) {
+            const topic = this.ccu.topicReplace(this.topicOutputSysvar, message);
+            this.send({topic, payload: this.output(message), retain: true});
         }
 
-        programOutput(msg) {
-            const topic = this.ccu.topicReplace(this.topicOutputSysvar, msg);
-            this.send({topic, payload: this.output(msg), retain: true});
+        programOutput(message) {
+            const topic = this.ccu.topicReplace(this.topicOutputSysvar, message);
+            this.send({topic, payload: this.output(message), retain: true});
         }
 
-        output(msg) {
-            msg = RED.util.cloneMessage(msg);
+        output(message) {
+            message = RED.util.cloneMessage(message);
             switch (this.payloadOutput) {
                 case 'mqsh-basic': {
                     return {
-                        val: msg.payload,
-                        ts: msg.ts,
-                        lc: msg.lc
+                        val: message.payload,
+                        ts: message.ts,
+                        lc: message.lc
                     };
                 }
 
                 case 'mqsh-extended': {
                     const payload = {
-                        val: msg.payload,
-                        ts: msg.ts,
-                        lc: msg.lc,
-                        hm: msg
+                        val: message.payload,
+                        ts: message.ts,
+                        lc: message.lc,
+                        hm: message
                     };
                     delete payload.hm.topic;
                     delete payload.hm.payload;
@@ -138,17 +138,17 @@ module.exports = function (RED) {
                 }
 
                 default: {
-                    if (typeof msg.payload === 'boolean') {
-                        return Number(msg.payload);
+                    if (typeof message.payload === 'boolean') {
+                        return Number(message.payload);
                     }
 
-                    return msg.payload;
+                    return message.payload;
                 }
             }
         }
 
-        input(msg) {
-            const {topic, payload} = msg;
+        input(message) {
+            const {topic, payload} = message;
             this.debug('input ' + topic + ' ' + JSON.stringify(payload).slice(0, 40));
 
             const topicList = {
@@ -164,19 +164,19 @@ module.exports = function (RED) {
             Object.keys(topicList).forEach(key => {
                 if (!command) {
                     const parts = topicList[key].split('/');
-                    const patternArr = [];
+                    const patternArray = [];
                     const placeholders = [];
-                    for (let i = 0, len = parts.length; i < len; i++) {
+                    for (let i = 0, {length} = parts; i < length; i++) {
                         let match;
-                        if (match = parts[i].match(/^\${([a-zA-Z0-9_-]+)}$/)) { // eslint-disable-line no-cond-assign
+                        if (match = parts[i].match(/^\${([\w-]+)}$/)) { // eslint-disable-line no-cond-assign
                             placeholders.push(match[1]);
-                            patternArr[i] = (i + 1) < len ? '+' : '#';
+                            patternArray[i] = (i + 1) < length ? '+' : '#';
                         } else {
-                            patternArr[i] = parts[i];
+                            patternArray[i] = parts[i];
                         }
                     }
 
-                    const pattern = patternArr.join('/');
+                    const pattern = patternArray.join('/');
                     const match = mw(topic, pattern);
                     if (match && match.length === placeholders.length) {
                         command = key;
@@ -319,16 +319,16 @@ module.exports = function (RED) {
 
             const paramset = {};
 
-            Object.keys(payload).forEach(param => {
-                if (paramsetDescription && paramsetDescription[param]) {
-                    if (!(paramsetDescription[param].OPERATIONS) && 2) {
-                        this.error('param ' + param + ' not writeable');
+            Object.keys(payload).forEach(parameter => {
+                if (paramsetDescription && paramsetDescription[parameter]) {
+                    if (!(paramsetDescription[parameter].OPERATIONS) && 2) {
+                        this.error('param ' + parameter + ' not writeable');
                     }
 
-                    paramset[param] = this.paramCast(payload[param], paramsetDescription[filter.param]);
+                    paramset[parameter] = this.paramCast(payload[parameter], paramsetDescription[filter.param]);
                 } else {
-                    this.warn('unknown paramset/param ' + filter.paramset + ' ' + param);
-                    paramset[param] = payload[param];
+                    this.warn('unknown paramset/param ' + filter.paramset + ' ' + parameter);
+                    paramset[parameter] = payload[parameter];
                 }
             });
 
@@ -336,54 +336,54 @@ module.exports = function (RED) {
                 .catch(error => this.error(error.message));
         }
 
-        paramCast(val, paramset) {
+        paramCast(value, paramset) {
             switch (paramset && paramset.TYPE) {
                 case 'BOOL':
                     // Fallthrough by intention
                 case 'ACTION':
                     // OMG this is so ugly...
-                    if (val === 'false') {
-                        val = false;
-                    } else if (!isNaN(val)) { // Make sure that the string "0" gets casted to boolean false
-                        val = Number(val);
+                    if (value === 'false') {
+                        value = false;
+                    } else if (!isNaN(value)) { // Make sure that the string "0" gets casted to boolean false
+                        value = Number(value);
                     }
 
-                    val = Boolean(val);
+                    value = Boolean(value);
                     break;
                 case 'FLOAT':
-                    val = parseFloat(val);
-                    if (val < paramset.MIN) {
-                        val = paramset.MIN;
-                    } else if (val > paramset.MAX) {
-                        val = paramset.MAX;
+                    value = Number.parseFloat(value);
+                    if (value < paramset.MIN) {
+                        value = paramset.MIN;
+                    } else if (value > paramset.MAX) {
+                        value = paramset.MAX;
                     }
 
-                    val = {explicitDouble: val};
+                    value = {explicitDouble: value};
                     break;
                 case 'ENUM':
-                    if (typeof val === 'string') {
-                        if (paramset.ENUM && (paramset.ENUM.includes(val))) {
-                            val = paramset.ENUM.indexOf(val);
+                    if (typeof value === 'string') {
+                        if (paramset.ENUM && (paramset.ENUM.includes(value))) {
+                            value = paramset.ENUM.indexOf(value);
                         }
                     }
 
                     // Fallthrough by intention
                 case 'INTEGER':
-                    val = parseInt(val, 10);
-                    if (val < paramset.MIN) {
-                        val = paramset.MIN;
-                    } else if (val > paramset.MAX) {
-                        val = paramset.MAX;
+                    value = Number.parseInt(value, 10);
+                    if (value < paramset.MIN) {
+                        value = paramset.MIN;
+                    } else if (value > paramset.MAX) {
+                        value = paramset.MAX;
                     }
 
                     break;
                 case 'STRING':
-                    val = String(val);
+                    value = String(value);
                     break;
                 default:
             }
 
-            return val;
+            return value;
         }
     }
 

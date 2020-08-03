@@ -208,8 +208,8 @@ describe('regahss flow1', () => {
     describe('node ccu-sysvar', () => {
         it('should send message on start', function (done) {
             this.timeout(30000);
-            nh.once('input', msg => {
-                msg.should.have.properties({topic: 'ReGaHSS/Anwesenheit',
+            nh.once('input', message => {
+                message.should.have.properties({topic: 'ReGaHSS/Anwesenheit',
                     payload: false,
                     ccu: 'localhost',
                     iface: 'ReGaHSS',
@@ -231,8 +231,8 @@ describe('regahss flow1', () => {
 
         it('should send message after receive with change', function (done) {
             this.timeout(30000);
-            nh.once('input', msg => {
-                msg.should.have.properties({
+            nh.once('input', message => {
+                message.should.have.properties({
                     payload: true,
                     value: true,
                     valuePrevious: false,
@@ -250,8 +250,8 @@ describe('regahss flow1', () => {
     describe('node ccu-sysvar and ccu-poll', () => {
         it('should send message after poll with change', function (done) {
             this.timeout(30000);
-            nh.once('input', msg => {
-                msg.should.have.properties({
+            nh.once('input', message => {
+                message.should.have.properties({
                     payload: false,
                     value: false,
                     valuePrevious: true,
@@ -273,8 +273,8 @@ describe('regahss flow1', () => {
 
         it('should send message after poll with unchanged', function (done) {
             this.timeout(30000);
-            nh.once('input', msg => {
-                msg.should.have.properties({
+            nh.once('input', message => {
+                message.should.have.properties({
                     payload: false,
                     value: false,
                     valuePrevious: false,
@@ -334,22 +334,22 @@ describe('regahss flow2', () => {
     describe('node ccu-sysvar', () => {
         it('should not send message on start', function (done) {
             this.timeout(30000);
-            function unexcpectedMsg(msg) {
-                nh.removeListener('input', unexcpectedMsg);
+            function unexcpectedMessage(message) {
+                nh.removeListener('input', unexcpectedMessage);
                 done(new Error('unexpected msg received'));
             }
 
-            nh.on('input', unexcpectedMsg);
+            nh.on('input', unexcpectedMessage);
             setTimeout(() => {
-                nh.removeListener('input', unexcpectedMsg);
+                nh.removeListener('input', unexcpectedMessage);
                 done();
             }, 3000);
         });
 
         it('should send message after receive with change', function (done) {
             this.timeout(30000);
-            nh.once('input', msg => {
-                msg.should.have.properties({
+            nh.once('input', message => {
+                message.should.have.properties({
                     payload: true,
                     value: true,
                     valuePrevious: false,
@@ -367,8 +367,8 @@ describe('regahss flow2', () => {
     describe('node ccu-sysvar and ccu-poll', () => {
         it('should send message after poll with change', function (done) {
             this.timeout(30000);
-            nh.once('input', msg => {
-                msg.should.have.properties({
+            nh.once('input', message => {
+                message.should.have.properties({
                     payload: false,
                     value: false,
                     valuePrevious: true,
@@ -390,13 +390,13 @@ describe('regahss flow2', () => {
 
         it('should not send message after poll with unchanged', function (done) {
             this.timeout(30000);
-            function unexcpectedMsg() {
+            function unexcpectedMessage() {
                 done(new Error('unexpected msg received'));
             }
 
-            nh.once('input', unexcpectedMsg);
+            nh.once('input', unexcpectedMessage);
             setTimeout(() => {
-                nh.removeListener('input', unexcpectedMsg);
+                nh.removeListener('input', unexcpectedMessage);
                 done();
             }, 3000);
             hmSim.regaSim.variables.forEach((v, i) => {
@@ -452,8 +452,8 @@ describe('regahss flow3', () => {
     describe('node ccu-sysvar', () => {
         it('should send message on start', function (done) {
             this.timeout(30000);
-            nh.once('input', msg => {
-                msg.should.have.properties({topic: 'ReGaHSS/Anwesenheit',
+            nh.once('input', message => {
+                message.should.have.properties({topic: 'ReGaHSS/Anwesenheit',
                     payload: false,
                     ccu: 'localhost',
                     iface: 'ReGaHSS',
@@ -474,8 +474,8 @@ describe('regahss flow3', () => {
         });
         it('should send message with change', function (done) {
             this.timeout(10000);
-            nh.once('input', msg => {
-                msg.should.have.properties({
+            nh.once('input', message => {
+                message.should.have.properties({
                     payload: true,
                     value: true,
                     valuePrevious: false,
@@ -495,8 +495,8 @@ describe('regahss flow3', () => {
         });
         it('should send message with change', function (done) {
             this.timeout(10000);
-            nh.once('input', msg => {
-                msg.should.have.properties({
+            nh.once('input', message => {
+                message.should.have.properties({
                     payload: false,
                     value: false,
                     valuePrevious: true,
@@ -519,8 +519,8 @@ describe('regahss flow3', () => {
     describe('node ccu-sysvar and ccu-script', () => {
         it('should send message with change', function (done) {
             this.timeout(10000);
-            nh.once('input', msg => {
-                msg.should.have.properties({
+            nh.once('input', message => {
+                message.should.have.properties({
                     payload: true,
                     value: true,
                     valuePrevious: false,
@@ -535,8 +535,8 @@ describe('regahss flow3', () => {
         });
         it('should send message with change', function (done) {
             this.timeout(10000);
-            nh.once('input', msg => {
-                msg.should.have.properties({
+            nh.once('input', message => {
+                message.should.have.properties({
                     payload: false,
                     value: false,
                     valuePrevious: true,
@@ -553,8 +553,8 @@ describe('regahss flow3', () => {
     describe('node ccu-program', () => {
         it('should execute on incoming msg', function (done) {
             this.timeout(10000);
-            nh.once('input', msg => {
-                msg.should.have.properties({
+            nh.once('input', message => {
+                message.should.have.properties({
                     id: 2329,
                     ccu: 'localhost',
                     iface: 'ReGaHSS',

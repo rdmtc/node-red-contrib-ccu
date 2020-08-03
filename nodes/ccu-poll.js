@@ -16,7 +16,7 @@ module.exports = function (RED) {
 
             this.ccu.register(this);
 
-            this.on('input', (msg, send, done) => {
+            this.on('input', (message, send, done) => {
                 this.ccu.regaPoll(); // TODO catch errors
                 done();
             });

@@ -41,8 +41,8 @@ module.exports = function (RED) {
             this.blacklist = new Set();
             this.whitelist = new Set();
 
-            this.on('input', msg => {
-                this.setValues(msg);
+            this.on('input', message => {
+                this.setValues(message);
             });
 
             this.on('close', this._destructor);
@@ -61,7 +61,7 @@ module.exports = function (RED) {
             statusHelper(this, data);
         }
 
-        setValues(msg) {
+        setValues(message) {
             let count = 0;
             Object.keys(this.ccu.metadata.devices).forEach(iface => {
                 if (this.iface && iface !== this.iface) {
@@ -244,8 +244,8 @@ module.exports = function (RED) {
                             const datapointName = iface + '.' + address + '.' + dp;
                             const currentValue = this.ccu.values[datapointName] && this.ccu.values[datapointName].value;
                             count += 1;
-                            if (dp.startsWith('PRESS_') || typeof currentValue === 'undefined' || currentValue !== msg.payload) {
-                                this.ccu.setValueQueued(iface, address, dp, msg.payload, false, this.force).catch(() => {});
+                            if (dp.startsWith('PRESS_') || typeof currentValue === 'undefined' || currentValue !== message.payload) {
+                                this.ccu.setValueQueued(iface, address, dp, message.payload, false, this.force).catch(() => {});
                             }
                         });
                     }

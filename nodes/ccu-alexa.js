@@ -42,13 +42,13 @@ module.exports = function (RED) {
                 state: {}
             };
 
-            this.idSubscription = this.ccu.subscribe(filter, msg => {
+            this.idSubscription = this.ccu.subscribe(filter, message => {
                 let change = false;
                 switch (channelType) {
                     case 'SHUTTER_CONTACT':
                     case 'ROTARY_HANDLE_SENSOR':
-                        if (msg.datapoint === 'STATE') {
-                            payload.state.contact = msg.payload ? 'NOT_DETECTED' : 'DETECTED';
+                        if (message.datapoint === 'STATE') {
+                            payload.state.contact = message.payload ? 'NOT_DETECTED' : 'DETECTED';
                             change = true;
                         }
 
@@ -56,13 +56,13 @@ module.exports = function (RED) {
 
                     case 'CLIMATECONTROL_RT_TRANSCEIVER':
                     case 'THERMALCONTROL_TRANSMIT':
-                        if (msg.datapoint === 'SET_TEMPERATURE') {
-                            payload.state.thermostatSetPoint = msg.payload;
+                        if (message.datapoint === 'SET_TEMPERATURE') {
+                            payload.state.thermostatSetPoint = message.payload;
                             change = true;
                         }
 
-                        if (msg.datapoint === 'ACTUAL_TEMPERATURE') {
-                            payload.state.temperature = msg.payload;
+                        if (message.datapoint === 'ACTUAL_TEMPERATURE') {
+                            payload.state.temperature = message.payload;
                             change = true;
                         }
                         // TODO if (msg.datapoint === 'CONTROL_MODE') {
@@ -70,13 +70,13 @@ module.exports = function (RED) {
                         break;
 
                     case 'HEATING_CLIMATECONTROL_TRANSCEIVER':
-                        if (msg.datapoint === 'SET_POINT_TEMPERATURE') {
-                            payload.state.thermostatSetPoint = msg.payload;
+                        if (message.datapoint === 'SET_POINT_TEMPERATURE') {
+                            payload.state.thermostatSetPoint = message.payload;
                             change = true;
                         }
 
-                        if (msg.datapoint === 'ACTUAL_TEMPERATURE') {
-                            payload.state.temperature = msg.payload;
+                        if (message.datapoint === 'ACTUAL_TEMPERATURE') {
+                            payload.state.temperature = message.payload;
                             change = true;
                         }
 
@@ -85,8 +85,8 @@ module.exports = function (RED) {
 
                     case 'SWITCH_VIRTUAL_RECEIVER':
                     case 'SWITCH':
-                        if (msg.datapoint === 'STATE') {
-                            payload.state.power = msg.payload ? 'ON' : 'OFF';
+                        if (message.datapoint === 'STATE') {
+                            payload.state.power = message.payload ? 'ON' : 'OFF';
                             change = true;
                         }
 
@@ -94,9 +94,9 @@ module.exports = function (RED) {
 
                     case 'DIMMER_VIRTUAL_RECEIVER':
                     case 'DIMMER':
-                        if (msg.datapoint === 'LEVEL') {
-                            payload.state.power = msg.payload ? 'ON' : 'OFF';
-                            payload.state.brightness = msg.payload * 100;
+                        if (message.datapoint === 'LEVEL') {
+                            payload.state.power = message.payload ? 'ON' : 'OFF';
+                            payload.state.brightness = message.payload * 100;
                             change = true;
                         }
 
@@ -104,8 +104,8 @@ module.exports = function (RED) {
 
                     case 'BLIND':
                     case 'BLIND_VIRTUAL_RECEIVER':
-                        if (msg.datapoint === 'LEVEL') {
-                            payload.state.rangeValue = msg.payload * 100;
+                        if (message.datapoint === 'LEVEL') {
+                            payload.state.rangeValue = message.payload * 100;
                             change = true;
                         }
 
@@ -113,8 +113,8 @@ module.exports = function (RED) {
 
                     case 'MOTION_DETECTOR':
                     case 'MOTIONDETECTOR_TRANSCEIVER':
-                        if (msg.datapoint === 'MOTION') {
-                            payload.state.power = msg.payload ? 'DETECTED' : 'NOT_DETECTED';
+                        if (message.datapoint === 'MOTION') {
+                            payload.state.power = message.payload ? 'DETECTED' : 'NOT_DETECTED';
                             change = true;
                         }
 
@@ -122,16 +122,16 @@ module.exports = function (RED) {
 
                     case 'WEATHER':
                     case 'WEATHER_TRANSMIT':
-                        if (msg.datapoint === 'TEMPERATURE') {
-                            payload.state.temperature = msg.payload;
+                        if (message.datapoint === 'TEMPERATURE') {
+                            payload.state.temperature = message.payload;
                             change = true;
                         }
 
                         break;
 
                     case 'KEYMATIC':
-                        if (msg.datapoint === 'STATE') {
-                            payload.state.lock = msg.payload ? 'UNLOCKED' : 'LOCKED';
+                        if (message.datapoint === 'STATE') {
+                            payload.state.lock = message.payload ? 'UNLOCKED' : 'LOCKED';
                             change = true;
                         }
 
@@ -153,8 +153,8 @@ module.exports = function (RED) {
                 }
             });
 
-            this.on('input', msg => {
-                this.debug('alexa > ' + JSON.stringify(msg));
+            this.on('input', message => {
+                this.debug('alexa > ' + JSON.stringify(message));
 
                 if (!this.iface) {
                     this.error('interface undefined');
@@ -166,22 +166,22 @@ module.exports = function (RED) {
                     return;
                 }
 
-                switch (msg.command) {
+                switch (message.command) {
                     case 'TurnOn':
                     case 'TurnOff':
                         if (channelType.startsWith('DIMMER')) {
-                            this.ccu.setValueQueued(this.iface, this.channel, 'LEVEL', msg.payload === 'ON' ? 1 : 0);
+                            this.ccu.setValueQueued(this.iface, this.channel, 'LEVEL', message.payload === 'ON' ? 1 : 0);
                         } else {
-                            this.ccu.setValueQueued(this.iface, this.channel, 'STATE', msg.payload === 'ON');
+                            this.ccu.setValueQueued(this.iface, this.channel, 'STATE', message.payload === 'ON');
                         }
 
                         break;
 
                     case 'SetBrightness':
                         if (channelType.startsWith('DIMMER')) {
-                            this.ccu.setValueQueued(this.iface, this.channel, 'LEVEL', msg.payload / 100);
+                            this.ccu.setValueQueued(this.iface, this.channel, 'LEVEL', message.payload / 100);
                         } else {
-                            this.ccu.setValueQueued(this.iface, this.channel, 'STATE', msg.payload > 0);
+                            this.ccu.setValueQueued(this.iface, this.channel, 'STATE', message.payload > 0);
                         }
 
                         break;
@@ -190,11 +190,11 @@ module.exports = function (RED) {
                         switch (channelType) {
                             case 'CLIMATECONTROL_RT_TRANSCEIVER':
                             case 'THERMALCONTROL_TRANSMIT':
-                                this.ccu.setValueQueued(this.iface, this.channel, 'SET_TEMPERATURE', msg.payload);
+                                this.ccu.setValueQueued(this.iface, this.channel, 'SET_TEMPERATURE', message.payload);
                                 break;
 
                             case 'HEATING_CLIMATECONTROL_TRANSCEIVER':
-                                this.ccu.setValueQueued(this.iface, this.channel, 'SET_POINT_TEMPERATURE', msg.payload);
+                                this.ccu.setValueQueued(this.iface, this.channel, 'SET_POINT_TEMPERATURE', message.payload);
                                 break;
 
                             default:
@@ -206,7 +206,7 @@ module.exports = function (RED) {
                         switch (channelType) {
                             case 'BLIND':
                             case 'BLIND_VIRTUAL_RECEIVER':
-                                this.ccu.setValueQueued(this.iface, this.channel, 'LEVEL', msg.payload / 100);
+                                this.ccu.setValueQueued(this.iface, this.channel, 'LEVEL', message.payload / 100);
                                 break;
 
                             default:
@@ -221,7 +221,7 @@ module.exports = function (RED) {
                         // todo case 'SetThermostatMode':
 
                     default:
-                        this.warn('unknown command ' + msg.command);
+                        this.warn('unknown command ' + message.command);
                 }
             });
 

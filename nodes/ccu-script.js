@@ -18,17 +18,17 @@ module.exports = function (RED) {
             this.status({});
         }
 
-        _input(msg, send, done) {
-            let script = this.script || msg.payload;
+        _input(message, send, done) {
+            let script = this.script || message.payload;
             script += '\n\nvar nr_script_call_success = true;\n';
             this.ccu.script(script)
-                .then(msg => {
-                    msg.iface = this.iface;
-                    msg.ccu = this.ccu.host;
-                    msg.topic = this.ccu.topicReplace(this.topic, msg);
-                    send(msg);
+                .then(message => {
+                    message.iface = this.iface;
+                    message.ccu = this.ccu.host;
+                    message.topic = this.ccu.topicReplace(this.topic, message);
+                    send(message);
 
-                    if (msg && msg.objects && msg.objects.nr_script_call_success === 'true') {
+                    if (message && message.objects && message.objects.nr_script_call_success === 'true') {
                         this.status({fill: 'green', shape: 'dot', text: 'success'});
                         done();
                     } else {

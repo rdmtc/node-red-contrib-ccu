@@ -101,13 +101,13 @@ module.exports = function (RED) {
                 return ico ? (',0x13,' + ico) : '';
             }
 
-            function convertString(str) {
-                if (typeof str !== 'string') {
-                    str = String(str);
+            function convertString(string) {
+                if (typeof string !== 'string') {
+                    string = String(string);
                 }
 
-                if (!str) {
-                    str = ' ';
+                if (!string) {
+                    string = ' ';
                 }
 
                 const charcodes = {
@@ -120,63 +120,63 @@ module.exports = function (RED) {
                     ß: '0x5F'
                 };
                 const res = [];
-                str.split('').forEach(c => {
+                string.split('').forEach(c => {
                     res.push(charcodes[c] || ('0x' + c.charCodeAt(0).toString(16).toUpperCase()));
                 });
 
                 return ',0x12,' + res.slice(0, 12).join(',');
             }
 
-            this.on('input', (msg, send, done) => {
+            this.on('input', (message, send, done) => {
                 let payload = '0x02';
 
                 if (config.channelType === 'HM-Dis-EP-WM55') {
                     payload += ',0x0A';
                 }
 
-                payload += convertString(msg.line1 || config.line1);
+                payload += convertString(message.line1 || config.line1);
                 if (config.channelType === 'HM-Dis-WM55') {
-                    payload += convertColor(msg.color1 || config.color1);
+                    payload += convertColor(message.color1 || config.color1);
                 }
 
-                payload += convertIcon(msg.icon1 || config.icon1);
+                payload += convertIcon(message.icon1 || config.icon1);
 
                 payload += ',0x0A';
 
-                payload += convertString(msg.line2 || config.line2);
+                payload += convertString(message.line2 || config.line2);
                 if (config.channelType === 'HM-Dis-WM55') {
-                    payload += convertColor(msg.color2 || config.color2);
+                    payload += convertColor(message.color2 || config.color2);
                 }
 
-                payload += convertIcon(msg.icon2 || config.icon2);
+                payload += convertIcon(message.icon2 || config.icon2);
 
                 payload += ',0x0A';
 
-                payload += convertString(msg.line3 || config.line3);
+                payload += convertString(message.line3 || config.line3);
                 if (config.channelType === 'HM-Dis-WM55') {
-                    payload += convertColor(msg.color3 || config.color3);
+                    payload += convertColor(message.color3 || config.color3);
                 }
 
-                payload += convertIcon(msg.icon3 || config.icon3);
+                payload += convertIcon(message.icon3 || config.icon3);
 
                 payload += ',0x0A';
 
                 if (config.channelType === 'HM-Dis-WM55') {
-                    payload += convertString(msg.line4 || config.line4);
-                    payload += convertColor(msg.color4 || config.color4);
-                    payload += convertIcon(msg.icon4 || config.icon4);
+                    payload += convertString(message.line4 || config.line4);
+                    payload += convertColor(message.color4 || config.color4);
+                    payload += convertIcon(message.icon4 || config.icon4);
 
                     payload += ',0x0A';
 
-                    payload += convertString(msg.line5 || config.line5);
-                    payload += convertColor(msg.color5 || config.color5);
-                    payload += convertIcon(msg.icon5 || config.icon5);
+                    payload += convertString(message.line5 || config.line5);
+                    payload += convertColor(message.color5 || config.color5);
+                    payload += convertIcon(message.icon5 || config.icon5);
 
                     payload += ',0x0A';
 
-                    payload += convertString(msg.line6 || config.line6);
-                    payload += convertColor(msg.color6 || config.color6);
-                    payload += convertIcon(msg.icon6 || config.icon6);
+                    payload += convertString(message.line6 || config.line6);
+                    payload += convertColor(message.color6 || config.color6);
+                    payload += convertIcon(message.icon6 || config.icon6);
 
                     payload += ',0x0A';
                 }
