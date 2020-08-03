@@ -1251,6 +1251,7 @@ module.exports = function (RED) {
             if (isNew || this.sysvar[sysvar.name].ts !== sysvar.ts) {
                 Object.assign(this.sysvar[sysvar.name], {
                     payload: sysvar.val,
+                    info: sysvar.info,
                     value: sysvar.val,
                     valueEnum: this.sysvar[sysvar.name].enum[Number(sysvar.val)],
                     valuePrevious: this.sysvar[sysvar.name].value,
