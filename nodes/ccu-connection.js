@@ -1750,7 +1750,7 @@ module.exports = function (RED) {
          * @param device
          */
         paramsetQueuePush(iface, device) {
-            if (device.PARAMSETS) {
+            if (device && device.PARAMSETS) {
                 device.PARAMSETS.forEach(paramset => {
                     const name = this.paramsetName(iface, device, paramset);
                     if (!this.paramsetDescriptions[name]) {
