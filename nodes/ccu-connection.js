@@ -568,7 +568,7 @@ module.exports = function (RED) {
          */
         setContext() {
             if (this.contextStore) {
-                this.globalContext.set('ccu-' + this.host.replace('.', '_'), {
+                this.globalContext.set('ccu-' + this.host.replace(/\./g, '_'), {
                     values: this.values,
                     sysvar: this.sysvar,
                     program: this.program
