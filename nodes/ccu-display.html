@@ -195,7 +195,7 @@
         <select id="node-input-iface" class="ccu-dropdown" disabled></select>
     </div>
     <div class="form-row">
-        <label for="node-input-channel"><i class="icon-tags"></i>Kanal</label>
+        <label for="node-input-channel"><i class="icon-tags"></i><span data-i18n="ccu-display.channel"></span></label>
         <input type="text" id="node-input-channel">
     </div>
     <div class="form-row">
@@ -373,62 +373,62 @@
     </div>
 
     <div class="form-row SUBMIT HM-Dis-WM55">
-        <label for="node-input-line6"><i class="icon-envelope"></i> Zeile 6</label>
+        <label for="node-input-line6"><i class="icon-envelope"></i><span data-i18n="ccu-display.line"></span> 6</label>
         <input type="text" id="node-input-line6">
     </div>
     <div class="form-row SUBMIT HM-Dis-WM55">
-        <label for="node-input-color6"><i class="icon-envelope"></i> Farbe 6</label>
+        <label for="node-input-color6"><i class="icon-envelope"></i><span data-i18n="ccu-display.color"></span> 6</label>
         <select id="node-input-color6" class="ccu-dropdown">
-            <option value="0x80">Weiß</option>
-            <option value="0x81">Rot</option>
-            <option value="0x82">Orange</option>
-            <option value="0x83">Gelb</option>
-            <option value="0x84">Grün</option>
-            <option value="0x85">Blau</option>
+            <option value="0x80" data-i18n="ccu-display.white">Weiß</option>
+            <option value="0x81" data-i18n="ccu-display.red">Rot</option>
+            <option value="0x82" data-i18n="ccu-display.orange">Orange</option>
+            <option value="0x83" data-i18n="ccu-display.signal_yellow">Gelb</option>
+            <option value="0x84" data-i18n="ccu-display.green">Grün</option>
+            <option value="0x85" data-i18n="ccu-display.blue">Blau</option>
         </select>
     </div>
     <div class="form-row SUBMIT HM-Dis-WM55">
-        <label for="node-input-icon6"><i class="icon-envelope"></i> Icon 6</label>
+        <label for="node-input-icon6"><i class="icon-envelope"></i><span data-i18n="ccu-display.icon"></span> 6</label>
         <select id="node-input-icon6" class="ccu-dropdown">
             <option value=""></option>
-            <option value="0x80">Aus</option>
-            <option value="0x81">Ein</option>
-            <option value="0x82">Offen</option>
-            <option value="0x83">Geschlossen</option>
-            <option value="0x84">Fehler</option>
-            <option value="0x85">Ok</option>
-            <option value="0x86">Information</option>
-            <option value="0x87">Neue Nachricht</option>
-            <option value="0x88">Servicemeldung</option>
-            <option value="0x89">Signal Grün</option>
-            <option value="0x8A">Signal Gelb</option>
-            <option value="0x8B">Signal Rot</option>
+            <option value="0x80" data-i18n="ccu-display.off"></option>
+            <option value="0x81" data-i18n="ccu-display.on">Ein</option>
+            <option value="0x82" data-i18n="ccu-display.open">Offen</option>
+            <option value="0x83" data-i18n="ccu-display.close">Geschlossen</option>
+            <option value="0x84" data-i18n="ccu-display.error">Fehler</option>
+            <option value="0x85" data-i18n="ccu-display.ok">Ok</option>
+            <option value="0x86" data-i18n="ccu-display.information">Information</option>
+            <option value="0x87" data-i18n="ccu-display.new_message">Neue Nachricht</option>
+            <option value="0x88" data-i18n="ccu-display.service_message">Servicemeldung</option>
+            <option value="0x89" data-i18n="ccu-display.signal_green">Signal Grün</option>
+            <option value="0x8A" data-i18n="ccu-display.signal_yellow">Signal Gelb</option>
+            <option value="0x8B" data-i18n="ccu-display.signal_red">Signal Rot</option>
         </select>
     </div>
 
     <div class="form-row SUBMIT HM-Dis-EP-WM55">
-        <label for="node-input-signal"><i class="icon-envelope"></i> LED</label>
+        <label for="node-input-signal"><i class="icon-envelope"></i>LED</label>
         <select id="node-input-signal" class="ccu-dropdown">
-            <option value="0xF0">Aus</option>
-            <option value="0xF1">Rot</option>
-            <option value="0xF2">Grün</option>
-            <option value="0xF3">Orange</option>
+            <option value="0xF0" data-i18n="ccu-display.off"></option>
+            <option value="0xF1" data-i18n="ccu-display.red"></option>
+            <option value="0xF2" data-i18n="ccu-display.green"></option>
+            <option value="0xF3" data-i18n="ccu-display.orange"></option>
         </select>
     </div>
     <div class="form-row SUBMIT HM-Dis-EP-WM55">
-        <label for="node-input-sound"><i class="icon-envelope"></i> Ton</label>
+        <label for="node-input-sound"><i class="icon-envelope"></i><span data-i18n="ccu-display.sound"></span></label>
         <select id="node-input-sound" class="ccu-dropdown">
-            <option value="0xC0">Aus</option>
-            <option value="0xC1">Lang Lang</option>
-            <option value="0xC2">Lang Kurz</option>
-            <option value="0xC3">Lang Kurz Kurz</option>
-            <option value="0xC4">Kurz</option>
-            <option value="0xC5">Kurz Kurz</option>
-            <option value="0xC6">Lang</option>
+            <option value="0xC0" data-i18n="ccu-display.off"></option>
+            <option value="0xC1" data-i18n="ccu-display.long_long"></option>
+            <option value="0xC2" data-i18n="ccu-display.long_short"></option>
+            <option value="0xC3" data-i18n="ccu-display.long_short_short"></option>
+            <option value="0xC4" data-i18n="ccu-display.short"></option>
+            <option value="0xC5" data-i18n="ccu-display.short_short"></option>
+            <option value="0xC6" data-i18n="ccu-display.long">Lang</option>
         </select>
     </div>
     <div class="form-row SUBMIT HM-Dis-EP-WM55">
-        <label for="node-input-repeat"><i class="icon-bookmark"></i> Wiederholungen</label>
+        <label for="node-input-repeat"><i class="icon-bookmark"></i><span data-i18n="ccu-display.repeat"></span></label>
         <select id="node-input-repeat" class="ccu-dropdown">
             <option value="0xD0">1</option>
             <option value="0xD1">2</option>
@@ -445,28 +445,28 @@
             <option value="0xDC">13</option>
             <option value="0xDD">14</option>
             <option value="0xDE">15</option>
-            <option value="0xDF">Unendlich</option>
+            <option value="0xDF" data-i18n="ccu-display.infinity"></option>
         </select>
     </div>
     <div class="form-row SUBMIT HM-Dis-EP-WM55">
         <label for="node-input-pause"><i class="icon-bookmark"></i> Pause</label>
         <select id="node-input-pause" class="ccu-dropdown">
-            <option value="0xE0">10 Sekunden</option>
-            <option value="0xE1">20 Sekunden</option>
-            <option value="0xE2">30 Sekunden</option>
-            <option value="0xE3">40 Sekunden</option>
-            <option value="0xE4">50 Sekunden</option>
-            <option value="0xE5">60 Sekunden</option>
-            <option value="0xE6">70 Sekunden</option>
-            <option value="0xE7">80 Sekunden</option>
-            <option value="0xE8">90 Sekunden</option>
-            <option value="0xE9">100 Sekunden</option>
-            <option value="0xEA">110 Sekunden</option>
-            <option value="0xEB">120 Sekunden</option>
-            <option value="0xEC">130 Sekunden</option>
-            <option value="0xED">140 Sekunden</option>
-            <option value="0xEE">150 Sekunden</option>
-            <option value="0xEF">160 Sekunden</option>
+            <option value="0xE0">10 <span data-i18n="ccu-display.seconds"></span></option>
+            <option value="0xE1">20 <span data-i18n="ccu-display.seconds"></span></option>
+            <option value="0xE2">30 <span data-i18n="ccu-display.seconds"></span></option>
+            <option value="0xE3">40 <span data-i18n="ccu-display.seconds"></span></option>
+            <option value="0xE4">50 <span data-i18n="ccu-display.seconds"></span></option>
+            <option value="0xE5">60 <span data-i18n="ccu-display.seconds"></span></option>
+            <option value="0xE6">70 <span data-i18n="ccu-display.seconds"></span></option>
+            <option value="0xE7">80 <span data-i18n="ccu-display.seconds"></span></option>
+            <option value="0xE8">90 <span data-i18n="ccu-display.seconds"></span></option>
+            <option value="0xE9">100 <span data-i18n="ccu-display.seconds"></span></option>
+            <option value="0xEA">110 <span data-i18n="ccu-display.seconds"></span></option>
+            <option value="0xEB">120 <span data-i18n="ccu-display.seconds"></span></option>
+            <option value="0xEC">130 <span data-i18n="ccu-display.seconds"></span></option>
+            <option value="0xED">140 <span data-i18n="ccu-display.seconds"></span></option>
+            <option value="0xEE">150 <span data-i18n="ccu-display.seconds"></span></option>
+            <option value="0xEF">160 <span data-i18n="ccu-display.seconds"></span></option>
         </select>
     </div>
     <div class="form-row">

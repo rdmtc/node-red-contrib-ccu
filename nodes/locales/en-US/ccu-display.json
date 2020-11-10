@@ -1,5 +1,36 @@
 {
   "ccu-display": {
-
+    "line": "Line",
+    "color": "Color",
+    "icon": "Icon",    
+    "channel": "Channel",
+    "sound": "Sound",
+    "repeat": "Repeat",
+    "infinity": "infinity",
+    "off": "Off",
+    "long_long":"Long Long",
+    "long_short":"Long Short",
+    "long_short_short":"Long Short Short",
+    "short":"Short",
+    "short_short":"Short Short",
+    "long":"Long",
+    "seconds": "seconds",
+    "red": "Red",
+    "green": "Green",
+    "orange": "Orange",
+    "white": "White",
+    "yellow": "Yellow",
+    "blue": "Blue",
+    "on": "On",
+    "open":"Open",
+    "close":"Closed",
+    "error":"Error",
+    "ok":"Ok",
+    "information":"information",
+    "new_message":"new message",
+    "service_message": "service message",
+    "signal_green":"signal green",
+    "signal_yellow":"signal yellow",
+    "signal_red":"signal red"   
   }
 }
