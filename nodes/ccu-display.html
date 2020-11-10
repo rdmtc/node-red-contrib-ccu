@@ -44,6 +44,37 @@
             return this.name ? 'node_label_italic' : '';
         },
         oneditprepare() {
+
+            // get templates for line, color & icon
+            const $nodeLineX = $('#node-line-X')[0];
+            const $nodeColorX = $('#node-color-X')[0];
+            const $nodeIconX = $('#node-icon-X')[0];
+        
+            console.log(this);
+            // replace X -> number and insert templates
+            for (i = 6; i > 0; i--) {
+                let extraClass = "HM-Dis-EP-WM55";
+                if (i > 4) extraClass="";
+
+                let nodeIconI = $nodeIconX.innerHTML.replaceAll('X',i);
+                $nodeLineX.insertAdjacentHTML('afterend','<div class="form-row SUBMIT HM-Dis-WM55 '+extraClass+'">'+nodeIconI+'</div>');
+                $('#node-input-icon'+i)[0].value=this['icon'+i];
+                
+                let nodeColorI = $nodeColorX.innerHTML.replaceAll('X',i);
+                $nodeLineX.insertAdjacentHTML('afterend','<div class="form-row SUBMIT HM-Dis-WM55">'+nodeColorI+'</div>');
+                $('#node-input-color'+i)[0].value=this['color'+i];
+
+                let nodeLineI = $nodeLineX.innerHTML.replaceAll('X',i);
+                $nodeLineX.insertAdjacentHTML('afterend','<div class="form-row SUBMIT HM-Dis-WM55 '+extraClass+'">'+nodeLineI+'</div>');
+                $('#node-input-line'+i)[0].value=this['line'+i];
+                debugger;
+            }
+
+            // remove templates
+            $nodeLineX.remove();
+            $nodeColorX.remove();
+            $nodeIconX.remove();
+
             const $nodeInputName = $('#node-input-name');
             const $nodeInputChannel = $('#node-input-channel');
             const $nodeInputChannelType = $('#node-input-channelType');
@@ -206,203 +237,39 @@
         </select>
     </div>
 
-    <div class="form-row SUBMIT HM-Dis-WM55 HM-Dis-EP-WM55">
-        <label for="node-input-line1"><i class="icon-envelope"></i> Zeile 1</label>
-        <input type="text" id="node-input-line1">
+    <div id="node-line-X" class="form-row SUBMIT HM-Dis-WM55">
+        <label for="node-input-lineX"><i class="icon-envelope"></i><span data-i18n="ccu-display.line"></span> X</label>
+        <input type="text" id="node-input-lineX">
     </div>
-    <div class="form-row SUBMIT HM-Dis-WM55">
-        <label for="node-input-color1"><i class="icon-envelope"></i> Farbe 1</label>
-        <select id="node-input-color1" class="ccu-dropdown">
-            <option value="0x80">Weiß</option>
-            <option value="0x81">Rot</option>
-            <option value="0x82">Orange</option>
-            <option value="0x83">Gelb</option>
-            <option value="0x84">Grün</option>
-            <option value="0x85">Blau</option>
-        </select>
-    </div>
-    <div class="form-row SUBMIT HM-Dis-WM55 HM-Dis-EP-WM55">
-        <label for="node-input-icon1"><i class="icon-envelope"></i> Icon 1</label>
-        <select id="node-input-icon1" class="ccu-dropdown">
-            <option value=""></option>
-            <option value="0x80">Aus</option>
-            <option value="0x81">Ein</option>
-            <option value="0x82">Offen</option>
-            <option value="0x83">Geschlossen</option>
-            <option value="0x84">Fehler</option>
-            <option value="0x85">Ok</option>
-            <option value="0x86">Information</option>
-            <option value="0x87">Neue Nachricht</option>
-            <option value="0x88">Servicemeldung</option>
-            <option class="SUBMIT HM-Dis-WM55" value="0x89">Signal Grün</option>
-            <option class="SUBMIT HM-Dis-WM55" value="0x8A">Signal Gelb</option>
-            <option class="SUBMIT HM-Dis-WM55" value="0x8B">Signal Rot</option>
-        </select>
-    </div>
-    <div class="form-row SUBMIT HM-Dis-WM55 HM-Dis-EP-WM55">
-        <label for="node-input-line2"><i class="icon-envelope"></i> Zeile 2</label>
-        <input type="text" id="node-input-line2">
-    </div>
-    <div class="form-row SUBMIT HM-Dis-WM55">
-        <label for="node-input-color2"><i class="icon-envelope"></i> Farbe 2</label>
-        <select id="node-input-color2" class="ccu-dropdown">
-            <option value="0x80">Weiß</option>
-            <option value="0x81">Rot</option>
-            <option value="0x82">Orange</option>
-            <option value="0x83">Gelb</option>
-            <option value="0x84">Grün</option>
-            <option value="0x85">Blau</option>
-        </select>
-    </div>
-    <div class="form-row SUBMIT HM-Dis-WM55 HM-Dis-EP-WM55">
-        <label for="node-input-icon2"><i class="icon-envelope"></i> Icon 2</label>
-        <select id="node-input-icon2" class="ccu-dropdown">
-            <option value=""></option>
-            <option value="0x80">Aus</option>
-            <option value="0x81">Ein</option>
-            <option value="0x82">Offen</option>
-            <option value="0x83">Geschlossen</option>
-            <option value="0x84">Fehler</option>
-            <option value="0x85">Ok</option>
-            <option value="0x86">Information</option>
-            <option value="0x87">Neue Nachricht</option>
-            <option value="0x88">Servicemeldung</option>
-            <option class="SUBMIT HM-Dis-WM55" value="0x89">Signal Grün</option>
-            <option class="SUBMIT HM-Dis-WM55" value="0x8A">Signal Gelb</option>
-            <option class="SUBMIT HM-Dis-WM55" value="0x8B">Signal Rot</option>
-         </select>
-    </div>
-    <div class="form-row SUBMIT HM-Dis-WM55 HM-Dis-EP-WM55">
-        <label for="node-input-line3"><i class="icon-envelope"></i> Zeile 3</label>
-        <input type="text" id="node-input-line3">
-    </div>
-    <div class="form-row SUBMIT HM-Dis-WM55">
-        <label for="node-input-color3"><i class="icon-envelope"></i> Farbe 3</label>
-        <select id="node-input-color3" class="ccu-dropdown">
-            <option value="0x80">Weiß</option>
-            <option value="0x81">Rot</option>
-            <option value="0x82">Orange</option>
-            <option value="0x83">Gelb</option>
-            <option value="0x84">Grün</option>
-            <option value="0x85">Blau</option>
-        </select>
-    </div>
-    <div class="form-row SUBMIT HM-Dis-WM55 HM-Dis-EP-WM55">
-        <label for="node-input-icon3"><i class="icon-envelope"></i> Icon 3</label>
-        <select id="node-input-icon3" class="ccu-dropdown">
-            <option value=""></option>
-            <option value="0x80">Aus</option>
-            <option value="0x81">Ein</option>
-            <option value="0x82">Offen</option>
-            <option value="0x83">Geschlossen</option>
-            <option value="0x84">Fehler</option>
-            <option value="0x85">Ok</option>
-            <option value="0x86">Information</option>
-            <option value="0x87">Neue Nachricht</option>
-            <option value="0x88">Servicemeldung</option>
-            <option class="SUBMIT HM-Dis-WM55" value="0x89">Signal Grün</option>
-            <option class="SUBMIT HM-Dis-WM55" value="0x8A">Signal Gelb</option>
-            <option class="SUBMIT HM-Dis-WM55" value="0x8B">Signal Rot</option>
-        </select>
-    </div>
-    <div class="form-row SUBMIT HM-Dis-WM55">
-        <label for="node-input-line4"><i class="icon-envelope"></i> Zeile 4</label>
-        <input type="text" id="node-input-line4">
-    </div>
-    <div class="form-row SUBMIT HM-Dis-WM55">
-        <label for="node-input-color4"><i class="icon-envelope"></i> Farbe 4</label>
-        <select id="node-input-color4" class="ccu-dropdown">
-            <option value="0x80">Weiß</option>
-            <option value="0x81">Rot</option>
-            <option value="0x82">Orange</option>
-            <option value="0x83">Gelb</option>
-            <option value="0x84">Grün</option>
-            <option value="0x85">Blau</option>
-        </select>
-    </div>
-    <div class="form-row SUBMIT HM-Dis-WM55">
-        <label for="node-input-icon4"><i class="icon-envelope"></i> Icon 4</label>
-        <select id="node-input-icon4" class="ccu-dropdown">
-            <option value=""></option>
-            <option value="0x80">Aus</option>
-            <option value="0x81">Ein</option>
-            <option value="0x82">Offen</option>
-            <option value="0x83">Geschlossen</option>
-            <option value="0x84">Fehler</option>
-            <option value="0x85">Ok</option>
-            <option value="0x86">Information</option>
-            <option value="0x87">Neue Nachricht</option>
-            <option value="0x88">Servicemeldung</option>
-            <option value="0x89">Signal Grün</option>
-            <option value="0x8A">Signal Gelb</option>
-            <option value="0x8B">Signal Rot</option>
-        </select>
-    </div>
-    <div class="form-row SUBMIT HM-Dis-WM55">
-        <label for="node-input-line5"><i class="icon-envelope"></i> Zeile 5</label>
-        <input type="text" id="node-input-line5">
-    </div>
-    <div class="form-row SUBMIT HM-Dis-WM55">
-        <label for="node-input-color5"><i class="icon-envelope"></i> Farbe 5</label>
-        <select id="node-input-color5" class="ccu-dropdown">
-            <option value="0x80">Weiß</option>
-            <option value="0x81">Rot</option>
-            <option value="0x82">Orange</option>
-            <option value="0x83">Gelb</option>
-            <option value="0x84">Grün</option>
-            <option value="0x85">Blau</option>
-        </select>
-    </div>
-    <div class="form-row SUBMIT HM-Dis-WM55">
-        <label for="node-input-icon5"><i class="icon-envelope"></i> Icon 5</label>
-        <select id="node-input-icon5" class="ccu-dropdown">
-            <option value=""></option>
-            <option value="0x80">Aus</option>
-            <option value="0x81">Ein</option>
-            <option value="0x82">Offen</option>
-            <option value="0x83">Geschlossen</option>
-            <option value="0x84">Fehler</option>
-            <option value="0x85">Ok</option>
-            <option value="0x86">Information</option>
-            <option value="0x87">Neue Nachricht</option>
-            <option value="0x88">Servicemeldung</option>
-            <option value="0x89">Signal Grün</option>
-            <option value="0x8A">Signal Gelb</option>
-            <option value="0x8B">Signal Rot</option>
+
+    <div id="node-color-X" class="form-row SUBMIT HM-Dis-WM55">
+        <label for="node-input-colorX"><i class="icon-envelope"></i><span data-i18n="ccu-display.color"></span> X</label>
+        <select id="node-input-colorX" class="ccu-dropdown">
+            <option value="0x80" data-i18n="ccu-display.white"></option>
+            <option value="0x81" data-i18n="ccu-display.red"></option>
+            <option value="0x82" data-i18n="ccu-display.orange"></option>
+            <option value="0x83" data-i18n="ccu-display.yellow"></option>
+            <option value="0x84" data-i18n="ccu-display.green"></option>
+            <option value="0x85" data-i18n="ccu-display.blue"></option>
         </select>
     </div>
 
-    <div class="form-row SUBMIT HM-Dis-WM55">
-        <label for="node-input-line6"><i class="icon-envelope"></i><span data-i18n="ccu-display.line"></span> 6</label>
-        <input type="text" id="node-input-line6">
-    </div>
-    <div class="form-row SUBMIT HM-Dis-WM55">
-        <label for="node-input-color6"><i class="icon-envelope"></i><span data-i18n="ccu-display.color"></span> 6</label>
-        <select id="node-input-color6" class="ccu-dropdown">
-            <option value="0x80" data-i18n="ccu-display.white">Weiß</option>
-            <option value="0x81" data-i18n="ccu-display.red">Rot</option>
-            <option value="0x82" data-i18n="ccu-display.orange">Orange</option>
-            <option value="0x83" data-i18n="ccu-display.signal_yellow">Gelb</option>
-            <option value="0x84" data-i18n="ccu-display.green">Grün</option>
-            <option value="0x85" data-i18n="ccu-display.blue">Blau</option>
-        </select>
-    </div>
-    <div class="form-row SUBMIT HM-Dis-WM55">
-        <label for="node-input-icon6"><i class="icon-envelope"></i><span data-i18n="ccu-display.icon"></span> 6</label>
-        <select id="node-input-icon6" class="ccu-dropdown">
+    <div id="node-icon-X" class="form-row SUBMIT HM-Dis-WM55">
+        <label for="node-input-iconX"><i class="icon-envelope"></i><span data-i18n="ccu-display.icon"></span> X</label>
+        <select id="node-input-iconX" class="ccu-dropdown">
             <option value=""></option>
             <option value="0x80" data-i18n="ccu-display.off"></option>
-            <option value="0x81" data-i18n="ccu-display.on">Ein</option>
-            <option value="0x82" data-i18n="ccu-display.open">Offen</option>
-            <option value="0x83" data-i18n="ccu-display.close">Geschlossen</option>
-            <option value="0x84" data-i18n="ccu-display.error">Fehler</option>
-            <option value="0x85" data-i18n="ccu-display.ok">Ok</option>
-            <option value="0x86" data-i18n="ccu-display.information">Information</option>
-            <option value="0x87" data-i18n="ccu-display.new_message">Neue Nachricht</option>
-            <option value="0x88" data-i18n="ccu-display.service_message">Servicemeldung</option>
-            <option value="0x89" data-i18n="ccu-display.signal_green">Signal Grün</option>
-            <option value="0x8A" data-i18n="ccu-display.signal_yellow">Signal Gelb</option>
-            <option value="0x8B" data-i18n="ccu-display.signal_red">Signal Rot</option>
+            <option value="0x81" data-i18n="ccu-display.on"></option>
+            <option value="0x82" data-i18n="ccu-display.open"></option>
+            <option value="0x83" data-i18n="ccu-display.close"></option>
+            <option value="0x84" data-i18n="ccu-display.error"></option>
+            <option value="0x85" data-i18n="ccu-display.ok"></option>
+            <option value="0x86" data-i18n="ccu-display.information"></option>
+            <option value="0x87" data-i18n="ccu-display.new_message"></option>
+            <option value="0x88" data-i18n="ccu-display.service_message"></option>
+            <option value="0x89" data-i18n="ccu-display.signal_green"  class="SUBMIT HM-Dis-WM55"></option>
+            <option value="0x8A" data-i18n="ccu-display.signal_yellow" class="SUBMIT HM-Dis-WM55"></option>
+            <option value="0x8B" data-i18n="ccu-display.signal_red"    class="SUBMIT HM-Dis-WM55"></option>
         </select>
     </div>
 
@@ -449,7 +316,7 @@
         </select>
     </div>
     <div class="form-row SUBMIT HM-Dis-EP-WM55">
-        <label for="node-input-pause"><i class="icon-bookmark"></i> Pause</label>
+        <label for="node-input-pause"><i class="icon-bookmark"></i> Pause <span data-i18n="ccu-display.seconds"></span></label>
         <select id="node-input-pause" class="ccu-dropdown">
             <option value="0xE0">10 <span data-i18n="ccu-display.seconds"></span></option>
             <option value="0xE1">20 <span data-i18n="ccu-display.seconds"></span></option>
