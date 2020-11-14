@@ -130,54 +130,19 @@ module.exports = function (RED) {
             this.on('input', (message, send, done) => {
                 let payload = '0x02';
 
+                let countLines = 6; // HM-Dis-WM55
                 if (config.channelType === 'HM-Dis-EP-WM55') {
                     payload += ',0x0A';
+                    countLines = 4;
                 }
 
-                payload += convertString(message.line1 || config.line1);
-                if (config.channelType === 'HM-Dis-WM55') {
-                    payload += convertColor(message.color1 || config.color1);
-                }
-
-                payload += convertIcon(message.icon1 || config.icon1);
-
-                payload += ',0x0A';
-
-                payload += convertString(message.line2 || config.line2);
-                if (config.channelType === 'HM-Dis-WM55') {
-                    payload += convertColor(message.color2 || config.color2);
-                }
-
-                payload += convertIcon(message.icon2 || config.icon2);
-
-                payload += ',0x0A';
-
-                payload += convertString(message.line3 || config.line3);
-                if (config.channelType === 'HM-Dis-WM55') {
-                    payload += convertColor(message.color3 || config.color3);
-                }
-
-                payload += convertIcon(message.icon3 || config.icon3);
-
-                payload += ',0x0A';
-
-                if (config.channelType === 'HM-Dis-WM55') {
-                    payload += convertString(message.line4 || config.line4);
-                    payload += convertColor(message.color4 || config.color4);
-                    payload += convertIcon(message.icon4 || config.icon4);
-
-                    payload += ',0x0A';
-
-                    payload += convertString(message.line5 || config.line5);
-                    payload += convertColor(message.color5 || config.color5);
-                    payload += convertIcon(message.icon5 || config.icon5);
-
-                    payload += ',0x0A';
-
-                    payload += convertString(message.line6 || config.line6);
-                    payload += convertColor(message.color6 || config.color6);
-                    payload += convertIcon(message.icon6 || config.icon6);
-
+                for (i = 1; i <= countLines; i++) {
+                    payload += convertString(message["line"+i] || config["line"+i]);
+                    if (config.channelType === 'HM-Dis-WM55') {
+                        payload += convertColor(message["color"+i] || config["color"+i]);
+                    }
+                    payload += convertIcon(message["icon"+i] || config["icon"+i]);
+    
                     payload += ',0x0A';
                 }
 
@@ -195,7 +160,8 @@ module.exports = function (RED) {
 
                 payload += ',0x03';
 
-                this.ccu.setValue(config.iface, config.channel, 'SUBMIT', payload).then(() => {
+                this.ccu.setValue(config.iface, config.channel, 'SUBMIT', payload)
+                .then(() => {
                     done();
                 }).catch(error => {
                     done(error);
