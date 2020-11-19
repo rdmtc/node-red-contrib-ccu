@@ -64,7 +64,7 @@ module.exports = function (RED) {
         }
 
         setValues(message) {
-            const config = this.config;
+            const {config} = this;
             Object.keys(config).forEach(key => {
                 if (!config[key]) {
                     if (key in message) {
