@@ -6,21 +6,27 @@
             name: {value: ''},
             iface: {value: 'BidCos-RF', required: true},
             channel: {value: '', required: true},
+            disable1: {value: false},
             line1: {value: ''},
             icon1: {value: ''},
             color1: {value: '0x80'},
+            disable2: {value: false},
             line2: {value: ''},
             icon2: {value: ''},
             color2: {value: '0x80'},
+            disable3: {value: false},
             line3: {value: ''},
             icon3: {value: ''},
             color3: {value: '0x80'},
+            disable4: {value: false},
             line4: {value: ''},
             icon4: {value: ''},
             color4: {value: '0x80'},
+            disable5: {value: false},
             line5: {value: ''},
             icon5: {value: ''},
             color5: {value: '0x80'},
+            disable6: {value: false},
             line6: {value: ''},
             icon6: {value: ''},
             color6: {value: '0x80'},
@@ -44,17 +50,16 @@
             return this.name ? 'node_label_italic' : '';
         },
         oneditprepare() {
-
             // get templates for line, color & icon
             const $nodeLineX = $('#node-line-X')[0];
             const $nodeColorX = $('#node-color-X')[0];
             const $nodeIconX = $('#node-icon-X')[0];
+            const $nodeDisableI = $('#node-disable-X')[0];
         
-            console.log(this);
             // replace X -> number and insert templates
-            for (i = 6; i > 0; i--) {
+            for (let i = 6; i > 0; i--) {
                 let extraClass = "HM-Dis-EP-WM55";
-                if (i > 4) extraClass="";
+                if (i >= 4) extraClass="";
 
                 let nodeIconI = $nodeIconX.innerHTML.replaceAll('X',i);
                 $nodeLineX.insertAdjacentHTML('afterend','<div class="form-row SUBMIT HM-Dis-WM55 '+extraClass+'">'+nodeIconI+'</div>');
@@ -67,13 +72,24 @@
                 let nodeLineI = $nodeLineX.innerHTML.replaceAll('X',i);
                 $nodeLineX.insertAdjacentHTML('afterend','<div class="form-row SUBMIT HM-Dis-WM55 '+extraClass+'">'+nodeLineI+'</div>');
                 $('#node-input-line'+i)[0].value=this['line'+i];
-                debugger;
+
+                let nodeDisableI = $nodeDisableI.innerHTML.replaceAll('X',i);
+                $nodeLineX.insertAdjacentHTML('afterend','<div class="form-row SUBMIT HM-Dis-WM55 '+extraClass+'">'+nodeDisableI+'</div>');
+                $('#node-input-disable'+i).on("change",function() {
+                    let dis = $('#node-input-disable'+i)[0].checked;
+                    $('#node-input-icon'+i).prop('disabled', dis);
+                    $('#node-input-color'+i).prop('disabled',dis);
+                    $('#node-input-line'+i).prop('disabled', dis);
+                });
+
+                $('#node-input-disable'+i)[0].checked=this['disable'+i];
             }
 
             // remove templates
             $nodeLineX.remove();
             $nodeColorX.remove();
             $nodeIconX.remove();
+            $nodeDisableI.remove();
 
             const $nodeInputName = $('#node-input-name');
             const $nodeInputChannel = $('#node-input-channel');
@@ -235,6 +251,11 @@
             <option value="HM-Dis-WM55">HM-Dis-WM55</option>
             <option value="HM-Dis-EP-WM55">HM-Dis-EP-WM55</option>
         </select>
+    </div>
+
+    <div id="node-disable-X" class="form-row SUBMIT HM-Dis-WM55">
+        <input type="checkbox" id="node-input-disableX" style="margin-top:-3px;width: 20px; height: 30px;">
+        <label for="node-input-disableX" style="margin-left: 10px; height:20px; width: 300px;"><span data-i18n="ccu-display.disable"></span></label>
     </div>
 
     <div id="node-line-X" class="form-row SUBMIT HM-Dis-WM55">

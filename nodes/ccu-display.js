@@ -133,16 +133,34 @@ module.exports = function (RED) {
                 let countLines = 6; // HM-Dis-WM55
                 if (config.channelType === 'HM-Dis-EP-WM55') {
                     payload += ',0x0A';
-                    countLines = 4;
+                    countLines = 3;
                 }
 
-                for (i = 1; i <= countLines; i++) {
-                    payload += convertString(message["line"+i] || config["line"+i]);
-                    if (config.channelType === 'HM-Dis-WM55') {
-                        payload += convertColor(message["color"+i] || config["color"+i]);
+                for (let i = 1; i <= countLines; i++) {
+
+                    let sendLine = false;
+                    for (let item of ["line", "color", "icon"])
+                    {
+                        // normalize entries for an easy check of line needs to send to display
+                        if (config[item +""+ i] == null) config[item + i] = undefined;
+                        if (message[item +""+ i] == null) message[item + i] = undefined;
+
+                        if (!!config["disable" + i]) config[item + i] = undefined;
+                        if (!!message["disable" + i]) message[item + i] = undefined;
+
+                        if (config[item +""+ i] != undefined) sendLine = true;
+                        if (message[item +""+ i] != undefined) sendLine = true;
                     }
-                    payload += convertIcon(message["icon"+i] || config["icon"+i]);
-    
+                
+                    if (sendLine)
+                    {
+                        payload += convertString(message["line" + i] || config["line" + i]);
+                        if (config.channelType === 'HM-Dis-WM55') {
+                            payload += convertColor(message["color" + i] || config["color" + i]);
+                        }
+                        payload += convertIcon(message["icon" + i] || config["icon" + i]);
+                    }
+
                     payload += ',0x0A';
                 }
 
@@ -161,11 +179,11 @@ module.exports = function (RED) {
                 payload += ',0x03';
 
                 this.ccu.setValue(config.iface, config.channel, 'SUBMIT', payload)
-                .then(() => {
-                    done();
-                }).catch(error => {
-                    done(error);
-                });
+                    .then(() => {
+                        done();
+                    }).catch(error => {
+                        done(error);
+                    });
             });
         }
 

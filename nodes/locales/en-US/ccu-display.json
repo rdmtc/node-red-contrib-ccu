@@ -1,5 +1,6 @@
 {
   "ccu-display": {
+    "disable": "Don't touch",
     "line": "Line",
     "color": "Color",
     "icon": "Icon",    
