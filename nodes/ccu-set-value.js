@@ -15,28 +15,30 @@ module.exports = function (RED) {
 
             this.ccu.register(this);
 
-            this.iface = config.iface;
-            this.rooms = config.rooms;
-            this.functions = config.functions;
-            this.device = config.device;
-            this.deviceType = config.deviceType;
-            this.deviceName = config.deviceName;
-            this.channel = config.channel;
-            this.channelType = config.channelType;
-            this.channelIndex = config.channelIndex;
-            this.channelName = config.channelName;
-            this.datapoint = config.datapoint;
-            this.roomsRx = config.roomsRx;
-            this.functionsRx = config.functionsRx;
-            this.deviceRx = config.deviceRx;
-            this.deviceTypeRx = config.deviceTypeRx;
-            this.deviceNameRx = config.deviceNameRx;
-            this.channelRx = config.channelRx;
-            this.channelTypeRx = config.channelTypeRx;
-            this.channelIndexRx = config.channelIndexRx;
-            this.channelNameRx = config.channelNameRx;
-            this.datapointRx = config.datapointRx;
-            this.force = config.force;
+            this.config = {
+                iface: config.iface,
+                rooms: config.rooms,
+                functions: config.functions,
+                device: config.device,
+                deviceType: config.deviceType,
+                deviceName: config.deviceName,
+                channel: config.channel,
+                channelType: config.channelType,
+                channelIndex: config.channelIndex,
+                channelName: config.channelName,
+                datapoint: config.datapoint,
+                roomsRx: config.roomsRx,
+                functionsRx: config.functionsRx,
+                deviceRx: config.deviceRx,
+                deviceTypeRx: config.deviceTypeRx,
+                deviceNameRx: config.deviceNameRx,
+                channelRx: config.channelRx,
+                channelTypeRx: config.channelTypeRx,
+                channelIndexRx: config.channelIndexRx,
+                channelNameRx: config.channelNameRx,
+                datapointRx: config.datapointRx,
+                force: config.force
+            };
 
             this.blacklist = new Set();
             this.whitelist = new Set();
@@ -62,9 +64,18 @@ module.exports = function (RED) {
         }
 
         setValues(message) {
+            const {config} = this;
+            Object.keys(config).forEach(key => {
+                if (!config[key]) {
+                    if (key in message) {
+                        config[key] = message[key];
+                    }
+                }
+            });
+
             let count = 0;
             Object.keys(this.ccu.metadata.devices).forEach(iface => {
-                if (this.iface && iface !== this.iface) {
+                if (config.iface && iface !== config.iface) {
                     return;
                 }
 
@@ -82,115 +93,115 @@ module.exports = function (RED) {
 
                     if (!this.whitelist.has(address)) {
                         const device = this.ccu.metadata.devices[iface][channel.PARENT];
-                        if (this.device) {
-                            if (this.deviceRx === 'str' && this.device !== channel.PARENT) {
+                        if (config.device) {
+                            if (config.deviceRx === 'str' && config.device !== channel.PARENT) {
                                 this.blacklist.add(address);
                                 return;
                             }
 
-                            if (this.deviceRx === 're' && !channel.PARENT.match(new RegExp(this.device))) {
-                                this.blacklist.add(address);
-                                return;
-                            }
-                        }
-
-                        if (this.deviceType) {
-                            if (this.deviceTypeRx === 'str' && this.deviceType !== device.TYPE) {
-                                this.blacklist.add(address);
-                                return;
-                            }
-
-                            if (this.deviceTypeRx === 're' && !device.TYPE.match(new RegExp(this.deviceType))) {
+                            if (config.deviceRx === 're' && !channel.PARENT.match(new RegExp(config.device))) {
                                 this.blacklist.add(address);
                                 return;
                             }
                         }
 
-                        if (this.deviceName) {
+                        if (config.deviceType) {
+                            if (config.deviceTypeRx === 'str' && config.deviceType !== device.TYPE) {
+                                this.blacklist.add(address);
+                                return;
+                            }
+
+                            if (config.deviceTypeRx === 're' && !device.TYPE.match(new RegExp(config.deviceType))) {
+                                this.blacklist.add(address);
+                                return;
+                            }
+                        }
+
+                        if (config.deviceName) {
                             if (!this.ccu.channelNames[address]) {
                                 this.blacklist.add(address);
                                 return;
                             }
 
-                            if (this.deviceNameRx === 'str' && this.ccu.channelNames[channel.PARENT] !== this.deviceName) {
+                            if (config.deviceNameRx === 'str' && this.ccu.channelNames[channel.PARENT] !== config.deviceName) {
                                 this.blacklist.add(address);
                                 return;
                             }
 
-                            if (this.deviceNameRx === 're' && !this.ccu.channelNames[channel.PARENT].match(new RegExp(this.deviceName))) {
-                                this.blacklist.add(address);
-                                return;
-                            }
-                        }
-
-                        if (this.channel) {
-                            if (this.channelRx === 'str' && this.channel !== address) {
-                                this.blacklist.add(address);
-                                return;
-                            }
-
-                            if (this.channelRx === 're' && !address.match(new RegExp(this.channel))) {
+                            if (config.deviceNameRx === 're' && !this.ccu.channelNames[channel.PARENT].match(new RegExp(config.deviceName))) {
                                 this.blacklist.add(address);
                                 return;
                             }
                         }
 
-                        if (this.channelType) {
-                            if (this.channelTypeRx === 'str' && this.channelType !== channel.TYPE) {
+                        if (config.channel) {
+                            if (config.channelRx === 'str' && config.channel !== address) {
                                 this.blacklist.add(address);
                                 return;
                             }
 
-                            if (this.channelTypeRx === 're' && !channel.TYPE.match(new RegExp(this.channelType))) {
-                                this.blacklist.add(address);
-                                return;
-                            }
-                        }
-
-                        if (this.channelIndex) {
-                            if (this.channelIndexRx === 'str' && !address.endsWith(':' + this.channelIndex)) {
-                                this.blacklist.add(address);
-                                return;
-                            }
-
-                            if (this.channelIndexRx === 're' && !address.split(':')[1].match(new RegExp(String(this.channelIndex)))) {
+                            if (config.channelRx === 're' && !address.match(new RegExp(config.channel))) {
                                 this.blacklist.add(address);
                                 return;
                             }
                         }
 
-                        if (this.channelName) {
+                        if (config.channelType) {
+                            if (config.channelTypeRx === 'str' && config.channelType !== channel.TYPE) {
+                                this.blacklist.add(address);
+                                return;
+                            }
+
+                            if (config.channelTypeRx === 're' && !channel.TYPE.match(new RegExp(config.channelType))) {
+                                this.blacklist.add(address);
+                                return;
+                            }
+                        }
+
+                        if (config.channelIndex) {
+                            if (config.channelIndexRx === 'str' && !address.endsWith(':' + config.channelIndex)) {
+                                this.blacklist.add(address);
+                                return;
+                            }
+
+                            if (config.channelIndexRx === 're' && !address.split(':')[1].match(new RegExp(String(config.channelIndex)))) {
+                                this.blacklist.add(address);
+                                return;
+                            }
+                        }
+
+                        if (config.channelName) {
                             if (!this.ccu.channelNames[address]) {
                                 this.blacklist.add(address);
                                 return;
                             }
 
-                            if (this.channelNameRx === 'str' && this.ccu.channelNames[address] !== this.channelName) {
+                            if (config.channelNameRx === 'str' && this.ccu.channelNames[address] !== config.channelName) {
                                 this.blacklist.add(address);
                                 return;
                             }
 
-                            if (this.channelNameRx === 're' && !this.ccu.channelNames[address].match(new RegExp(this.channelName))) {
+                            if (config.channelNameRx === 're' && !this.ccu.channelNames[address].match(new RegExp(config.channelName))) {
                                 this.blacklist.add(address);
                                 return;
                             }
                         }
 
-                        if (this.rooms) {
+                        if (config.rooms) {
                             if (!this.ccu.channelRooms[address]) {
                                 this.blacklist.add(address);
                                 return;
                             }
 
-                            if (this.roomsRx === 'str' && !this.ccu.channelRooms[address].includes(this.rooms)) {
+                            if (config.roomsRx === 'str' && !this.ccu.channelRooms[address].includes(config.rooms)) {
                                 this.blacklist.add(address);
                                 return;
                             }
 
-                            if (this.roomsRx === 're') {
+                            if (config.roomsRx === 're') {
                                 let match = false;
                                 this.ccu.channelRooms[address].forEach(room => {
-                                    if (room.match(new RegExp(this.rooms))) {
+                                    if (room.match(new RegExp(config.rooms))) {
                                         match = true;
                                     }
                                 });
@@ -201,21 +212,21 @@ module.exports = function (RED) {
                             }
                         }
 
-                        if (this.functions) {
+                        if (config.functions) {
                             if (!this.ccu.channelFunctions[address]) {
                                 this.blacklist.add(address);
                                 return;
                             }
 
-                            if (this.functionsRx === 'str' && !this.ccu.channelFunctions[address].includes(this.functions)) {
+                            if (config.functionsRx === 'str' && !this.ccu.channelFunctions[address].includes(config.functions)) {
                                 this.blacklist.add(address);
                                 return;
                             }
 
-                            if (this.functionsRx === 're') {
+                            if (config.functionsRx === 're') {
                                 let match = false;
                                 this.ccu.channelFunctions[address].forEach(func => {
-                                    if (func.match(new RegExp(this.functions))) {
+                                    if (func.match(new RegExp(config.functions))) {
                                         match = true;
                                     }
                                 });
@@ -231,13 +242,13 @@ module.exports = function (RED) {
 
                     const psKey = this.ccu.paramsetName(iface, channel, 'VALUES');
                     if (this.ccu.paramsetDescriptions[psKey]) {
-                        const rx = new RegExp(this.datapoint);
+                        const rx = new RegExp(config.datapoint);
                         Object.keys(this.ccu.paramsetDescriptions[psKey]).forEach(dp => {
-                            if (this.datapointRx === 'str' && dp !== this.datapoint) {
+                            if (config.datapointRx === 'str' && dp !== config.datapoint) {
                                 return;
                             }
 
-                            if (this.datapointRx === 're' && !dp.match(rx)) {
+                            if (config.datapointRx === 're' && !dp.match(rx)) {
                                 return;
                             }
 
@@ -245,7 +256,7 @@ module.exports = function (RED) {
                             const currentValue = this.ccu.values[datapointName] && this.ccu.values[datapointName].value;
                             count += 1;
                             if (dp.startsWith('PRESS_') || typeof currentValue === 'undefined' || currentValue !== message.payload) {
-                                this.ccu.setValueQueued(iface, address, dp, message.payload, false, this.force).catch(() => {});
+                                this.ccu.setValueQueued(iface, address, dp, message.payload, false, config.force).catch(() => {});
                             }
                         });
                     }
