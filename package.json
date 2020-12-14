@@ -1,161 +1,145 @@
 {
-  "_from": "node-red-contrib-ccu@3.2.1",
-  "_id": "node-red-contrib-ccu@3.2.1",
-  "_inBundle": false,
-  "_integrity": "sha512-ogI8pU+eTTwLqKLSuuAfwMDyKuyeWP1MQsKlJSczLSWt8EP3UttU9mI2B8vue6CYYrmptwmoeDViB9NTvilS8g==",
-  "_location": "/node-red-contrib-ccu",
-  "_phantomChildren": {},
-  "_requested": {
-    "type": "version",
-    "registry": true,
-    "raw": "node-red-contrib-ccu@3.2.1",
     "name": "node-red-contrib-ccu",
-    "escapedName": "node-red-contrib-ccu",
-    "rawSpec": "3.2.1",
-    "saveSpec": null,
-    "fetchSpec": "3.2.1"
-  },
-  "_requiredBy": [
-    "/"
-  ],
-  "_resolved": "https://registry.npmjs.org/node-red-contrib-ccu/-/node-red-contrib-ccu-3.2.1.tgz",
-  "_shasum": "88ecb125fa3fd3647956fb716265341dce0413f1",
-  "_spec": "node-red-contrib-ccu@3.2.1",
-  "_where": "/home/travis/build/rdmtc/RedMatic/addon_tmp/redmatic/var",
-  "author": {
-    "name": "Sebastian Raff",
-    "email": "hobbyquaker@gmail.com"
-  },
-  "bugs": {
-    "url": "https://github.com/rdmtc/node-red-contrib-ccu/issues"
-  },
-  "bundleDependencies": false,
-  "contributors": [
-    {
-      "name": "Hypnos3",
-      "email": "hypnos3@online.de"
-    },
-    {
-      "name": "psi-4ward",
-      "email": "gh@psi.cx"
-    },
-    {
-      "name": "Timo Wendt https://github.com/twendt"
-    }
-  ],
-  "dependencies": {
-    "binrpc": "^3.3.1",
-    "buffer-base62": "^0.1.2",
-    "hm-discover": "^1.1.3",
-    "homematic-rega": "^1.5.2",
-    "homematic-xmlrpc": "^1.0.2",
-    "mqtt-wildcard": "^3.0.9",
-    "nextport": "^1.0.0",
-    "obj-ease": "^1.0.1",
-    "promise.prototype.finally": "^3.1.2",
-    "string-similarity": "^4.0.2"
-  },
-  "deprecated": false,
-  "description": "Node-RED Nodes for the Homematic CCU",
-  "devDependencies": {
-    "camo-purge": "^1.0.2",
-    "coveralls": "^3.1.0",
-    "eslint-plugin-html": "^6.0.2",
-    "hm-simulator": "^0.1.1",
-    "husky": "^4.2.5",
-    "mocha": "^8.1.0",
-    "node-red": "^1.1.2",
-    "node-red-node-test-helper": "^0.2.5",
-    "nyc": "^15.1.0",
-    "should": "^13.2.3",
-    "xo": "^0.32.1"
-  },
-  "engines": {
-    "node": ">= 10.0.0"
-  },
-  "homepage": "https://github.com/rdmtc/node-red-contrib-ccu#readme",
-  "husky": {
-    "hooks": {
-      "pre-commit": "npm run lintonly",
-      "pre-push": "npm run lintonly && npm run testonly"
-    }
-  },
-  "keywords": [
-    "node-red",
-    "homematic",
-    "ccu",
-    "bidcos",
-    "cuxd",
-    "smart home automation",
-    "eq-3"
-  ],
-  "license": "MIT",
-  "main": "none",
-  "name": "node-red-contrib-ccu",
-  "node-red": {
-    "nodes": {
-      "ccu-connection": "nodes/ccu-connection.js",
-      "ccu-value": "nodes/ccu-value.js",
-      "ccu-rpc-event": "nodes/ccu-rpc-event.js",
-      "ccu-set-value": "nodes/ccu-set-value.js",
-      "ccu-rpc": "nodes/ccu-rpc.js",
-      "ccu-signal": "nodes/ccu-signal.js",
-      "ccu-display": "nodes/ccu-display.js",
-      "ccu-sysvar": "nodes/ccu-sysvar.js",
-      "ccu-program": "nodes/ccu-program.js",
-      "ccu-script": "nodes/ccu-script.js",
-      "ccu-poll": "nodes/ccu-poll.js",
-      "ccu-get-value": "nodes/ccu-get-value.js",
-      "ccu-switch": "nodes/ccu-switch.js",
-      "ccu-hm2mqtt": "nodes/ccu-mqtt.js",
-      "ccu-alexa": "nodes/ccu-alexa.js"
-    }
-  },
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/rdmtc/node-red-contrib-ccu.git"
-  },
-  "scripts": {
-    "checkgit": "([[ $(git rev-parse --abbrev-ref HEAD) == \"master\" ]] && git diff --exit-code && git diff --cached --exit-code && git diff --exit-code origin/master..master)",
-    "lintfix": "xo --fix",
-    "lintonly": "xo",
-    "postpublish": "git tag v$(jq -r '.version' package.json) && git push --no-verify --tags",
-    "prepublishOnly": "npm run checkgit --silent",
-    "test": "camo-purge; xo && nyc mocha \"test/**/*_spec.js\" --exit && nyc report --reporter=text-lcov | coveralls --force",
-    "testcov": "nyc mocha \"test/**/*_spec.js\" --exit",
-    "testonly": "mocha \"test/**/*_spec.js\" --exit"
-  },
-  "version": "3.2.1",
-  "xo": {
-    "space": 4,
-    "plugin": "html",
-    "global": [
-      "$",
-      "RED"
+    "version": "3.3.0",
+    "license": "MIT",
+    "main": "none",
+    "keywords": [
+        "node-red",
+        "homematic",
+        "ccu",
+        "bidcos",
+        "cuxd",
+        "smart home automation",
+        "eq-3"
     ],
-    "extensions": [
-      "js",
-      "html"
-    ],
-    "rules": {
-      "no-template-curly-in-string": "warn",
-      "camelcase": "warn",
-      "capitalized-comments": 0,
-      "spaced-comment": 0,
-      "unicorn/catch-error-name": "warn",
-      "unicorn/prefer-string-slice": "warn",
-      "valid-jsdoc": 0,
-      "eslint-comments/no-unused-disable": 0,
-      "promise/prefer-await-to-then": "warn",
-      "prefer-object-spread": "warn",
-      "unicorn/prevent-abbreviations": "warn",
-      "unicorn/prefer-number-properties": "warn",
-      "unicorn/no-reduce": "warn"
+    "author": {
+        "name": "Sebastian Raff",
+        "email": "hobbyquaker@gmail.com"
     },
-    "ignore": [
-      "nodes/ccu-switch.js",
-      "nodes/ccu-switch.html",
-      "paramsets-join.js"
-    ]
-  }
+    "bugs": {
+        "url": "https://github.com/rdmtc/node-red-contrib-ccu/issues"
+    },
+    "bundleDependencies": false,
+    "contributors": [
+        {
+            "name": "Hypnos3",
+            "email": "hypnos3@online.de"
+        },
+        {
+            "name": "psi-4ward",
+            "email": "gh@psi.cx"
+        },
+        {
+            "name": "Timo Wendt https://github.com/twendt"
+        },
+        {
+            "name": "Konrad Mattheis https://github.com/konne"
+        },
+        {
+            "name": "Simon Christmann https://github.com/dersimn",
+            "email": "simon@christmann.email"
+        }
+    ],
+    "dependencies": {
+        "binrpc": "^3.3.1",
+        "buffer-base62": "^0.1.2",
+        "hm-discover": "^1.1.3",
+        "homematic-rega": "^1.5.2",
+        "homematic-xmlrpc": "^1.0.2",
+        "mqtt-wildcard": "^3.0.9",
+        "nextport": "^1.0.0",
+        "obj-ease": "^1.0.1",
+        "promise.prototype.finally": "^3.1.2",
+        "string-similarity": "^4.0.2"
+    },
+    "deprecated": false,
+    "description": "Node-RED Nodes for the Homematic CCU",
+    "devDependencies": {
+        "camo-purge": "^1.0.2",
+        "coveralls": "^3.1.0",
+        "eslint-plugin-html": "^6.0.2",
+        "hm-simulator": "^0.1.1",
+        "husky": "^4.2.5",
+        "mocha": "^8.1.0",
+        "node-red": "^1.1.2",
+        "node-red-node-test-helper": "^0.2.5",
+        "nyc": "^15.1.0",
+        "should": "^13.2.3",
+        "xo": "^0.32.1"
+    },
+    "engines": {
+        "node": ">= 10.0.0"
+    },
+    "homepage": "https://github.com/rdmtc/node-red-contrib-ccu#readme",
+    "husky": {
+        "hooks": {
+            "pre-commit": "npm run lintonly",
+            "pre-push": "npm run lintonly && npm run testonly"
+        }
+    },
+    "node-red": {
+        "nodes": {
+            "ccu-connection": "nodes/ccu-connection.js",
+            "ccu-value": "nodes/ccu-value.js",
+            "ccu-rpc-event": "nodes/ccu-rpc-event.js",
+            "ccu-set-value": "nodes/ccu-set-value.js",
+            "ccu-rpc": "nodes/ccu-rpc.js",
+            "ccu-signal": "nodes/ccu-signal.js",
+            "ccu-display": "nodes/ccu-display.js",
+            "ccu-sysvar": "nodes/ccu-sysvar.js",
+            "ccu-program": "nodes/ccu-program.js",
+            "ccu-script": "nodes/ccu-script.js",
+            "ccu-poll": "nodes/ccu-poll.js",
+            "ccu-get-value": "nodes/ccu-get-value.js",
+            "ccu-switch": "nodes/ccu-switch.js",
+            "ccu-hm2mqtt": "nodes/ccu-mqtt.js",
+            "ccu-alexa": "nodes/ccu-alexa.js"
+        }
+    },
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/rdmtc/node-red-contrib-ccu.git"
+    },
+    "scripts": {
+        "checkgit": "([[ $(git rev-parse --abbrev-ref HEAD) == \"master\" ]] && git diff --exit-code && git diff --cached --exit-code && git diff --exit-code origin/master..master)",
+        "lintfix": "xo --fix",
+        "lintonly": "xo",
+        "postpublish": "git tag v$(jq -r '.version' package.json) && git push --no-verify --tags",
+        "prepublishOnly": "npm run checkgit --silent",
+        "test": "camo-purge; xo && nyc mocha \"test/**/*_spec.js\" --exit && nyc report --reporter=text-lcov | coveralls --force",
+        "testcov": "nyc mocha \"test/**/*_spec.js\" --exit",
+        "testonly": "mocha \"test/**/*_spec.js\" --exit"
+    },
+    "xo": {
+        "space": 4,
+        "plugin": "html",
+        "global": [
+            "$",
+            "RED"
+        ],
+        "extensions": [
+            "js",
+            "html"
+        ],
+        "rules": {
+            "no-template-curly-in-string": "warn",
+            "camelcase": "warn",
+            "capitalized-comments": 0,
+            "spaced-comment": 0,
+            "unicorn/catch-error-name": "warn",
+            "unicorn/prefer-string-slice": "warn",
+            "valid-jsdoc": 0,
+            "eslint-comments/no-unused-disable": 0,
+            "promise/prefer-await-to-then": "warn",
+            "prefer-object-spread": "warn",
+            "unicorn/prevent-abbreviations": "warn",
+            "unicorn/prefer-number-properties": "warn",
+            "unicorn/no-reduce": "warn"
+        },
+        "ignore": [
+            "nodes/ccu-switch.js",
+            "nodes/ccu-switch.html",
+            "paramsets-join.js"
+        ]
+    }
 }
