@@ -1,0 +1,5 @@
+{
+  "ccu-script": {
+    "tip": "Tipp: Um ein Script via msg.payload zu senden das Script-Eingabefeld leer lassen."
+  }
+}

@@ -1,0 +1,20 @@
+{
+  "ccu-connection": {
+ 
+  },
+  "common": {
+    "label": {
+      "rooms":"Räume",
+      "functions": "Gewerke",
+      "allDevices": "Geräte",
+      "sysVars": "Systemvariable",
+      "value": "Wert (value)",
+      "valueEnum": "value enumeration (valueEnum)",
+      "ts": "Zeitpunkt letzte Aktualisierung (ts)",
+      "lc": "Zeitpunkt letzte Änderung (lc)",
+      "working": "im Schaltvorgang (working)",
+      "direction": "Richtung (direction)",
+      "all": "alle Eigenschaften als Objekt"
+    }
+  }
+}

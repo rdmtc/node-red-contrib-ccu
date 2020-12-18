@@ -1,7 +1,0 @@
-{
-  "ccu-rpc": {
-    "tip1": "Die Methode leer lassen um die Methode in",
-    "tip2": "Attribut der Nachricht zu übergeben. Werden keine Params konfiguriert können die Parameter im",
-    "tip3": "Attribut der Nachricht übergeben werden."
-  }
-}
