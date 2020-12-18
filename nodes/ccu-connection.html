@@ -20,6 +20,12 @@
             rpcServerHost: {value: '', required: true},
             rpcBinPort: {value: '', required: true},
             rpcXmlPort: {value: '', required: true},
+            
+            tls: {value: false},
+            inSecure: {value: false},
+            authentication: {value: false},            
+            username: {value: ''},
+            password: {value: ''},
 
             queueTimeout: {value: 5000, required: true},
             queuePause: {value: 250, required: true},
@@ -110,6 +116,13 @@
         }
     });
 
+    function TLSSSL(){        
+        if (document.getElementById('node-config-input-authentication').checked && !document.getElementById('node-config-input-tls').checked){
+            document.getElementById('node-config-input-tls').checked = true
+            alert('TLS/SSL activated. \nWithout TLS/SSL your credentials would be sent unencrypted!')
+        }
+    }
+
 </script>
 
 <script type="text/x-red" data-template-name="ccu-connection">
@@ -186,6 +199,22 @@
             <option value="">none</option>
         </select>
     </div>
+    <div class="form-row">
+        <label for="node-config-input-authentication"><i class="icon-tag"></i> Authentication</label>
+        <div style="width: 70%; display: inline-block; vertical-align: text-top;">
+            <label class="ccu-checkbox"><input type="checkbox" id="node-config-input-authentication" onclick="TLSSSL()"> Enabled</label><br>
+            <label class="ccu-checkbox"><input type="checkbox" id="node-config-input-tls"> TLS/SSL</label><br>
+            <label class="ccu-checkbox"><input type="checkbox" id="node-config-input-inSecure"> Ignore invalid TLS Certificates</label><br>
+        </div>
+    </div>
+    <div class="form-row">
+        <label for="node-config-input-username"><i class="icon-tag"></i> Username</label>
+        <input type="text" id="node-config-input-username">
+    </div>    
+    <div class="form-row">
+        <label for="node-config-input-password"><i class="icon-tag"></i> Password</label>
+        <input type="password" id="node-config-input-password">
+    </div>
 </script>
 
 
@@ -243,5 +272,15 @@
                 <li><b>Context-Store</b>: Hier wird der Node-RED Context-Store festgelegt in dem RedMatic die Zustände aller Geräte/Variablen vorhält.
 
 Weiteres unter <a target="_blank" href="https://nodered.org/docs/user-guide/context">Working</a> with context in der Node-RED Dokumentation.</li>
+            </ul>
+            <ul>
+                <li><b>Authentication</b>: Hier kann angegeben werden wie mit der CCU Kommuniziert werden soll.</li>
+                <ul>
+                    <li>Enabled: Es soll via Benutzer/Passwort kommuniziert werden</li>
+                    <li>TLS/SSL: Aktiviert die Transportverschlüsselung</li>
+                    <li>Ignore invalid TLS Certificates: Node-RED akzeptiert nicht vertrauenswürdige Zertifikate. Notwendig wenn die CCU kein vertrauenswürdiges Zertifikat hat.</li>
+                    <li>Username: Ein Benutzer der sich an der CCU anmelden darf.</li>
+                    <li>Password: Das Passwort des Benutzers.</li>                    
+                </ul>
             </ul>
 </script>

@@ -362,35 +362,55 @@ module.exports = function (RED) {
                 },
                 'BidCos-RF': {
                     conf: 'bcrf',
-                    rpc: (this.isLocal || config.bcrfBinRpc) ? binrpc : xmlrpc,
-                    port: this.isLocal ? 32001 : 2001,
+                    rpc: (this.isLocal || config.bcrfBinRpc) ? binrpc : xmlrpc,                    
+                    port: this.isLocal ? 32001 : config.tls ? 42001 : 2001,
                     protocol: (this.isLocal || config.bcrfBinRpc) ? 'binrpc' : 'http',
+                    auth: config.authentication,
+                    user: config.username,
+                    pass: config.password,
+                    tls: config.tls,
+                    inSecure: config.inSecure,
                     init: true,
                     ping: true
                 },
                 'BidCos-Wired': {
                     conf: 'bcwi',
-                    rpc: this.isLocal ? binrpc : xmlrpc,
-                    port: this.isLocal ? 32000 : 2000,
+                    rpc: this.isLocal ? binrpc : xmlrpc,                    
+                    port: this.isLocal ? 32000 : config.tls ? 42000 : 2000,
                     protocol: this.isLocal ? 'binrpc' : 'http',
+                    auth: config.authentication,
+                    user: config.username,
+                    pass: config.password,
+                    tls: config.tls,
+                    inSecure: config.inSecure,
                     init: true,
                     ping: true
                 },
                 'HmIP-RF': {
                     conf: 'iprf',
-                    rpc: xmlrpc,
-                    port: this.isLocal ? 32010 : 2010,
+                    rpc: xmlrpc,                    
+                    port: this.isLocal ? 32010 : config.tls ? 42010 : 2010,
                     protocol: 'http',
+                    auth: config.authentication,
+                    user: config.username,
+                    pass: config.password,
+                    tls: config.tls,
+                    inSecure: config.inSecure,
                     init: true,
                     ping: true, // Todo https://github.com/eq-3/occu/issues/42 - should be fixed, but isn't
                     pingTimeout: 600 // Overwrites ccu-connection config
                 },
                 VirtualDevices: {
                     conf: 'virt',
-                    rpc: xmlrpc,
-                    port: this.isLocal ? 39292 : 9292,
+                    rpc: xmlrpc,                    
+                    port: this.isLocal ? 39292 : config.tls ? 49292 : 9292,
                     path: 'groups',
                     protocol: 'http',
+                    auth: config.authentication,
+                    user: config.username,
+                    pass: config.password,
+                    tls: config.tls,
+                    inSecure: config.inSecure,
                     init: true,
                     ping: false // Todo ?
                 },
@@ -498,7 +518,12 @@ module.exports = function (RED) {
 
             this.rega = new Rega({
                 host: this.host,
-                port: this.isLocal ? 8183 : 8181
+                port: this.isLocal ? 8183 : config.tls ? 48181 : 8181,
+                tls: config.tls,
+                inSecure: config.inSecure,
+                auth: config.authentication,
+                user: config.username,
+                pass: config.password
             });
 
             this.enabledIfaces = [];
@@ -1408,7 +1433,7 @@ module.exports = function (RED) {
          */
         createClient(iface) {
             return new Promise(resolve => {
-                const {rpc, port, path, protocol} = this.ifaceTypes[iface];
+                const {rpc, port, path, protocol, auth, user, pass, tls, inSecure} = this.ifaceTypes[iface];
                 const clientOptions = {};
                 if (path) {
                     clientOptions.url = protocol + '://' + this.host + ':' + port + '/' + path;
@@ -1416,8 +1441,17 @@ module.exports = function (RED) {
                     clientOptions.host = this.host;
                     clientOptions.port = port;
                 }
+                if(auth){
+                    clientOptions.basic_auth = {'user': user, 'pass':pass};
+                }
+                clientOptions.rejectUnauthorized = !inSecure; // https://github.com/baalexander/node-xmlrpc/issues/84
 
+                if(tls){                    
+                    this.clients[iface] = rpc.createSecureClient(clientOptions);
+                } else {
                 this.clients[iface] = rpc.createClient(clientOptions);
+                }
+
                 this.logger.debug('rpc client created', iface, JSON.stringify(clientOptions));
                 if (this.methodCallQueue[iface]) {
                     this.methodCallQueue[iface].forEach(c => {
