@@ -38,6 +38,9 @@
         {
             "name": "Simon Christmann https://github.com/dersimn",
             "email": "simon@christmann.email"
+        },
+        {
+            "name": "Konrni https://github.com/Konrni"
         }
     ],
     "dependencies": {
