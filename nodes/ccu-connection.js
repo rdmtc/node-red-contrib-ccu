@@ -362,8 +362,8 @@ module.exports = function (RED) {
                 },
                 'BidCos-RF': {
                     conf: 'bcrf',
-                    rpc: (this.isLocal || config.bcrfBinRpc) ? binrpc : xmlrpc,                    
-                    port: this.isLocal ? 32001 : config.tls ? 42001 : 2001,
+                    rpc: (this.isLocal || config.bcrfBinRpc) ? binrpc : xmlrpc,
+                    port: this.isLocal ? 32001 : (config.tls ? 42001 : 2001),
                     protocol: (this.isLocal || config.bcrfBinRpc) ? 'binrpc' : 'http',
                     auth: config.authentication,
                     user: config.username,
@@ -375,8 +375,8 @@ module.exports = function (RED) {
                 },
                 'BidCos-Wired': {
                     conf: 'bcwi',
-                    rpc: this.isLocal ? binrpc : xmlrpc,                    
-                    port: this.isLocal ? 32000 : config.tls ? 42000 : 2000,
+                    rpc: this.isLocal ? binrpc : xmlrpc,
+                    port: this.isLocal ? 32000 : (config.tls ? 42000 : 2000),
                     protocol: this.isLocal ? 'binrpc' : 'http',
                     auth: config.authentication,
                     user: config.username,
@@ -388,8 +388,8 @@ module.exports = function (RED) {
                 },
                 'HmIP-RF': {
                     conf: 'iprf',
-                    rpc: xmlrpc,                    
-                    port: this.isLocal ? 32010 : config.tls ? 42010 : 2010,
+                    rpc: xmlrpc,
+                    port: this.isLocal ? 32010 : (config.tls ? 42010 : 2010),
                     protocol: 'http',
                     auth: config.authentication,
                     user: config.username,
@@ -402,8 +402,8 @@ module.exports = function (RED) {
                 },
                 VirtualDevices: {
                     conf: 'virt',
-                    rpc: xmlrpc,                    
-                    port: this.isLocal ? 39292 : config.tls ? 49292 : 9292,
+                    rpc: xmlrpc,
+                    port: this.isLocal ? 39292 : (config.tls ? 49292 : 9292),
                     path: 'groups',
                     protocol: 'http',
                     auth: config.authentication,
@@ -518,7 +518,7 @@ module.exports = function (RED) {
 
             this.rega = new Rega({
                 host: this.host,
-                port: this.isLocal ? 8183 : config.tls ? 48181 : 8181,
+                port: this.isLocal ? 8183 : (config.tls ? 48181 : 8181),
                 tls: config.tls,
                 inSecure: config.inSecure,
                 auth: config.authentication,
@@ -1441,15 +1441,17 @@ module.exports = function (RED) {
                     clientOptions.host = this.host;
                     clientOptions.port = port;
                 }
-                if(auth){
-                    clientOptions.basic_auth = {'user': user, 'pass':pass};
+
+                if (auth) {
+                    clientOptions.basic_auth = {user, pass};
                 }
+
                 clientOptions.rejectUnauthorized = !inSecure; // https://github.com/baalexander/node-xmlrpc/issues/84
 
-                if(tls){                    
+                if (tls) {
                     this.clients[iface] = rpc.createSecureClient(clientOptions);
                 } else {
-                this.clients[iface] = rpc.createClient(clientOptions);
+                    this.clients[iface] = rpc.createClient(clientOptions);
                 }
 
                 this.logger.debug('rpc client created', iface, JSON.stringify(clientOptions));
