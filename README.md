@@ -61,6 +61,17 @@ In this example both Node-RED and debmatic are installed on the same (possibly v
 
 ![ccu-config-debmatic](docs/ccu-config-debmatic.png)
 
+### Multiple CCUs
+
+With the same logic as shown above, multiple CCUs can be managed within one Node-RED instance.
+This will require two individual configuration nodes, in which the respective connection setting are provided.
+
+![schema-multiCCU](docs/schema-multiCCU.png)
+
+ - `Listen address` typically is the same for both Configurations as it is determined by the host that is running Node-RED
+ - `BINRPC listening port` and `XMLRPC listening port` need to be different across the two configurations. One configuration can use the defaults (2048/tcp and 2049/tcp), the other needs to use two new ports. node-red-contrib-ccu will make a proposal, but this can be modified, e.g. if the proposed ports are already used.
+ - The examples for [NAT'd network](#NAT'd-network), [piVCCU](#piVCCU) and [debmatic](#debmatic) will apply likewise for multiple CCUs. This means, for running Node-RED within a docker, all BINRPC and XMLRPC ports must be forwarded, e.g. `-p 2048:2048 -p 2049:2049 -p 2061:2061 -p 2062:2062`
+
 
 ## License
 
