@@ -16,6 +16,8 @@ module.exports = function (RED) {
             this.iface = config.iface;
             this.channel = config.channel.split(' ')[0];
 
+            this.values = {};
+
             this.ccu.register(this);
 
             if (!config.iface || !config.channel) {
@@ -97,6 +99,7 @@ module.exports = function (RED) {
                         if (message.datapoint === 'LEVEL') {
                             payload.state.power = message.payload ? 'ON' : 'OFF';
                             payload.state.brightness = message.payload * 100;
+                            this.values.brightness = payload.state.brightness;
                             change = true;
                         }
 
@@ -186,6 +189,15 @@ module.exports = function (RED) {
 
                         break;
 
+                    case 'AdjustBrightness':
+                        if (channelType.startsWith('DIMMER')) {
+                            this.ccu.setValueQueued(this.iface, this.channel, 'LEVEL', (this.values.brightness + message.payload) / 100);
+                        } else {
+                            this.ccu.setValueQueued(this.iface, this.channel, 'STATE', message.payload > 0);
+                        }
+
+                        break;
+
                     case 'SetTargetTemperature':
                         switch (channelType) {
                             case 'CLIMATECONTROL_RT_TRANSCEIVER':
@@ -214,7 +226,6 @@ module.exports = function (RED) {
 
                         break;
 
-                        // Todo case 'AdjustBrightness':
                         // Todo case 'SetColor':
                         // Todo case 'SetColorTemperature':
                         // Todo case 'AdjustTargetTemperature':
