@@ -1748,6 +1748,7 @@ module.exports = function (RED) {
                     // device
                     d = device;
                 }
+                if(Boolean(paramset.match(/[0-9a-f]+:\d+/i))) { paramset = 'LINK'};
 
                 return [iface, d.TYPE, d.FIRMWARE, d.VERSION, cType, paramset].join('/');
             }
