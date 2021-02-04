@@ -1748,10 +1748,10 @@ module.exports = function (RED) {
                     // device
                     d = device;
                 }
-                
-                if (paramset.match(/[\da-f]+:\d+/i)) { 
+
+                if (paramset.match(/[\da-f]+:\d+/i)) {
                     paramset = 'LINK';
-                }                
+                }
 
                 return [iface, d.TYPE, d.FIRMWARE, d.VERSION, cType, paramset].join('/');
             }
