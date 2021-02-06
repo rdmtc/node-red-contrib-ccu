@@ -1749,6 +1749,10 @@ module.exports = function (RED) {
                     d = device;
                 }
 
+                if (paramset.match(/[\da-f]+:\d+/i)) {
+                    paramset = 'LINK';
+                }
+
                 return [iface, d.TYPE, d.FIRMWARE, d.VERSION, cType, paramset].join('/');
             }
         }
