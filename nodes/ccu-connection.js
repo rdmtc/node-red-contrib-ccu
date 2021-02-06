@@ -1753,7 +1753,9 @@ module.exports = function (RED) {
                     paramset = 'LINK';
                 }
 
-                return [iface, d.TYPE, d.FIRMWARE, d.VERSION, cType, paramset].join('/');
+                if (d) {
+                    return [iface, d.TYPE, d.FIRMWARE, d.VERSION, cType, paramset].join('/');
+                }
             }
         }
 
