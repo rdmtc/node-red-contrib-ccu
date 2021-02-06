@@ -110,7 +110,7 @@
                             }
                         });
                         $.getJSON('ccu?type=sysvar&config=' + nodeId, data => {
-                            $nodeInputSysvar.html('');
+                            $nodeInputSysvar.html('<option></option>');
                             if (data) {
                                 Object.keys(data).forEach(name => {
                                     $nodeInputSysvar.append('<option value="' + name + '"' + (name === node.sysvar ? ' selected' : '') + '>' + name + '</option>');
