@@ -50,7 +50,7 @@ module.exports = function (RED) {
                     case 'SHUTTER_CONTACT':
                     case 'ROTARY_HANDLE_SENSOR':
                         if (message.datapoint === 'STATE') {
-                            payload.state.contact = message.payload ? 'NOT_DETECTED' : 'DETECTED';
+                            payload.state.contact = message.payload ? 'DETECTED' : 'NOT_DETECTED';
                             change = true;
                         }
 
