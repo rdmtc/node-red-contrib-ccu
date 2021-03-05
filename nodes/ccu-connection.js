@@ -775,9 +775,14 @@ module.exports = function (RED) {
         loadValues() {
             return new Promise(resolve => {
                 try {
-                    const valuesdata = JSON.parse(fs.readFileSync(this.valuesFile));
+                    const {values} = JSON.parse(fs.readFileSync(this.valuesFile));
                     this.logger.info('values loaded from', this.valuesFile);
-                    Object.assign(this.values, valuesdata.values);
+
+                    /* eslint-disable-next-line guard-for-in */
+                    for (const datapointName in values) {
+                        this.values[datapointName] = {...values[datapointName], cache: true, change: false, uncertain: true};
+                    }
+
                     resolve();
                 } catch (error) {
                     this.logger.error('error loading values ' + error.message);
@@ -2421,6 +2426,7 @@ module.exports = function (RED) {
 
             if (
                 description.TYPE === 'ACTION' ||
+                this.values[datapointName].cache ||
                 this.values[datapointName].payload !== payload ||
                 this.values[datapointName].valueStable !== valueStable
             ) {
@@ -2731,7 +2737,8 @@ module.exports = function (RED) {
                 });
                 const datapointName = iface + '.' + address + '.' + datapoint;
                 const currentValue = this.values[datapointName] && this.values[datapointName].value;
-                if (force || (value !== currentValue) || datapoint.startsWith('PRESS_')) {
+                const cache = this.values[datapointName] && this.values[datapointName].cache;
+                if (force || (value !== currentValue) || cache || datapoint.startsWith('PRESS_')) {
                     this.setValueQueue.push({iface, address, datapoint, value, burst, resolve, reject});
                     this.setValueShiftQueue();
                 } else {
