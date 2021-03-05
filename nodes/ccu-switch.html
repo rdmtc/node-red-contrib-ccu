@@ -359,7 +359,6 @@
                         const caseSensitive = $('<input/>', {id: 'node-input-rule-case-' + i, class: 'node-input-rule-case', type: 'checkbox', style: 'width:auto;vertical-align:top'}).appendTo(row2);
                         $('<label/>', {for: 'node-input-rule-case-' + i, style: 'margin-left: 3px;'}).text(caseLabel).appendTo(row2);
                         selectField.change(() => {
-                            resizeRule(container);
                             const type = selectField.val();
                             if ((type === 'btwn') || (type === 'index')) {
                                 valueField.typedInput('hide');
@@ -410,6 +409,7 @@
                                 row2.hide();
                                 row3.hide();
                             }
+                            resizeRule(container);
                         });
                         selectField.val(rule.t);
                         if ((rule.t == 'btwn') || (rule.t == 'index')) {
@@ -708,15 +708,16 @@
                 });
                 // this.propertyType = $("#node-input-property").typedInput('type');
             },
-            oneditresize(size) {
-                const rows = $('#dialog-form>div:not(.node-input-rule-container-row)');
-                let height = size.height;
-                for (let i = 0; i < rows.size(); i++) {
+            oneditresize: function(size) {
+                var rows = $("#dialog-form>div:not(.node-input-rule-container-row)");
+                var height = size.height;
+                for (var i=0;i<rows.length;i++) {
                     height -= $(rows[i]).outerHeight(true);
                 }
-                const editorRow = $('#dialog-form>div.node-input-rule-container-row');
-                height -= (parseInt(editorRow.css('marginTop')) + parseInt(editorRow.css('marginBottom')));
-                $('#node-input-rule-container').editableList('height', height);
+                var editorRow = $("#dialog-form>div.node-input-rule-container-row");
+                height -= (parseInt(editorRow.css("marginTop"))+parseInt(editorRow.css("marginBottom")));
+                height += 16;
+                $("#node-input-rule-container").editableList('height',height);
             }
         });
     })();
@@ -783,6 +784,7 @@
     <div id="dialog-select-datapoint" title="Select Channel, Datapoint and Property">
         <div id="config-lookup-tree"></div>
     </div>
+
 </script>
 
 <script type="text/x-red" data-help-name="ccu-switch" lang="de-DE">
