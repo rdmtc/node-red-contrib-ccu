@@ -69,17 +69,17 @@
                 $('.form-row.datapoint').hide();
                 $('.form-row.sysvar').hide();
 
-                const sysvarPropertys = ['value', 'valueEnum', 'ts', 'lc'];
-                const datapointPropertys = ['value', 'ts', 'lc', 'working', 'direction', 'all'];
+                const sysvarProperties = ['value', 'valueEnum', 'ts', 'lc'];
+                const datapointProperties = ['value', 'ts', 'lc', 'working', 'direction', 'all'];
 
-                sysvarPropertys.forEach(val => $nodeInputSysvarProperty.append(
+                sysvarProperties.forEach(val => $nodeInputSysvarProperty.append(
                     $('<option></option>').val(val).text(node._('node-red-contrib-ccu/ccu-connection:common.label.' + val))
                 ));
-                datapointPropertys.forEach(val => $nodeInputDatapointProperty.append(
+                datapointProperties.forEach(val => $nodeInputDatapointProperty.append(
                     $('<option></option>').val(val).text(node._('node-red-contrib-ccu/ccu-connection:common.label.' + val))
                 ));
-                $nodeInputSysvarProperty.val(node.sysvarProperty || sysvarPropertys[0]);
-                $nodeInputDatapointProperty.val(node.datapointProperty || datapointPropertys[0]);
+                $nodeInputSysvarProperty.val(node.sysvarProperty || sysvarProperties[0]);
+                $nodeInputDatapointProperty.val(node.datapointProperty || datapointProperties[0]);
 
                 function loadIfaces(iface, cb) {
                     if (ifacesPending) {
@@ -313,7 +313,7 @@
                 function getDPProp(dp) {
                     const retVal = [];
 
-                    datapointPropertys.forEach(val => {
+                    datapointProperties.forEach(val => {
                         retVal.push({
                             id: dp.id + '.' + val,
                             label: node._('node-red-contrib-ccu/ccu-connection:common.label.' + val),
@@ -367,7 +367,7 @@
                                     icon: 'fa fa-tags fa-fw',
                                     children: done => {
                                         const retVal = [];
-                                        sysvarPropertys.forEach(val => {
+                                        sysvarProperties.forEach(val => {
                                             retVal.push({
                                                 label: node._('node-red-contrib-ccu/ccu-connection:common.label.' + val),
                                                 icon: 'fa fa-tag fa-fw',
@@ -438,7 +438,7 @@
         <select id="node-input-sysvar" style="width:70%;">
         </select>
     </div>
-    <div class="form-row sysvar">
+    <div class="form-row sysvar property">
         <label for="node-input-sysvarProperty"><i class="icon-tags"></i> Property</label>
         <select id="node-input-sysvarProperty" style="width:70%;">
         </select>
@@ -451,7 +451,7 @@
         <label for="node-input-datapoint"><i class="icon-tag"></i> Datapoint</label>
         <input type="text" id="node-input-datapoint">
     </div>
-    <div class="form-row datapoint">
+    <div class="form-row datapoint property">
         <label for="node-input-datapointProperty"><i class="icon-tags"></i> Property</label>
         <select id="node-input-datapointProperty" style="width:70%;">
         </select>

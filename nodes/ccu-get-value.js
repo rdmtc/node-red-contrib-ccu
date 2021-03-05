@@ -39,16 +39,21 @@ module.exports = function (RED) {
                     }
                 }
 
-                this.status({fill: 'green', shape: 'ring', text: String(value.payload)});
                 if (config.setPropType === 'cmsg') {
                     Object.assign(message, value);
                     send(message);
-
+                    this.status({fill: 'green', shape: 'ring', text: String(value.payload)});
                     done();
                 } else {
-                    if (config.datapointProperty !== 'all') {
+                    if (iface === 'ReGaHSS') {
+                        if (config.sysvarProperty !== 'all') {
+                            value = value[config.sysvarProperty];
+                        }
+                    } else if (config.datapointProperty !== 'all') {
                         value = value[config.datapointProperty];
                     }
+
+                    this.status({fill: 'green', shape: 'ring', text: String(value)});
 
                     if (config.setPropType === 'msg') {
                         RED.util.setMessageProperty(message, config.setProp, value);
