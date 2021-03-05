@@ -65,13 +65,20 @@ module.exports = function (RED) {
 
         setValues(message) {
             const {config} = this;
+            let dynamicConfig = false;
             Object.keys(config).forEach(key => {
                 if (!config[key]) {
                     if (key in message) {
+                        dynamicConfig = true;
                         config[key] = message[key];
                     }
                 }
             });
+
+            if (dynamicConfig) {
+                this.whitelist.clear();
+                this.blacklist.clear();
+            }
 
             let count = 0;
             Object.keys(this.ccu.metadata.devices).forEach(iface => {
