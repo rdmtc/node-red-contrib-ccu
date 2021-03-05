@@ -935,6 +935,10 @@ module.exports = function (RED) {
                             const ts = (new Date(dp.ts + ' UTC+' + (d.getTimezoneOffset() / -60))).getTime();
                             const [iface, channel, datapoint] = dp.name.split('.');
                             if (this.enabledIfaces.includes(iface) && datapoint) {
+                                if (['RSSI_DEVICE', 'RSSI_PEER'].includes(datapoint)) {
+                                    dp.value -= 256;
+                                }
+
                                 const message = this.createMessage(iface, channel, datapoint, dp.value, {cache: true, change: false, working: false, uncertain: dp.ts === '1970-01-01 01:00:00', ts, lc: ts});
                                 this.values[message.datapointName] = message;
                                 if (!datapoint.startsWith('PRESS_')) {
