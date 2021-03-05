@@ -1782,7 +1782,7 @@ module.exports = function (RED) {
                         this.getParamsTimeout = setTimeout(() => {
                             this.paramsQueueShift();
                         }, 200);
-                    });
+                    }).catch(() => {});
             } else {
                 this.logger.debug(JSON.stringify(this.params));
             }
@@ -1852,7 +1852,7 @@ module.exports = function (RED) {
                             this.getParamsetTimeout = setTimeout(() => {
                                 this.paramsetQueueShift();
                             }, 200);
-                        });
+                        }).catch(() => {});
                 }
             } else {
                 this.paramsetPending = false;

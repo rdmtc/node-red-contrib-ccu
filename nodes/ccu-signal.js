@@ -38,7 +38,7 @@ module.exports = function (RED) {
                         }).catch(error => {
                             done(error);
                         });
-                    });
+                    }).catch(() => {});
             });
         }
 
