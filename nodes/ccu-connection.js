@@ -510,9 +510,10 @@ module.exports = function (RED) {
             this.metadataFile = path.join(RED.settings.userDir || path.join(__dirname, '..'), 'ccu_' + this.host + '.json');
             this.regadataFile = path.join(RED.settings.userDir || path.join(__dirname, '..'), 'ccu_rega_' + this.host + '.json');
             this.valuesFile = path.join(RED.settings.userDir || path.join(__dirname, '..'), 'ccu_values_' + this.host + '.json');
+
             this.loadMetadata();
             this.loadRegadata();
-            //this.loadValues();
+            this.loadValues();
 
             this.setContext();
 
@@ -776,7 +777,7 @@ module.exports = function (RED) {
                 try {
                     const valuesdata = JSON.parse(fs.readFileSync(this.valuesFile));
                     this.logger.info('values loaded from', this.valuesFile);
-                    this.values = valuesdata.values;
+                    Object.assign(this.values, valuesdata.values);
                     resolve();
                 } catch (error) {
                     this.logger.error('error loading values ' + error.message);
@@ -919,7 +920,7 @@ module.exports = function (RED) {
          */
         getRegaValues() {
             return new Promise((resolve, reject) => {
-                this.logger.debug('rega getValues');
+                this.logger.info('rega getValues');
                 this.rega.getValues((err, res) => {
                     if (err) {
                         reject(new Error('rega getValues ' + err.message));
