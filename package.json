@@ -67,6 +67,7 @@
         "camo-purge": "^1.0.2",
         "coveralls": "^3.1.0",
         "eslint-plugin-html": "^6.0.2",
+        "eslint-plugin-promise": "^4.3.1",
         "hm-simulator": "^0.1.1",
         "husky": "^4.2.5",
         "mocha": "^8.1.0",
@@ -121,7 +122,10 @@
     },
     "xo": {
         "space": 4,
-        "plugin": "html",
+        "plugins": [
+            "html",
+            "promise"
+        ],
         "global": [
             "$",
             "RED"
@@ -131,6 +135,13 @@
             "html"
         ],
         "rules": {
+            "promise/catch-or-return": [
+                "warn",
+                {
+                    "allowThen": true,
+                    "allowFinally": true
+                }
+            ],
             "no-template-curly-in-string": "warn",
             "camelcase": "warn",
             "capitalized-comments": 0,
