@@ -414,6 +414,20 @@ module.exports = function (RED) {
                     init: true,
                     ping: false // Todo ?
                 },
+                'CCU-Jack': {
+                    conf: 'jack',
+                    rpc: xmlrpc,
+                    port: 2121,
+                    path: 'RPC3',
+                    protocol: 'http',
+                    auth: config.authentication,
+                    user: config.username,
+                    pass: config.password,
+                    tls: config.tls,
+                    inSecure: config.inSecure,
+                    init: true,
+                    ping: false // Todo ?
+                },
                 CUxD: {
                     conf: 'cuxd',
                     rpc: binrpc,

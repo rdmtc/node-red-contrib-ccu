@@ -10,6 +10,7 @@
             iprfEnabled: {value: true},
             virtEnabled: {value: true},
             bcwiEnabled: {value: false},
+            jackEnabled: {value: false},
             cuxdEnabled: {value: false},
 
             regaPoll: {value: true},
@@ -79,6 +80,7 @@
                                 $('#node-config-input-iprfEnabled').prop('checked', ccu.interfaces['HmIP-RF']);
                                 $('#node-config-input-virtEnabled').prop('checked', ccu.interfaces.VirtualDevices);
                                 $('#node-config-input-bcwiEnabled').prop('checked', ccu.interfaces['BidCos-Wired']);
+                                $('#node-config-input-jackEnabled').prop('checked', ccu.interfaces['CCU-Jack']);
                                 $('#node-config-input-cuxdEnabled').prop('checked', ccu.interfaces.CuXD);
                             }
                         });
@@ -168,6 +170,7 @@
             <label class="ccu-checkbox"><input type="checkbox" id="node-config-input-bcwiEnabled"> BidCos-Wired</label><br>
             <label class="ccu-checkbox"><input type="checkbox" id="node-config-input-iprfEnabled"> HmIP-RF</label><br>
             <label class="ccu-checkbox"><input type="checkbox" id="node-config-input-virtEnabled"> VirtualDevices</label><br>
+            <label class="ccu-checkbox"><input type="checkbox" id="node-config-input-jackEnabled"> CCU-Jack</label><br>
             <label class="ccu-checkbox"><input type="checkbox" id="node-config-input-cuxdEnabled"> CUxD</label>
         </div>
     </div>
@@ -253,6 +256,7 @@
                         <li>BidCos-Wired: Homematic Wired</li>
                         <li>HmIP-RF: Homematic-IP Funk</li>
                         <li>VirtualDevices: Heizungsgruppen, in CCU eingebundene Systeme wie Osram Lightify</li>
+                        <li>CCU-Jack</li>
                         <li>CUxD</li>
                     </ul>
 
