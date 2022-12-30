@@ -56,6 +56,26 @@ module.exports = function (RED) {
                     return;
                 }
 
+                // if no subscription has been peformed
+                if (!this.idSubscription) {
+                    const filter = {
+                        cache: message.cache || true,
+                        change: message.change || true,
+                        stable: message.stable || true,
+                        iface: iface,
+                        channel: channel,
+                        datapoint: datapoint
+                    };
+
+                    this.name = channel + '.' + datapoint;
+                    
+                    this.idSubscription = this.ccu.subscribe(filter, message => {
+                        this.status({fill: 'green', shape: 'ring', text: String(message.payload)});
+                        message.topic = this.ccu.topicReplace(config.topic, message);
+                        this.send(message);
+                    });
+                }
+
                 let ramp;
                 switch (config.rampType) {
                     case 'msg':
@@ -95,11 +115,15 @@ module.exports = function (RED) {
                 on = Number.parseFloat(on);
 
                 if (!ramp && !on) {
-                    this.ccu[this.queue ? 'setValueQueued' : 'setValue'](iface, channel, datapoint, message.payload, config.burst).then(() => {
-                        done();
-                    }).catch(error => {
-                        done(error);
-                    });
+                    // Call setValue only if the payload is defined. 
+                    // If not, do nothing.
+                    if (message.payload != undefined) {
+                        this.ccu[this.queue ? 'setValueQueued' : 'setValue'](iface, channel, datapoint, message.payload, config.burst).then(() => {
+                            done();
+                        }).catch(error => {
+                            done(error);
+                        });
+                    }
                 } else {
                     const parameters = {};
                     if (on) {
