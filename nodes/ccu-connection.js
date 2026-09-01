@@ -452,6 +452,20 @@ module.exports = function (RED) {
                     init: true,
                     ping: true,
                 },
+                'CCU-Jack': {
+                    conf: 'jack',
+                    rpc: xmlrpc,
+                    port: Number(config.jackPort) || (config.tls ? 2122 : 2121),
+                    path: 'RPC3',
+                    protocol: 'http',
+                    auth: config.authentication,
+                    user: config.username,
+                    pass: config.password,
+                    tls: config.tls,
+                    inSecure: config.inSecure,
+                    init: true,
+                    ping: false,
+                },
             };
 
             this.name = config.name;

@@ -14,6 +14,13 @@ append commits automatically).
   Flows and node configurations are unchanged — existing flows import as
   before.
 
+### Added
+
+- CCU-Jack can be enabled as an additional interface on the connection
+  node (XMLRPC on port 2121, or 2122 with TLS; port configurable). CCU
+  discovery now probes for CCU-Jack as well. Based on PR #162, closes
+  #164.
+
 ### Changed
 
 - `homematic-rega` 1.5 -> 2.0 and `homematic-xmlrpc` 1.0 -> 2.0. This

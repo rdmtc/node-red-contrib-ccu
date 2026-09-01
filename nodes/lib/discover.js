@@ -13,6 +13,7 @@ const SERVICE_PORTS = {
     'HmIP-RF': 2010,
     VirtualDevices: 9292,
     CUxD: 8701,
+    'CCU-Jack': 2121,
 };
 
 function checkService(host, port) {

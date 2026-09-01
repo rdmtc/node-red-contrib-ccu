@@ -11,6 +11,8 @@
             virtEnabled: {value: true},
             bcwiEnabled: {value: false},
             cuxdEnabled: {value: false},
+            jackEnabled: {value: false},
+            jackPort: {value: 2121},
 
             regaPoll: {value: true},
             regaInterval: {value: 30},
@@ -80,6 +82,7 @@
                                 $('#node-config-input-virtEnabled').prop('checked', ccu.interfaces.VirtualDevices);
                                 $('#node-config-input-bcwiEnabled').prop('checked', ccu.interfaces['BidCos-Wired']);
                                 $('#node-config-input-cuxdEnabled').prop('checked', ccu.interfaces.CuXD);
+                                $('#node-config-input-jackEnabled').prop('checked', ccu.interfaces['CCU-Jack']);
                             }
                         });
                     },
@@ -170,7 +173,9 @@
             <label class="ccu-checkbox"><input type="checkbox" id="node-config-input-bcwiEnabled"> BidCos-Wired</label><br>
             <label class="ccu-checkbox"><input type="checkbox" id="node-config-input-iprfEnabled"> HmIP-RF</label><br>
             <label class="ccu-checkbox"><input type="checkbox" id="node-config-input-virtEnabled"> VirtualDevices</label><br>
-            <label class="ccu-checkbox"><input type="checkbox" id="node-config-input-cuxdEnabled"> CUxD</label>
+            <label class="ccu-checkbox"><input type="checkbox" id="node-config-input-cuxdEnabled"> CUxD</label><br>
+            <label class="ccu-checkbox"><input type="checkbox" id="node-config-input-jackEnabled"> CCU-Jack</label>
+            <input type="text" id="node-config-input-jackPort" style="width: 70px;" placeholder="2121">
         </div>
     </div>
     <div class="form-row">
@@ -256,6 +261,7 @@
                         <li>HmIP-RF: Homematic-IP Funk</li>
                         <li>VirtualDevices: Heizungsgruppen, in CCU eingebundene Systeme wie Osram Lightify</li>
                         <li>CUxD</li>
+                        <li>CCU-Jack: XMLRPC-Schnittstelle des <a href="https://github.com/mdzio/ccu-jack" target="_blank">CCU-Jack</a> Addons (Port konfigurierbar, Standard 2121 bzw. 2122 mit TLS)</li>
                     </ul>
 
                 </li>
