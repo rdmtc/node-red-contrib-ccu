@@ -31,5 +31,11 @@ append commits automatically).
 
 ### Fixed
 
+- On Node-RED 4.x, node configuration dialogs had to be opened several
+  times before the interface/device/channel/datapoint selects populated.
+  The editor now triggers the initial load itself instead of relying on
+  a change event Node-RED 4 no longer fires reliably, retries when the
+  config node is not yet available in the runtime, and no longer wedges
+  itself when the request fails or the config node is still unsaved.
 - Removed 46 debug `console.log` statements that the node configuration
   dialogs wrote to the browser console.

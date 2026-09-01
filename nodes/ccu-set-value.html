@@ -49,6 +49,7 @@
 
             let ifacesLoaded = false;
             let ifacesPending = false;
+            let ifaceLoadRetries = 5;
 
             $('#node-input-force-dropdown').val(String(Boolean(this.force)));
 
@@ -115,6 +116,12 @@
                             cb();
                             ifacesPending = false;
                         }
+                    }).fail(() => {
+                        // config node not (yet) available in the runtime - allow retrying
+                        ifacesPending = false;
+                        if (ifaceLoadRetries-- > 0) {
+                            setTimeout(() => loadIfaces(iface, cb), 1000);
+                        }
                     });
                 }
             }
@@ -126,6 +133,10 @@
                     loadConfig();
                 });
             });
+
+            // Node-RED 4.x does not reliably fire the change event on dialog
+            // open - trigger the initial load explicitly (see ROADMAP.md 8.1)
+            $nodeInputCcuConfig.trigger('change');
 
             function loadConfig() {
                 if (ifacesLoaded) {

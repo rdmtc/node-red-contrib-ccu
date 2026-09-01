@@ -206,6 +206,17 @@ reproduces the behavior field-for-field (overnight compare, 1486 items).
 
 ### 8.1 Node-RED 4.x: config selects stay empty until dialog reopened
 
+**Largely fixed 2026-09-01 (`4.0.0-dev.5`)** — defects 1 and 2 below are
+fixed in all 9 files: the initial load is now triggered explicitly at the
+end of `oneditprepare` instead of relying on the config select's `change`
+event, the `ifacesPending` latch is cleared in a `.fail()` handler with up
+to 5 retries (1 s apart), and the `_ADD_` code path no longer leaves the
+latch stuck in the two files that had that variant (ccu-get-value,
+ccu-switch). Defect 3 (cold start can return an empty channel list with no
+retry) remains open — fold it into the Phase 3 editor-loader
+consolidation (§6.4). Needs verification on a real Node-RED 4.x/5.x
+editor; CI has no editor tests.
+
 Same pattern in 9 editor files (`ccu-value`, `ccu-set-value`,
 `ccu-get-value`, `ccu-rpc`, `ccu-rpc-event`, `ccu-signal`, `ccu-display`,
 `ccu-switch`, `ccu-alexa`). Three compounding defects in the
