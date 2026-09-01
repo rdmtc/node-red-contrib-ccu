@@ -4,14 +4,10 @@ const path = require('path');
 const fs = require('fs');
 const crypto = require('crypto');
 
-const promiseFinally = require('promise.prototype.finally');
-
-promiseFinally.shim();
-
-const base62 = require('buffer-base62').toBase62;
-const stringSimilarity = require('string-similarity');
-const nextport = require('nextport');
-const hmDiscover = require('hm-discover');
+const base62 = require('./lib/base62.js').toBase62;
+const {bestMatch} = require('./lib/similarity.js');
+const nextport = require('./lib/nextport.js');
+const hmDiscover = require('./lib/discover.js');
 const Rega = require('homematic-rega');
 const xmlrpc = require('homematic-xmlrpc');
 const binrpc = require('binrpc');
@@ -434,7 +430,7 @@ module.exports = function (RED) {
             if (ccu.network.listen.includes(config.rpcServerHost)) {
                 this.rpcServerHost = config.rpcServerHost;
             } else {
-                this.rpcServerHost = stringSimilarity.findBestMatch(config.rpcServerHost, ccu.network.listen).bestMatch.target;
+                this.rpcServerHost = bestMatch(config.rpcServerHost, ccu.network.listen);
                 this.logger.error('Local address ' + config.rpcServerHost + ' not available. Using ' + this.rpcServerHost + ' instead.');
             }
 
