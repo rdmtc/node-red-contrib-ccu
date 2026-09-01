@@ -20,6 +20,15 @@ Layout:
   paramsets (datapoints). Treat as data, not something to hand-edit.
 - `docs/` — images referenced from README.md.
 
+## Roadmap
+
+Planned work lives in ROADMAP.md (stable IDs: `D-n` decisions, `B-n`
+backlog, `OQ-n` open questions — never reuse an ID). When an item is
+completed, move its content to `roadmap-archive/<ID>.md` (one file per
+item), list it in `roadmap-archive/README.md`, and mark its line in the
+ROADMAP.md contents with ✅ linking to the archive file. Read ROADMAP.md
+before starting work that might overlap with a decision recorded there.
+
 ## Reference documentation
 
 For anything involving HomematicIP (HmIP) devices, channels, or datapoints
