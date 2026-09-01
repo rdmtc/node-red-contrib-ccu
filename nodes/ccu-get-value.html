@@ -87,7 +87,6 @@
                     }
 
                     ifacesPending = true;
-                    console.log('loadIfaces()');
 
                     $nodeInputIface.html('');
 
@@ -125,7 +124,6 @@
                         return;
                     }
 
-                    console.log('loadConfig()');
                     const nodeId = $nodeInputCcuConfig.val();
                     const url = 'ccu?config=' + nodeId + '&type=channels&iface=' + $nodeInputIface.val();
                     $.getJSON(url, d => {
@@ -136,7 +134,6 @@
                 }
 
                 $nodeInputCcuConfig.change(() => {
-                    console.log('$nodeInputCcuConfig change');
                     loadIfaces(this.iface, () => {
                         ifacesLoaded = true;
                         loadConfig();
@@ -203,7 +200,6 @@
                 }
 
                 $nodeInputIface.change(() => {
-                    console.log('$nodeInputIface change');
                     if ($nodeInputIface.val() === 'ReGaHSS') {
                         $('.form-row.datapoint').hide();
                         $('.form-row.sysvar').show();

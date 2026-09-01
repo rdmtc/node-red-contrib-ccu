@@ -21,8 +21,9 @@ module.exports = function (RED) {
         _input(message, send, done) {
             let script = this.script || message.payload;
             script += '\n\nvar nr_script_call_success = true;\n';
-            this.ccu.script(script)
-                .then(message => {
+            this.ccu
+                .script(script)
+                .then((message) => {
                     message.iface = this.iface;
                     message.ccu = this.ccu.host;
                     message.topic = this.ccu.topicReplace(this.topic, message);
@@ -36,7 +37,7 @@ module.exports = function (RED) {
                         done(new Error('Script call failed'));
                     }
                 })
-                .catch(error => {
+                .catch((error) => {
                     this.status({fill: 'red', shape: 'dot', text: 'error'});
                     done(error);
                 });

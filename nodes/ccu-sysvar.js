@@ -28,11 +28,14 @@ module.exports = function (RED) {
             this.name = config.name;
             this.topic = config.topic;
 
-            this.idSubscription = this.ccu.subscribeSysvar({name: this.name, cache: config.cache, change: config.change}, message => {
-                this.status({fill: 'green', shape: 'ring', text: String(message.payload)});
-                message.topic = this.ccu.topicReplace(config.topic, message);
-                this.send(message);
-            });
+            this.idSubscription = this.ccu.subscribeSysvar(
+                {name: this.name, cache: config.cache, change: config.change},
+                (message) => {
+                    this.status({fill: 'green', shape: 'ring', text: String(message.payload)});
+                    message.topic = this.ccu.topicReplace(config.topic, message);
+                    this.send(message);
+                },
+            );
 
             this.on('input', this._input);
             this.on('close', this._destructor);
@@ -41,12 +44,13 @@ module.exports = function (RED) {
         _input(message, send, done) {
             const name = this.name || message.topic;
             const value = message.payload;
-            this.ccu.setVariable(name, value)
+            this.ccu
+                .setVariable(name, value)
                 .then(() => {
                     this.status({fill: 'green', shape: 'ring', text: String(value)});
                     done();
                 })
-                .catch(error => {
+                .catch((error) => {
                     this.currentStatus = 'red';
                     this.status({fill: 'red', shape: 'dot', text: 'error'});
                     done(error);

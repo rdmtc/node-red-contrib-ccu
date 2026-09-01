@@ -36,15 +36,15 @@ module.exports = function (RED) {
                 change: true,
                 stable: true,
                 iface: config.iface,
-                channel: String(config.channel).split(' ')[0]
+                channel: String(config.channel).split(' ')[0],
             };
 
             const payload = {
                 acknowledge: true,
-                state: {}
+                state: {},
             };
 
-            this.idSubscription = this.ccu.subscribe(filter, message => {
+            this.idSubscription = this.ccu.subscribe(filter, (message) => {
                 let change = false;
                 switch (channelType) {
                     case 'SHUTTER_CONTACT':
@@ -150,11 +150,15 @@ module.exports = function (RED) {
                 if (keys.length > 0) {
                     if (change) {
                         this.debug(JSON.stringify(payload));
-                        this.status({fill: 'green', shape: 'ring', text: JSON.stringify(payload.state).replace(/^{/, '').replace(/}$/, '')});
-                        keys.forEach(key => {
+                        this.status({
+                            fill: 'green',
+                            shape: 'ring',
+                            text: JSON.stringify(payload.state).replace(/^{/, '').replace(/}$/, ''),
+                        });
+                        keys.forEach((key) => {
                             const distinctPayload = {
                                 acknowledge: true,
-                                state: {}
+                                state: {},
                             };
                             distinctPayload.state[key] = payload.state[key];
                             this.send({payload: distinctPayload});
@@ -165,7 +169,7 @@ module.exports = function (RED) {
                 }
             });
 
-            this.on('input', message => {
+            this.on('input', (message) => {
                 this.debug('alexa > ' + JSON.stringify(message));
 
                 if (!this.iface) {
@@ -182,7 +186,12 @@ module.exports = function (RED) {
                     case 'TurnOn':
                     case 'TurnOff':
                         if (channelType.startsWith('DIMMER')) {
-                            this.ccu.setValueQueued(this.iface, this.channel, 'LEVEL', message.payload === 'ON' ? 1 : 0);
+                            this.ccu.setValueQueued(
+                                this.iface,
+                                this.channel,
+                                'LEVEL',
+                                message.payload === 'ON' ? 1 : 0,
+                            );
                         } else {
                             this.ccu.setValueQueued(this.iface, this.channel, 'STATE', message.payload === 'ON');
                         }
@@ -200,7 +209,12 @@ module.exports = function (RED) {
 
                     case 'AdjustBrightness':
                         if (channelType.startsWith('DIMMER')) {
-                            this.ccu.setValueQueued(this.iface, this.channel, 'LEVEL', (this.values.brightness + message.payload) / 100);
+                            this.ccu.setValueQueued(
+                                this.iface,
+                                this.channel,
+                                'LEVEL',
+                                (this.values.brightness + message.payload) / 100,
+                            );
                         } else {
                             this.ccu.setValueQueued(this.iface, this.channel, 'STATE', message.payload > 0);
                         }
@@ -215,7 +229,12 @@ module.exports = function (RED) {
                                 break;
 
                             case 'HEATING_CLIMATECONTROL_TRANSCEIVER':
-                                this.ccu.setValueQueued(this.iface, this.channel, 'SET_POINT_TEMPERATURE', message.payload);
+                                this.ccu.setValueQueued(
+                                    this.iface,
+                                    this.channel,
+                                    'SET_POINT_TEMPERATURE',
+                                    message.payload,
+                                );
                                 break;
 
                             default:
@@ -235,10 +254,10 @@ module.exports = function (RED) {
 
                         break;
 
-                        // Todo case 'SetColor':
-                        // Todo case 'SetColorTemperature':
-                        // Todo case 'AdjustTargetTemperature':
-                        // todo case 'SetThermostatMode':
+                    // Todo case 'SetColor':
+                    // Todo case 'SetColorTemperature':
+                    // Todo case 'AdjustTargetTemperature':
+                    // todo case 'SetThermostatMode':
 
                     default:
                         this.warn('unknown command ' + message.command);

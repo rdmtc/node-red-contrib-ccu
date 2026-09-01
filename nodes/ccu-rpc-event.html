@@ -29,7 +29,7 @@
             change: {value: false},
             working: {value: false},
             cache: {value: false},
-            topic: {value: '${CCU}/${Interface}/${channelName}/${datapoint}'} // eslint-disable-line no-template-curly-in-string
+            topic: {value: '${CCU}/${Interface}/${channelName}/${datapoint}'}  
         },
         inputs: 0,
         outputs: 1,
@@ -96,7 +96,6 @@
                 }
 
                 ifacesPending = true;
-                console.log('loadIfaces()');
                 $nodeInputIface.html('<option value="">*</option>');
                 const nodeId = $nodeInputCcuConfig.val();
                 if (nodeId === '_ADD_') {
@@ -130,13 +129,11 @@
 
             function loadConfig() {
                 if (ifacesLoaded) {
-                    console.log('loadConfig');
                     const nodeId = $nodeInputCcuConfig.val();
                     const url = 'ccu?config=' + nodeId;
                     $.getJSON(url, d => {
                         data = d;
                         processChannelAssignments();
-                        console.log('data', data);
                         autocomplete();
                     });
                 }
@@ -150,7 +147,6 @@
                 data.nameChannels = {};
                 data.nameDevices = {};
 
-                console.log(data);
 
                 Object.keys(data.channelRooms).forEach(channel => {
                     const room = data.channelRooms[channel];
@@ -235,7 +231,6 @@
                 const channelNames = $('#node-input-channelName').val() ? [$('#node-input-channelName').val()] : [];
                 const channelTypes = $('#node-input-channelType').val() ? [$('#node-input-channelType').val()] : [];
                 //const channelIndexes = $('#node-input-channelIndex').val() ? [$('#node-input-channelIndex').val()] : [];
-                const datapoints = $('#node-input-datapoint').val() ? [$('#node-input-datapoint').val()] : [];
 
                 const lists = {
                     device: [],
@@ -291,7 +286,6 @@
                         }
                     }
 
-                    console.log('autocomplete', {iface, rooms, funcs, devices, deviceNames, deviceTypes, channels, channelNames, channelTypes, datapoints});
 
                     function checkDatapoint(datapoint) {
                         let deviceCheck = false;

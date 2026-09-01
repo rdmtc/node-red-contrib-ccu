@@ -25,10 +25,10 @@ module.exports = function (RED) {
                     stable: config.working,
                     iface: config.iface,
                     channel: String(config.channel).split(' ')[0],
-                    datapoint: config.datapoint
+                    datapoint: config.datapoint,
                 };
 
-                this.idSubscription = this.ccu.subscribe(filter, message => {
+                this.idSubscription = this.ccu.subscribe(filter, (message) => {
                     this.status({fill: 'green', shape: 'ring', text: String(message.payload)});
                     message.topic = this.ccu.topicReplace(config.topic, message);
                     this.send(message);
@@ -38,7 +38,13 @@ module.exports = function (RED) {
             this.on('input', (message, send, done) => {
                 const [tIface, tChannel, tDatapoint] = (message.topic || '').split('.');
                 const iface = config.iface || message.interface || message.iface || tIface;
-                const channel = (config.channel || this.ccu.findChannel(message.channelName, true) || message.channel || tChannel || '').split(' ')[0];
+                const channel = (
+                    config.channel ||
+                    this.ccu.findChannel(message.channelName, true) ||
+                    message.channel ||
+                    tChannel ||
+                    ''
+                ).split(' ')[0];
                 const datapoint = config.datapoint || message.datapoint || tDatapoint;
 
                 if (!iface) {
@@ -95,11 +101,19 @@ module.exports = function (RED) {
                 on = Number.parseFloat(on);
 
                 if (!ramp && !on) {
-                    this.ccu[this.queue ? 'setValueQueued' : 'setValue'](iface, channel, datapoint, message.payload, config.burst).then(() => {
-                        done();
-                    }).catch(error => {
-                        done(error);
-                    });
+                    this.ccu[this.queue ? 'setValueQueued' : 'setValue'](
+                        iface,
+                        channel,
+                        datapoint,
+                        message.payload,
+                        config.burst,
+                    )
+                        .then(() => {
+                            done();
+                        })
+                        .catch((error) => {
+                            done(error);
+                        });
                 } else {
                     const parameters = {};
                     if (on) {
@@ -112,11 +126,14 @@ module.exports = function (RED) {
 
                     parameters[datapoint] = this.ccu.paramCast(iface, channel, 'VALUES', datapoint, message.payload);
                     // Todo queue
-                    this.ccu.methodCall(iface, 'putParamset', [channel, 'VALUES', parameters]).then(() => {
-                        done();
-                    }).catch(error => {
-                        done(error);
-                    });
+                    this.ccu
+                        .methodCall(iface, 'putParamset', [channel, 'VALUES', parameters])
+                        .then(() => {
+                            done();
+                        })
+                        .catch((error) => {
+                            done(error);
+                        });
                 }
             });
 

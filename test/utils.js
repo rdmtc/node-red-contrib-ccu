@@ -7,7 +7,7 @@ module.exports = {
             'ccu_localhost.json',
             'ccu_paramsets_v2.json',
             'ccu_rega_localhost.json',
-            'ccu_values_localhost.json'
+            'ccu_values_localhost.json',
         ];
         for (const file of files) {
             try {
@@ -27,8 +27,8 @@ module.exports = {
             },*/
 
             devices: {
-                rfd: {devices: Object.keys(devices['BidCos-RF']).map(addr => devices['BidCos-RF'][addr])},
-                hmip: {devices: Object.keys(devices['HmIP-RF']).map(addr => devices['HmIP-RF'][addr])}
+                rfd: {devices: Object.keys(devices['BidCos-RF']).map((addr) => devices['BidCos-RF'][addr])},
+                hmip: {devices: Object.keys(devices['HmIP-RF']).map((addr) => devices['HmIP-RF'][addr])},
             },
             rega: {
                 port: 8181,
@@ -36,15 +36,14 @@ module.exports = {
                 programs: JSON.parse(fs.readFileSync(path.join(__dirname, 'simulator-data/programs.json'))),
                 rooms: JSON.parse(fs.readFileSync(path.join(__dirname, 'simulator-data/rooms.json'))),
                 functions: JSON.parse(fs.readFileSync(path.join(__dirname, 'simulator-data/functions.json'))),
-                channels: JSON.parse(fs.readFileSync(path.join(__dirname, 'simulator-data/channels.json')))
+                channels: JSON.parse(fs.readFileSync(path.join(__dirname, 'simulator-data/channels.json'))),
             },
             config: {
                 listenAddress: '127.0.0.1',
                 binrpcListenPort: 2001,
-                xmlrpcListenPort: 2010
+                xmlrpcListenPort: 2010,
             },
-            behaviorPath: path.join(__dirname, 'simulator-behaviors')
+            behaviorPath: path.join(__dirname, 'simulator-behaviors'),
         };
-    }
-
+    },
 };

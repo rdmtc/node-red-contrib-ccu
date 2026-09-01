@@ -66,10 +66,10 @@ module.exports = function (RED) {
                         if (done) {
                             done();
                         }
-                    } else if ((this.setPropType === 'flow') || (this.setPropType === 'global')) {
+                    } else if (this.setPropType === 'flow' || this.setPropType === 'global') {
                         const context = RED.util.parseContextStore(this.setProp);
                         const target = this.context()[this.setPropType];
-                        target.set(context.key, value, context.store, err => {
+                        target.set(context.key, value, context.store, (err) => {
                             if (err) {
                                 done(err);
                             } else {

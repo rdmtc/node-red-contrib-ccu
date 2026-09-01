@@ -37,27 +37,29 @@ module.exports = function (RED) {
                 } else if (method === 'putParamset') {
                     let [address, paramset, values] = parameters;
                     values = values || {};
-                    Object.keys(values).forEach(parameter => {
+                    Object.keys(values).forEach((parameter) => {
                         values[parameter] = this.ccu.paramCast(iface, address, paramset, parameter, values[parameter]);
                     });
                     parameters[2] = values;
                 }
 
-                this.ccu.methodCall(iface, method, parameters)
-                    .then(res => {
+                this.ccu
+                    .methodCall(iface, method, parameters)
+                    .then((res) => {
                         const message = {
                             ccu: this.ccu.host,
                             iface,
                             topic: config.topic,
                             payload: res,
-                            ts: (new Date()).getTime(),
-                            method
+                            ts: new Date().getTime(),
+                            method,
                         };
                         message.topic = this.ccu.topicReplace(config.topic, message);
                         send(message);
 
                         done();
-                    }).catch(error => {
+                    })
+                    .catch((error) => {
                         done(error);
                     });
             });

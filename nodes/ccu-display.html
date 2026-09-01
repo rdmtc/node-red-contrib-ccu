@@ -108,7 +108,6 @@
                 }
 
                 ifacesPending = true;
-                console.log('loadIfaces()');
                 $nodeInputIface.html('');
                 const nodeId = $nodeInputCcuConfig.val();
                 if (nodeId === '_ADD_') {
@@ -136,7 +135,6 @@
                 if (ifacesLoaded) {
                     const nodeId = $nodeInputCcuConfig.val();
                     if (nodeId && nodeId !== '__ADD__') {
-                        console.log('loadConfig()');
                         $.getJSON('ccu?type=display&config=' + nodeId + '&iface=' + $nodeInputIface.val(), d => {
                             data = d;
                             autoCompleteChannel();
@@ -148,7 +146,6 @@
             }
 
             $nodeInputCcuConfig.change(() => {
-                console.log('$nodeInputCcuConfig change');
                 loadIfaces(this.iface, () => {
                     ifacesLoaded = true;
                     $nodeInputIface.removeAttr('disabled');
@@ -198,7 +195,6 @@
                     });
                 }
 
-                console.log('autoCompleteChannel()', arr.length);
                 $nodeInputChannel.autocomplete('option', 'source', arr);
             }
 

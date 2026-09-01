@@ -33,19 +33,19 @@ module.exports = function (RED) {
 
             this.ccu.register(this);
 
-            this.on('input', message => {
+            this.on('input', (message) => {
                 this.input(message);
             });
 
-            this.idEventSubscription = this.ccu.subscribe({cache: config.cache}, message => {
+            this.idEventSubscription = this.ccu.subscribe({cache: config.cache}, (message) => {
                 this.event(message);
             });
 
-            this.idSysvarSubscription = this.ccu.subscribeSysvar({cache: config.cache, change: true}, message => {
+            this.idSysvarSubscription = this.ccu.subscribeSysvar({cache: config.cache, change: true}, (message) => {
                 this.sysvarOutput(message);
             });
 
-            this.idProgramSubscription = this.ccu.subscribeProgram({}, message => {
+            this.idProgramSubscription = this.ccu.subscribeProgram({}, (message) => {
                 this.programOutput(message);
             });
 
@@ -53,9 +53,17 @@ module.exports = function (RED) {
 
             if (this.topicCounters) {
                 setTimeout(() => {
-                    this.ccu.enabledIfaces.forEach(iface => {
-                        this.send({topic: this.ccu.topicReplace(this.topicCounters, {iface, rxtx: 'rx'}), payload: '0', retain: true});
-                        this.send({topic: this.ccu.topicReplace(this.topicCounters, {iface, rxtx: 'tx'}), payload: '0', retain: true});
+                    this.ccu.enabledIfaces.forEach((iface) => {
+                        this.send({
+                            topic: this.ccu.topicReplace(this.topicCounters, {iface, rxtx: 'rx'}),
+                            payload: '0',
+                            retain: true,
+                        });
+                        this.send({
+                            topic: this.ccu.topicReplace(this.topicCounters, {iface, rxtx: 'tx'}),
+                            payload: '0',
+                            retain: true,
+                        });
                     });
                 }, 25000);
                 setInterval(() => {
@@ -75,7 +83,7 @@ module.exports = function (RED) {
         }
 
         checkCounters(c) {
-            Object.keys(this.ccu[c]).forEach(iface => {
+            Object.keys(this.ccu[c]).forEach((iface) => {
                 if (this.ccu[c][iface] !== this[c][iface]) {
                     this[c][iface] = this.ccu[c][iface];
                     const topic = this.ccu.topicReplace(this.topicCounters, {iface, rxtx: c.slice(0, 2)});
@@ -98,7 +106,11 @@ module.exports = function (RED) {
                 const messageNotWorking = RED.util.cloneMessage(message);
                 messageNotWorking.datapoint += '_NOTWORKING';
                 messageNotWorking.datapointName += '_NOTWORKING';
-                this.send({topic: this.ccu.topicReplace(this.topicOutputEvent, messageNotWorking), payload: this.output(messageNotWorking), retain: true});
+                this.send({
+                    topic: this.ccu.topicReplace(this.topicOutputEvent, messageNotWorking),
+                    payload: this.output(messageNotWorking),
+                    retain: true,
+                });
             }
         }
 
@@ -119,7 +131,7 @@ module.exports = function (RED) {
                     return {
                         val: message.payload,
                         ts: message.ts,
-                        lc: message.lc
+                        lc: message.lc,
                     };
                 }
 
@@ -128,7 +140,7 @@ module.exports = function (RED) {
                         val: message.payload,
                         ts: message.ts,
                         lc: message.lc,
-                        hm: message
+                        hm: message,
                     };
                     delete payload.hm.topic;
                     delete payload.hm.payload;
@@ -156,21 +168,21 @@ module.exports = function (RED) {
                 sysvar: this.topicInputSysvar,
                 putParam: this.topicInputPutParam,
                 putParamset: this.topicInputPutParamset,
-                rpc: this.topicInputRpc
+                rpc: this.topicInputRpc,
             };
 
             let command;
             let filter;
-            Object.keys(topicList).forEach(key => {
+            Object.keys(topicList).forEach((key) => {
                 if (!command) {
                     const parts = topicList[key].split('/');
                     const patternArray = [];
                     const placeholders = [];
                     for (let i = 0, {length} = parts; i < length; i++) {
                         let match;
-                        if (match = parts[i].match(/^\${([\w-]+)}$/)) { // eslint-disable-line no-cond-assign
+                        if ((match = parts[i].match(/^\${([\w-]+)}$/))) {
                             placeholders.push(match[1]);
-                            patternArray[i] = (i + 1) < length ? '+' : '#';
+                            patternArray[i] = i + 1 < length ? '+' : '#';
                         } else {
                             patternArray[i] = parts[i];
                         }
@@ -180,7 +192,10 @@ module.exports = function (RED) {
                     const match = mw(topic, pattern);
                     if (match && match.length === placeholders.length) {
                         command = key;
-                        filter = Object.assign.apply({}, placeholders.map((v, i) => ({[v]: match[i]})));
+                        filter = Object.assign.apply(
+                            {},
+                            placeholders.map((v, i) => ({[v]: match[i]})),
+                        );
                     }
                 }
             });
@@ -264,10 +279,14 @@ module.exports = function (RED) {
                 return;
             }
 
-            const psName = this.ccu.paramsetName(iface, this.ccu.metadata.devices[iface][filter.channel], filter.paramset);
+            const psName = this.ccu.paramsetName(
+                iface,
+                this.ccu.metadata.devices[iface][filter.channel],
+                filter.paramset,
+            );
             const paramsetDescription = this.ccu.paramsetDescriptions[psName];
             if (paramsetDescription && paramsetDescription[filter.param]) {
-                if (!(paramsetDescription[filter.param].OPERATIONS) && 2) {
+                if (!paramsetDescription[filter.param].OPERATIONS && 2) {
                     this.error('param ' + filter.param + ' not writeable');
                 }
 
@@ -279,8 +298,9 @@ module.exports = function (RED) {
             const paramset = {};
             paramset[filter.param] = payload;
 
-            this.ccu.methodCall(iface, 'putParamset', [filter.channel, filter.paramset, paramset])
-                .catch(error => this.error(error.message));
+            this.ccu
+                .methodCall(iface, 'putParamset', [filter.channel, filter.paramset, paramset])
+                .catch((error) => this.error(error.message));
         }
 
         putParamset(filter, payload) {
@@ -314,14 +334,18 @@ module.exports = function (RED) {
                 return;
             }
 
-            const psName = this.ccu.paramsetName(iface, this.ccu.metadata.devices[iface][filter.channel], filter.paramset);
+            const psName = this.ccu.paramsetName(
+                iface,
+                this.ccu.metadata.devices[iface][filter.channel],
+                filter.paramset,
+            );
             const paramsetDescription = this.ccu.paramsetDescriptions[psName];
 
             const paramset = {};
 
-            Object.keys(payload).forEach(parameter => {
+            Object.keys(payload).forEach((parameter) => {
                 if (paramsetDescription && paramsetDescription[parameter]) {
-                    if (!(paramsetDescription[parameter].OPERATIONS) && 2) {
+                    if (!paramsetDescription[parameter].OPERATIONS && 2) {
                         this.error('param ' + parameter + ' not writeable');
                     }
 
@@ -332,19 +356,21 @@ module.exports = function (RED) {
                 }
             });
 
-            this.ccu.methodCall(iface, 'putParamset', [filter.channel, filter.paramset, paramset])
-                .catch(error => this.error(error.message));
+            this.ccu
+                .methodCall(iface, 'putParamset', [filter.channel, filter.paramset, paramset])
+                .catch((error) => this.error(error.message));
         }
 
         paramCast(value, paramset) {
             switch (paramset && paramset.TYPE) {
                 case 'BOOL':
-                    // Fallthrough by intention
+                // Fallthrough by intention
                 case 'ACTION':
                     // OMG this is so ugly...
                     if (value === 'false') {
                         value = false;
-                    } else if (!isNaN(value)) { // Make sure that the string "0" gets casted to boolean false
+                    } else if (!isNaN(value)) {
+                        // Make sure that the string "0" gets casted to boolean false
                         value = Number(value);
                     }
 
@@ -362,12 +388,12 @@ module.exports = function (RED) {
                     break;
                 case 'ENUM':
                     if (typeof value === 'string') {
-                        if (paramset.ENUM && (paramset.ENUM.includes(value))) {
+                        if (paramset.ENUM && paramset.ENUM.includes(value)) {
                             value = paramset.ENUM.indexOf(value);
                         }
                     }
 
-                    // Fallthrough by intention
+                // Fallthrough by intention
                 case 'INTEGER':
                     value = Number.parseInt(value, 10);
                     if (value < paramset.MIN) {

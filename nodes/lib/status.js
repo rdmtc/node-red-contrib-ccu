@@ -3,7 +3,7 @@ module.exports = (that, data) => {
     if (!that.iface) {
         if (data.ifaceStatus) {
             let status = 0;
-            Object.keys(data.ifaceStatus).forEach(s => {
+            Object.keys(data.ifaceStatus).forEach((s) => {
                 if (data.ifaceStatus[s]) {
                     status += 1;
                 }

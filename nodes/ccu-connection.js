@@ -21,7 +21,6 @@ const pkg = require(path.join(__dirname, '..', 'package.json'));
  * @returns {boolean}
  */
 function isIterable(object) {
-    // eslint-disable-next-line eqeqeq, no-eq-null
     return object != null && typeof object[Symbol.iterator] === 'function' && typeof object.forEach === 'function';
 }
 
@@ -37,7 +36,7 @@ module.exports = function (RED) {
      */
     function findport(start) {
         return new Promise((resolve, reject) => {
-            nextport(start, port => {
+            nextport(start, (port) => {
                 if (port) {
                     ccu.network.ports.push(port);
                     resolve();
@@ -48,13 +47,13 @@ module.exports = function (RED) {
         });
     }
 
-    hmDiscover(res => {
+    hmDiscover((res) => {
         ccu.network.discover = res;
     });
 
     const networkInterfaces = os.networkInterfaces();
-    Object.keys(networkInterfaces).forEach(name => {
-        networkInterfaces[name].forEach(addr => {
+    Object.keys(networkInterfaces).forEach((name) => {
+        networkInterfaces[name].forEach((addr) => {
             if (addr.family === 'IPv4') {
                 ccu.network.listen.push(addr.address);
             }
@@ -74,10 +73,10 @@ module.exports = function (RED) {
 
             switch (request.query.type) {
                 case 'ifaces': {
-                    Object.keys(config.ifaceTypes).forEach(iface => {
+                    Object.keys(config.ifaceTypes).forEach((iface) => {
                         object[iface] = {
                             enabled: Boolean(config.ifaceTypes[iface].enabled),
-                            connected: Boolean(config.ifaceStatus[iface])
+                            connected: Boolean(config.ifaceStatus[iface]),
                         };
                     });
                     res.status(200).send(JSON.stringify(object));
@@ -87,14 +86,14 @@ module.exports = function (RED) {
                 case 'channels': {
                     const devices = config.metadata.devices[request.query.iface];
                     if (devices) {
-                        Object.keys(devices).forEach(addr => {
+                        Object.keys(devices).forEach((addr) => {
                             if (addr.match(/:\d+$/)) {
                                 const psKey = config.paramsetName(request.query.iface, devices[addr], 'VALUES');
                                 if (config.paramsetDescriptions[psKey]) {
                                     object[addr] = {
                                         name: config.channelNames[addr],
                                         datapoints: Object.keys(config.paramsetDescriptions[psKey]),
-                                        rxMode: devices[devices[addr].PARENT] && devices[devices[addr].PARENT].RX_MODE
+                                        rxMode: devices[devices[addr].PARENT] && devices[devices[addr].PARENT].RX_MODE,
                                     };
                                 }
                             }
@@ -111,7 +110,7 @@ module.exports = function (RED) {
                             return;
                         }
 
-                        Object.keys(devices).forEach(addr => {
+                        Object.keys(devices).forEach((addr) => {
                             if (addr.match(/:\d+$/)) {
                                 const psKey = config.paramsetName(iface, devices[addr], 'VALUES');
                                 if (config.paramsetDescriptions[psKey]) {
@@ -119,26 +118,26 @@ module.exports = function (RED) {
                                     const dps = [];
                                     const chName = config.channelNames[addr];
 
-                                    Object.keys(config.paramsetDescriptions[psKey]).forEach(dp => {
+                                    Object.keys(config.paramsetDescriptions[psKey]).forEach((dp) => {
                                         dps.push({
                                             id: iface + '.' + addr + '.' + dp,
                                             iface,
-                                            channel: (chName) ? addr + ' ' + chName : addr,
+                                            channel: chName ? addr + ' ' + chName : addr,
                                             label: dp,
                                             icon: 'fa fa-tag fa-fw',
-                                            class: request.query.classDp
+                                            class: request.query.classDp,
                                         });
                                     });
                                     dps.sort((a, b) => a.label.localeCompare(b.label));
                                     const channel = {
                                         id: iface + '.' + addr,
                                         iface,
-                                        label: (chName) ? chName + '  (' + addr + ')' : addr,
+                                        label: chName ? chName + '  (' + addr + ')' : addr,
                                         children: dps,
                                         rooms: config.channelRooms[addr],
                                         functions: config.channelFunctions[addr],
                                         icon: 'fa fa-tags fa-fw',
-                                        class: request.query.classCh
+                                        class: request.query.classCh,
                                     };
                                     callback(iface, devID, channel, addr);
                                 }
@@ -157,12 +156,14 @@ module.exports = function (RED) {
                                 object[devID] = {
                                     id: iface + '.' + devID,
                                     name: config.channelNames[devID],
-                                    label: (config.channelNames[devID]) ? config.channelNames[devID] + '  (' + devID + ')' : devID,
+                                    label: config.channelNames[devID]
+                                        ? config.channelNames[devID] + '  (' + devID + ')'
+                                        : devID,
                                     type: devices[devID].TYPE,
                                     iface,
                                     icon: 'fa fa-archive fa-fw',
                                     channels: {},
-                                    children: []
+                                    children: [],
                                 };
                             }
 
@@ -170,7 +171,7 @@ module.exports = function (RED) {
                             object[devID].children.push(channel);
                         });
                     } else {
-                        Object.keys(config.metadata.devices).forEach(iface => {
+                        Object.keys(config.metadata.devices).forEach((iface) => {
                             const devices = config.metadata.devices[iface];
                             processChannels(iface, devices, (iface, devID, channel, chID) => {
                                 if (!channel.children || channel.children.length === 0) {
@@ -187,15 +188,19 @@ module.exports = function (RED) {
                 }
 
                 case 'rooms':
-                    res.status(200).send(JSON.stringify({
-                        rooms: config.rooms
-                    }));
+                    res.status(200).send(
+                        JSON.stringify({
+                            rooms: config.rooms,
+                        }),
+                    );
                     break;
 
                 case 'functions':
-                    res.status(200).send(JSON.stringify({
-                        functions: config.functions
-                    }));
+                    res.status(200).send(
+                        JSON.stringify({
+                            functions: config.functions,
+                        }),
+                    );
                     break;
 
                 case 'sysvar':
@@ -209,30 +214,29 @@ module.exports = function (RED) {
                 case 'signal': {
                     const devices = config.metadata.devices[request.query.iface];
                     if (devices) {
-                        Object.keys(devices).forEach(addr => {
-                            if ([
-                                'SIGNAL_CHIME',
-                                'SIGNAL_LED',
-                                'ALARM_SWITCH_VIRTUAL_RECEIVER'
-                            ].includes(devices[addr].TYPE)) {
+                        Object.keys(devices).forEach((addr) => {
+                            if (
+                                ['SIGNAL_CHIME', 'SIGNAL_LED', 'ALARM_SWITCH_VIRTUAL_RECEIVER'].includes(
+                                    devices[addr].TYPE,
+                                )
+                            ) {
                                 object[addr] = {
                                     name: config.channelNames[addr],
                                     type: devices[addr].TYPE,
-                                    deviceType: devices[addr].PARENT_TYPE
+                                    deviceType: devices[addr].PARENT_TYPE,
                                 };
                             }
 
-                            if ([
-                                'HmIP-MP3P',
-                                'HmIP-BSL'
-                            ].includes(devices[addr].PARENT_TYPE) && [
-                                'ACOUSTIC_SIGNAL_VIRTUAL_RECEIVER',
-                                'DIMMER_VIRTUAL_RECEIVER'
-                            ].includes(devices[addr].TYPE)) {
+                            if (
+                                ['HmIP-MP3P', 'HmIP-BSL'].includes(devices[addr].PARENT_TYPE) &&
+                                ['ACOUSTIC_SIGNAL_VIRTUAL_RECEIVER', 'DIMMER_VIRTUAL_RECEIVER'].includes(
+                                    devices[addr].TYPE,
+                                )
+                            ) {
                                 object[addr] = {
                                     name: config.channelNames[addr],
                                     type: devices[addr].TYPE,
-                                    deviceType: devices[addr].PARENT_TYPE
+                                    deviceType: devices[addr].PARENT_TYPE,
                                 };
                             }
                         });
@@ -245,14 +249,15 @@ module.exports = function (RED) {
                 case 'display': {
                     const devices = config.metadata.devices[request.query.iface];
                     if (devices) {
-                        Object.keys(devices).forEach(addr => {
+                        Object.keys(devices).forEach((addr) => {
                             if (
                                 (addr.endsWith(':3') && devices[addr].PARENT_TYPE.match(/HM-Dis-EP-WM55/)) ||
-                                ((addr.endsWith(':1') || addr.endsWith(':2')) && devices[addr].PARENT_TYPE.match(/HM-Dis-WM55/))
+                                ((addr.endsWith(':1') || addr.endsWith(':2')) &&
+                                    devices[addr].PARENT_TYPE.match(/HM-Dis-WM55/))
                             ) {
                                 object[addr] = {
                                     name: config.channelNames[addr],
-                                    type: devices[addr].PARENT_TYPE
+                                    type: devices[addr].PARENT_TYPE,
                                 };
                             }
                         });
@@ -263,25 +268,29 @@ module.exports = function (RED) {
                 }
 
                 default:
-                    res.status(200).send(JSON.stringify({
-                        channelNames: config.channelNames,
-                        metadata: config.metadata,
-                        paramsetDescriptions: config.paramsetDescriptions,
-                        rooms: config.rooms,
-                        functions: config.functions,
-                        sysvar: config.sysvar,
-                        program: config.program,
-                        channelRooms: config.channelRooms,
-                        channelFunctions: config.channelFunctions,
-                        enabledIfaces: config.enabledIfaces
-                    }));
+                    res.status(200).send(
+                        JSON.stringify({
+                            channelNames: config.channelNames,
+                            metadata: config.metadata,
+                            paramsetDescriptions: config.paramsetDescriptions,
+                            rooms: config.rooms,
+                            functions: config.functions,
+                            sysvar: config.sysvar,
+                            program: config.program,
+                            channelRooms: config.channelRooms,
+                            channelFunctions: config.channelFunctions,
+                            enabledIfaces: config.enabledIfaces,
+                        }),
+                    );
             }
         } else {
             ccu.network.ports = [];
             const start = 2040 + Math.floor(Math.random() * 50);
-            findport(start).then(() => findport(ccu.network.ports[0] + 1)).then(() => {
-                res.status(200).send(JSON.stringify(ccu.network));
-            });
+            findport(start)
+                .then(() => findport(ccu.network.ports[0] + 1))
+                .then(() => {
+                    res.status(200).send(JSON.stringify(ccu.network));
+                });
         }
     });
 
@@ -290,7 +299,7 @@ module.exports = function (RED) {
      * @returns {number}
      */
     function now() {
-        return (new Date()).getTime();
+        return new Date().getTime();
     }
 
     /**
@@ -307,10 +316,18 @@ module.exports = function (RED) {
             return addr;
         }
 
-        return new Promise(resolve => {
-            if (/^([01]?\d?\d|2[0-4]\d|25[0-5])\\.([01]?\d?\d|2[0-4]\d|25[0-5])\\.([01]?\d?\d|2[0-4]\d|25[0-5])\\.([01]?\d?\d|2[0-4]\d|25[0-5])$/g.test(host)) {
+        return new Promise((resolve) => {
+            if (
+                /^([01]?\d?\d|2[0-4]\d|25[0-5])\\.([01]?\d?\d|2[0-4]\d|25[0-5])\\.([01]?\d?\d|2[0-4]\d|25[0-5])\\.([01]?\d?\d|2[0-4]\d|25[0-5])$/g.test(
+                    host,
+                )
+            ) {
                 resolve(unifyLoopback(host));
-            } else if (/^([\dA-Fa-f]{1,4})((?::[\dA-Fa-f]{1,4}))*::([\dA-Fa-f]{1,4})((?::[\dA-Fa-f]{1,4}))*|([\dA-Fa-f]{1,4})((?::[\dA-Fa-f]{1,4})){7}$/g.test(host)) {
+            } else if (
+                /^([\dA-Fa-f]{1,4})((?::[\dA-Fa-f]{1,4}))*::([\dA-Fa-f]{1,4})((?::[\dA-Fa-f]{1,4}))*|([\dA-Fa-f]{1,4})((?::[\dA-Fa-f]{1,4})){7}$/g.test(
+                    host,
+                )
+            ) {
                 resolve(host);
             } else {
                 dns.lookup(host, (err, addr) => {
@@ -354,25 +371,25 @@ module.exports = function (RED) {
                     port: this.isLocal ? 31999 : 1999,
                     protocol: this.isLocal ? 'binrpc' : 'http',
                     init: false,
-                    ping: false
+                    ping: false,
                 },
                 'BidCos-RF': {
                     conf: 'bcrf',
-                    rpc: (this.isLocal || config.bcrfBinRpc) ? binrpc : xmlrpc,
-                    port: this.isLocal ? 32001 : (config.tls ? 42001 : 2001),
-                    protocol: (this.isLocal || config.bcrfBinRpc) ? 'binrpc' : 'http',
+                    rpc: this.isLocal || config.bcrfBinRpc ? binrpc : xmlrpc,
+                    port: this.isLocal ? 32001 : config.tls ? 42001 : 2001,
+                    protocol: this.isLocal || config.bcrfBinRpc ? 'binrpc' : 'http',
                     auth: config.authentication,
                     user: config.username,
                     pass: config.password,
                     tls: config.tls,
                     inSecure: config.inSecure,
                     init: true,
-                    ping: true
+                    ping: true,
                 },
                 'BidCos-Wired': {
                     conf: 'bcwi',
                     rpc: this.isLocal ? binrpc : xmlrpc,
-                    port: this.isLocal ? 32000 : (config.tls ? 42000 : 2000),
+                    port: this.isLocal ? 32000 : config.tls ? 42000 : 2000,
                     protocol: this.isLocal ? 'binrpc' : 'http',
                     auth: config.authentication,
                     user: config.username,
@@ -380,12 +397,12 @@ module.exports = function (RED) {
                     tls: config.tls,
                     inSecure: config.inSecure,
                     init: true,
-                    ping: true
+                    ping: true,
                 },
                 'HmIP-RF': {
                     conf: 'iprf',
                     rpc: xmlrpc,
-                    port: this.isLocal ? 32010 : (config.tls ? 42010 : 2010),
+                    port: this.isLocal ? 32010 : config.tls ? 42010 : 2010,
                     protocol: 'http',
                     auth: config.authentication,
                     user: config.username,
@@ -394,12 +411,12 @@ module.exports = function (RED) {
                     inSecure: config.inSecure,
                     init: true,
                     ping: true, // Todo https://github.com/eq-3/occu/issues/42 - should be fixed, but isn't
-                    pingTimeout: 600 // Overwrites ccu-connection config
+                    pingTimeout: 600, // Overwrites ccu-connection config
                 },
                 VirtualDevices: {
                     conf: 'virt',
                     rpc: xmlrpc,
-                    port: this.isLocal ? 39292 : (config.tls ? 49292 : 9292),
+                    port: this.isLocal ? 39292 : config.tls ? 49292 : 9292,
                     path: 'groups',
                     protocol: 'http',
                     auth: config.authentication,
@@ -408,7 +425,7 @@ module.exports = function (RED) {
                     tls: config.tls,
                     inSecure: config.inSecure,
                     init: true,
-                    ping: false // Todo ?
+                    ping: false, // Todo ?
                 },
                 CUxD: {
                     conf: 'cuxd',
@@ -416,8 +433,8 @@ module.exports = function (RED) {
                     port: 8701,
                     protocol: 'binrpc',
                     init: true,
-                    ping: true
-                }
+                    ping: true,
+                },
             };
 
             this.name = config.name;
@@ -431,7 +448,13 @@ module.exports = function (RED) {
                 this.rpcServerHost = config.rpcServerHost;
             } else {
                 this.rpcServerHost = bestMatch(config.rpcServerHost, ccu.network.listen);
-                this.logger.error('Local address ' + config.rpcServerHost + ' not available. Using ' + this.rpcServerHost + ' instead.');
+                this.logger.error(
+                    'Local address ' +
+                        config.rpcServerHost +
+                        ' not available. Using ' +
+                        this.rpcServerHost +
+                        ' instead.',
+                );
             }
 
             this.rpcInitAddress = config.rpcInitAddress || this.rpcServerHost;
@@ -503,9 +526,18 @@ module.exports = function (RED) {
             this.rxCounters = {};
             this.txCounters = {};
 
-            this.metadataFile = path.join(RED.settings.userDir || path.join(__dirname, '..'), 'ccu_' + this.host + '.json');
-            this.regadataFile = path.join(RED.settings.userDir || path.join(__dirname, '..'), 'ccu_rega_' + this.host + '.json');
-            this.valuesFile = path.join(RED.settings.userDir || path.join(__dirname, '..'), 'ccu_values_' + this.host + '.json');
+            this.metadataFile = path.join(
+                RED.settings.userDir || path.join(__dirname, '..'),
+                'ccu_' + this.host + '.json',
+            );
+            this.regadataFile = path.join(
+                RED.settings.userDir || path.join(__dirname, '..'),
+                'ccu_rega_' + this.host + '.json',
+            );
+            this.valuesFile = path.join(
+                RED.settings.userDir || path.join(__dirname, '..'),
+                'ccu_values_' + this.host + '.json',
+            );
 
             this.loadMetadata();
             this.loadRegadata();
@@ -515,16 +547,16 @@ module.exports = function (RED) {
 
             this.rega = new Rega({
                 host: this.host,
-                port: this.isLocal ? 8183 : (config.tls ? 48181 : 8181),
+                port: this.isLocal ? 8183 : config.tls ? 48181 : 8181,
                 tls: config.tls,
                 inSecure: config.inSecure,
                 auth: config.authentication,
                 user: config.username,
-                pass: config.password
+                pass: config.password,
             });
 
             this.enabledIfaces = [];
-            Object.keys(this.ifaceTypes).forEach(iface => {
+            Object.keys(this.ifaceTypes).forEach((iface) => {
                 const enabled = config[this.ifaceTypes[iface].conf + 'Enabled'];
                 if (enabled) {
                     this.enabledIfaces.push(iface);
@@ -533,11 +565,10 @@ module.exports = function (RED) {
             });
 
             if (config.regaEnabled) {
-                this.getRegaData()
-                    .then(() => {
-                        this.regaPoll();
-                        this.initIfaces(config);
-                    });
+                this.getRegaData().then(() => {
+                    this.regaPoll();
+                    this.initIfaces(config);
+                });
             } else {
                 this.initIfaces(config);
             }
@@ -563,7 +594,7 @@ module.exports = function (RED) {
                 },
                 error: (...args) => {
                     this.error(args.join(' ').slice(0, 300));
-                }
+                },
             };
         }
 
@@ -572,12 +603,18 @@ module.exports = function (RED) {
          * @param config
          */
         checkDuplicateConfig(config) {
-            resolveHost(config.host).then(myAddr => {
-                RED.nodes.eachNode(n => {
+            resolveHost(config.host).then((myAddr) => {
+                RED.nodes.eachNode((n) => {
                     if (n.type === this.type && n.id !== this.id) {
-                        resolveHost(n.host).then(addr => {
+                        resolveHost(n.host).then((addr) => {
                             if (myAddr === addr) {
-                                this.logger.error('ccu-connection node ' + n.name + ' (' + n.id + ') is configured to connect to the same ccu. this leads to problems - only one ccu-connection node per ccu should exist!');
+                                this.logger.error(
+                                    'ccu-connection node ' +
+                                        n.name +
+                                        ' (' +
+                                        n.id +
+                                        ') is configured to connect to the same ccu. this leads to problems - only one ccu-connection node per ccu should exist!',
+                                );
                             }
                         });
                     }
@@ -590,11 +627,15 @@ module.exports = function (RED) {
          */
         setContext() {
             if (this.contextStore) {
-                this.globalContext.set('ccu-' + this.host.replace(/\./g, '_'), {
-                    values: this.values,
-                    sysvar: this.sysvar,
-                    program: this.program
-                }, this.contextStore);
+                this.globalContext.set(
+                    'ccu-' + this.host.replace(/\./g, '_'),
+                    {
+                        values: this.values,
+                        sysvar: this.sysvar,
+                        program: this.program,
+                    },
+                    this.contextStore,
+                );
             }
         }
 
@@ -629,15 +670,24 @@ module.exports = function (RED) {
 
             if (RED.settings.logging) {
                 const [firstLogger] = Object.keys(RED.settings.logging);
-                if (RED.settings.logging[firstLogger] && RED.settings.logging[firstLogger].level !== 'debug' && RED.settings.logging[firstLogger].level !== 'trace') {
+                if (
+                    RED.settings.logging[firstLogger] &&
+                    RED.settings.logging[firstLogger].level !== 'debug' &&
+                    RED.settings.logging[firstLogger].level !== 'trace'
+                ) {
                     return;
                 }
             }
 
             this.statsInterval = setInterval(() => {
-                this.logger.debug('stats rpc rx: ' + JSON.stringify(this.rxCounters) + ' tx: ' + JSON.stringify(this.txCounters));
+                this.logger.debug(
+                    'stats rpc rx: ' + JSON.stringify(this.rxCounters) + ' tx: ' + JSON.stringify(this.txCounters),
+                );
                 this.logger.debug('stats rpc subscribers ' + Object.keys(this.callbacks).length);
-                this.logger.debug('stats rega subscribers ' + (Object.keys(this.programCallbacks).length + Object.keys(this.sysvarCallbacks).length));
+                this.logger.debug(
+                    'stats rega subscribers ' +
+                        (Object.keys(this.programCallbacks).length + Object.keys(this.sysvarCallbacks).length),
+                );
             }, 60000);
         }
 
@@ -651,11 +701,17 @@ module.exports = function (RED) {
                 if (iface === 'ReGaHSS') {
                     this.logger.info('Interface', iface, connected ? 'connected' : 'disconnected');
                 } else {
-                    this.logger.info('Interface', iface, connected ? (this.ifaceTypes[iface].protocol + ' port ' + this.ifaceTypes[iface].port + ' connected') : 'disconnected');
+                    this.logger.info(
+                        'Interface',
+                        iface,
+                        connected
+                            ? this.ifaceTypes[iface].protocol + ' port ' + this.ifaceTypes[iface].port + ' connected'
+                            : 'disconnected',
+                    );
                 }
 
                 this.ifaceStatus[iface] = !this.serverError[iface] && connected;
-                Object.keys(this.users).forEach(id => {
+                Object.keys(this.users).forEach((id) => {
                     if (typeof this.users[id].setStatus === 'function') {
                         this.users[id].setStatus({ifaceStatus: this.ifaceStatus});
                     }
@@ -668,7 +724,7 @@ module.exports = function (RED) {
          * @returns {Promise<any>}
          */
         saveMetadata() {
-            return new Promise(resolve => {
+            return new Promise((resolve) => {
                 fs.writeFileSync(this.metadataFile, JSON.stringify(this.metadata));
                 this.logger.info('metadata saved to', this.metadataFile);
                 resolve();
@@ -680,17 +736,20 @@ module.exports = function (RED) {
          * @returns {Promise<any>}
          */
         saveRegadata() {
-            return new Promise(resolve => {
-                fs.writeFileSync(this.regadataFile, JSON.stringify({
-                    channelNames: this.channelNames,
-                    regaIdChannel: this.regaIdChannel,
-                    regaChannels: this.regaChannels,
-                    channelRooms: this.channelRooms,
-                    channelFunctions: this.channelFunctions,
-                    groups: this.groups,
-                    sysvar: this.sysvar,
-                    program: this.program
-                }));
+            return new Promise((resolve) => {
+                fs.writeFileSync(
+                    this.regadataFile,
+                    JSON.stringify({
+                        channelNames: this.channelNames,
+                        regaIdChannel: this.regaIdChannel,
+                        regaChannels: this.regaChannels,
+                        channelRooms: this.channelRooms,
+                        channelFunctions: this.channelFunctions,
+                        groups: this.groups,
+                        sysvar: this.sysvar,
+                        program: this.program,
+                    }),
+                );
                 this.logger.info('regadata saved to', this.regadataFile);
                 resolve();
             });
@@ -701,10 +760,13 @@ module.exports = function (RED) {
          * @returns {Promise<any>}
          */
         saveValues() {
-            return new Promise(resolve => {
-                fs.writeFileSync(this.valuesFile, JSON.stringify({
-                    values: this.values
-                }));
+            return new Promise((resolve) => {
+                fs.writeFileSync(
+                    this.valuesFile,
+                    JSON.stringify({
+                        values: this.values,
+                    }),
+                );
                 this.logger.info('values saved to', this.valuesFile);
                 resolve();
             });
@@ -715,7 +777,7 @@ module.exports = function (RED) {
          * @returns {Promise<any>}
          */
         loadMetadata() {
-            return new Promise(resolve => {
+            return new Promise((resolve) => {
                 try {
                     this.metadata = JSON.parse(fs.readFileSync(this.metadataFile));
                     this.logger.info('metadata loaded from', this.metadataFile);
@@ -724,7 +786,7 @@ module.exports = function (RED) {
                     this.logger.warn('metadata new empty');
                     this.metadata = {
                         devices: {},
-                        types: {}
+                        types: {},
                     };
                     resolve();
                 }
@@ -736,7 +798,7 @@ module.exports = function (RED) {
          * @returns {Promise<any>}
          */
         loadRegadata() {
-            return new Promise(resolve => {
+            return new Promise((resolve) => {
                 try {
                     const regadata = JSON.parse(fs.readFileSync(this.regadataFile));
                     this.logger.info('regadata loaded from', this.regadataFile);
@@ -769,14 +831,18 @@ module.exports = function (RED) {
          * @returns {Promise<any>}
          */
         loadValues() {
-            return new Promise(resolve => {
+            return new Promise((resolve) => {
                 try {
                     const {values} = JSON.parse(fs.readFileSync(this.valuesFile));
                     this.logger.info('values loaded from', this.valuesFile);
 
-                    /* eslint-disable-next-line guard-for-in */
                     for (const datapointName in values) {
-                        this.values[datapointName] = {...values[datapointName], cache: true, change: false, uncertain: true};
+                        this.values[datapointName] = {
+                            ...values[datapointName],
+                            cache: true,
+                            change: false,
+                            uncertain: true,
+                        };
                     }
 
                     resolve();
@@ -792,9 +858,13 @@ module.exports = function (RED) {
          * @returns {Promise<any>}
          */
         saveParamsets() {
-            return new Promise(resolve => {
+            return new Promise((resolve) => {
                 fs.writeFileSync(this.paramsetFile, JSON.stringify(this.paramsetDescriptions, null, '  '));
-                this.logger.info('paramsets saved to', this.paramsetFile, (this.paramsetDescriptions ? Object.keys(this.paramsetDescriptions).length : 0));
+                this.logger.info(
+                    'paramsets saved to',
+                    this.paramsetFile,
+                    this.paramsetDescriptions ? Object.keys(this.paramsetDescriptions).length : 0,
+                );
                 resolve();
             });
         }
@@ -804,8 +874,8 @@ module.exports = function (RED) {
          * @returns {Promise<any>}
          */
         loadParamsets() {
-            return new Promise(resolve => {
-                const load = file => {
+            return new Promise((resolve) => {
+                const load = (file) => {
                     try {
                         this.paramsetDescriptions = JSON.parse(fs.readFileSync(file));
                         this.logger.info('paramsets loaded from', file);
@@ -837,7 +907,7 @@ module.exports = function (RED) {
             this.cancelRegaPoll = true;
             clearTimeout(this.regaPollTimeout);
 
-            Object.keys(this.rpcPingTimer).forEach(iface => {
+            Object.keys(this.rpcPingTimer).forEach((iface) => {
                 this.logger.debug('clear rpcPingTimer', iface);
                 clearTimeout(this.rpcPingTimer[iface]);
             });
@@ -849,7 +919,8 @@ module.exports = function (RED) {
                 .then(() => {
                     this.logger.info('rpc close done');
                     done();
-                }).catch(error => {
+                })
+                .catch((error) => {
                     this.logger.warn(error);
                     done();
                 });
@@ -881,24 +952,27 @@ module.exports = function (RED) {
          * @returns {Promise<any>}
          */
         getGroupsData() {
-            return new Promise(resolve => {
+            return new Promise((resolve) => {
                 this.logger.debug('virtualdevices get groups');
-                this.rega.exec(`
+                this.rega.exec(
+                    `
                     var stdoutGroups;
                     var stderrGroups;
                     system.Exec("cat /etc/config/groups.gson", &stdoutGroups, &stderrGroups);
-                `, (err, stdout, objects) => {
-                    if (!err && objects && objects.stderrGroups === 'null') {
-                        try {
-                            const {groups} = JSON.parse(objects.stdoutGroups);
-                            groups.forEach(group => {
-                                this.groups[group.id] = group;
-                            });
-                        } catch {}
-                    }
+                `,
+                    (err, stdout, objects) => {
+                        if (!err && objects && objects.stderrGroups === 'null') {
+                            try {
+                                const {groups} = JSON.parse(objects.stdoutGroups);
+                                groups.forEach((group) => {
+                                    this.groups[group.id] = group;
+                                });
+                            } catch {}
+                        }
 
-                    resolve();
-                });
+                        resolve();
+                    },
+                );
             });
         }
 
@@ -927,15 +1001,22 @@ module.exports = function (RED) {
                         reject(new Error('rega getValues ' + err.message));
                     } else {
                         const d = new Date();
-                        res.forEach(dp => {
-                            const ts = (new Date(dp.ts + ' UTC+' + (d.getTimezoneOffset() / -60))).getTime();
+                        res.forEach((dp) => {
+                            const ts = new Date(dp.ts + ' UTC+' + d.getTimezoneOffset() / -60).getTime();
                             const [iface, channel, datapoint] = dp.name.split('.');
                             if (this.enabledIfaces.includes(iface) && datapoint) {
                                 if (['RSSI_DEVICE', 'RSSI_PEER'].includes(datapoint)) {
                                     dp.value -= 256;
                                 }
 
-                                const message = this.createMessage(iface, channel, datapoint, dp.value, {cache: true, change: false, working: false, uncertain: dp.ts === '1970-01-01 01:00:00', ts, lc: ts});
+                                const message = this.createMessage(iface, channel, datapoint, dp.value, {
+                                    cache: true,
+                                    change: false,
+                                    working: false,
+                                    uncertain: dp.ts === '1970-01-01 01:00:00',
+                                    ts,
+                                    lc: ts,
+                                });
                                 this.values[message.datapointName] = message;
                                 if (!datapoint.startsWith('PRESS_')) {
                                     this.callCallbacks(message);
@@ -967,7 +1048,7 @@ module.exports = function (RED) {
                             this.channelNames = {};
                         }
 
-                        res.forEach(ch => {
+                        res.forEach((ch) => {
                             this.regaChannels.push(ch);
                             this.regaIdChannel[ch.id] = ch.address;
                             this.channelNames[ch.address] = ch.name;
@@ -994,9 +1075,9 @@ module.exports = function (RED) {
                             this.channelRooms = {};
                         }
 
-                        res.forEach(room => {
+                        res.forEach((room) => {
                             this.rooms.push(room.name);
-                            room.channels.forEach(chId => {
+                            room.channels.forEach((chId) => {
                                 const regaChannel = this.getEntry(this.regaChannels, 'id', chId);
                                 const address = regaChannel && regaChannel.address;
                                 if (address) {
@@ -1030,9 +1111,9 @@ module.exports = function (RED) {
                             this.channelFunctions = {};
                         }
 
-                        res.forEach(func => {
+                        res.forEach((func) => {
                             this.functions.push(func.name);
-                            func.channels.forEach(chId => {
+                            func.channels.forEach((chId) => {
                                 const regaChannel = this.getEntry(this.regaChannels, 'id', chId);
                                 const address = regaChannel && regaChannel.address;
                                 if (address) {
@@ -1062,12 +1143,12 @@ module.exports = function (RED) {
                 if (program) {
                     const script = `dom.GetObject(${program.id}).Active(${active});`;
                     this.logger.debug('rega programActive', name, script);
-                    this.rega.exec(script + '\n', err => {
+                    this.rega.exec(script + '\n', (err) => {
                         if (err) {
                             reject(err);
                         } else {
                             Object.assign(program, {
-                                active
+                                active,
                             });
                             resolve(program);
                         }
@@ -1090,14 +1171,19 @@ module.exports = function (RED) {
                     const d = new Date();
                     const script = `dom.GetObject(${program.id}).ProgramExecute();`;
                     this.logger.debug('rega programExecute', name, script);
-                    this.rega.exec(script + `\nvar lastExecTime = dom.GetObject(${program.id}).ProgramLastExecuteTime();\n`, (err, res, objects) => {
-                        if (err) {
-                            reject(err);
-                        } else {
-                            program.ts = (new Date(objects.lastExecTime + ' UTC+' + (d.getTimezoneOffset() / -60))).getTime();
-                            resolve(program);
-                        }
-                    });
+                    this.rega.exec(
+                        script + `\nvar lastExecTime = dom.GetObject(${program.id}).ProgramLastExecuteTime();\n`,
+                        (err, res, objects) => {
+                            if (err) {
+                                reject(err);
+                            } else {
+                                program.ts = new Date(
+                                    objects.lastExecTime + ' UTC+' + d.getTimezoneOffset() / -60,
+                                ).getTime();
+                                resolve(program);
+                            }
+                        },
+                    );
                 } else {
                     reject(new Error('programExecute ' + name + ' not found'));
                 }
@@ -1152,7 +1238,7 @@ module.exports = function (RED) {
 
                     const script = `dom.GetObject(${sysvar.id}).State(${value});`;
                     this.logger.debug('setVariable', name, script);
-                    this.rega.exec(script + '\n', err => {
+                    this.rega.exec(script + '\n', (err) => {
                         if (err) {
                             reject(err);
                         } else {
@@ -1180,9 +1266,9 @@ module.exports = function (RED) {
                 this.regaPollPending = true;
                 clearTimeout(this.regaPollTimeout);
                 this.getRegaVariables()
-                    .catch(error => this.logger.error('getRegaVariables', error))
+                    .catch((error) => this.logger.error('getRegaVariables', error))
                     .then(() => this.getRegaPrograms())
-                    .catch(error => this.logger.error('getRegaPrograms', error))
+                    .catch((error) => this.logger.error('getRegaPrograms', error))
                     .finally(() => {
                         if (this.regaInterval && this.regaPollEnabled && !this.cancelRegaPoll) {
                             //this.logger.trace('rega next poll in', this.regaInterval, 'seconds');
@@ -1254,24 +1340,39 @@ module.exports = function (RED) {
                     unit: sysvar.unit,
                     enum: sysvar.enum,
                     id: sysvar.id,
-                    cache: isNew
+                    cache: isNew,
                 };
                 if (sysvar.channel) {
                     const channel = this.regaIdChannel[sysvar.channel];
                     const iface = this.findIface(channel);
-                    const device = this.metadata.devices[iface] && this.metadata.devices[iface][channel] && this.metadata.devices[iface][channel].PARENT;
+                    const device =
+                        this.metadata.devices[iface] &&
+                        this.metadata.devices[iface][channel] &&
+                        this.metadata.devices[iface][channel].PARENT;
                     Object.assign(this.sysvar[sysvar.name], {
                         device,
                         deviceName: this.channelNames[device],
-                        deviceType: this.metadata.devices[iface] && this.metadata.devices[iface][device] && this.metadata.devices[iface][device].TYPE,
+                        deviceType:
+                            this.metadata.devices[iface] &&
+                            this.metadata.devices[iface][device] &&
+                            this.metadata.devices[iface][device].TYPE,
                         channel,
                         channelName: this.channelNames[channel],
-                        channelType: this.metadata.devices[iface] && this.metadata.devices[iface][channel] && this.metadata.devices[iface][channel].TYPE,
+                        channelType:
+                            this.metadata.devices[iface] &&
+                            this.metadata.devices[iface][channel] &&
+                            this.metadata.devices[iface][channel].TYPE,
                         channelIndex: channel && Number.parseInt(channel.split(':')[1], 10),
                         rooms: this.channelRooms[channel],
-                        room: this.channelRooms[channel] && this.channelRooms[channel].length === 1 ? this.channelRooms[channel][0] : undefined,
+                        room:
+                            this.channelRooms[channel] && this.channelRooms[channel].length === 1
+                                ? this.channelRooms[channel][0]
+                                : undefined,
                         functions: this.channelFunctions[channel],
-                        function: this.channelFunctions[channel] && this.channelFunctions[channel].length === 1 ? this.channelFunctions[channel][0] : undefined
+                        function:
+                            this.channelFunctions[channel] && this.channelFunctions[channel].length === 1
+                                ? this.channelFunctions[channel][0]
+                                : undefined,
                     });
                 }
             } else if (this.sysvar[sysvar.name].fromFile) {
@@ -1289,13 +1390,16 @@ module.exports = function (RED) {
                     valueEnumPrevious: this.sysvar[sysvar.name].valueEnum,
                     ts: sysvar.ts,
                     tsPrevious: this.sysvar[sysvar.name].ts,
-                    lc: this.sysvar[sysvar.name].value !== sysvar.val && !isNew ? sysvar.ts : this.sysvar[sysvar.name].lc,
+                    lc:
+                        this.sysvar[sysvar.name].value !== sysvar.val && !isNew
+                            ? sysvar.ts
+                            : this.sysvar[sysvar.name].lc,
                     lcPrevious: this.sysvar[sysvar.name].lc,
                     change: isNew ? false : this.sysvar[sysvar.name].value !== sysvar.val,
-                    cache: isNew
+                    cache: isNew,
                 });
 
-                Object.keys(this.sysvarCallbacks).forEach(key => {
+                Object.keys(this.sysvarCallbacks).forEach((key) => {
                     const {filter, callback} = this.sysvarCallbacks[key];
                     let match = !filter.name || filter.name === sysvar.name;
                     if (this.sysvar[sysvar.name].cache && !filter.cache) {
@@ -1328,17 +1432,21 @@ module.exports = function (RED) {
                         this.setIfaceStatus('ReGaHSS', false);
                     } else {
                         const d = new Date();
-                        res.forEach(sysvar => {
+                        res.forEach((sysvar) => {
                             //this.logger.trace(JSON.stringify(sysvar));
-                            sysvar.ts = sysvar.ts ? (new Date(sysvar.ts + ' UTC+' + (d.getTimezoneOffset() / -60))).getTime() : d.getTime();
+                            sysvar.ts = sysvar.ts
+                                ? new Date(sysvar.ts + ' UTC+' + d.getTimezoneOffset() / -60).getTime()
+                                : d.getTime();
                             this.updateRegaVariable(sysvar);
                         });
                         if (!this.hasRegaVariables) {
                             this.hasRegaVariables = true;
-                            Object.keys(this.setVariableQueueTimeout).forEach(name => clearTimeout(this.setVariableQueueTimeout[name]));
-                            Object.keys(this.setVariableQueue).reduce((p, name) =>
-                                p.then(_ => this.setVariable(name, this.setVariableQueue[name])),
-                            Promise.resolve()
+                            Object.keys(this.setVariableQueueTimeout).forEach((name) =>
+                                clearTimeout(this.setVariableQueueTimeout[name]),
+                            );
+                            Object.keys(this.setVariableQueue).reduce(
+                                (p, name) => p.then((_) => this.setVariable(name, this.setVariableQueue[name])),
+                                Promise.resolve(),
                             );
                         }
 
@@ -1363,9 +1471,9 @@ module.exports = function (RED) {
                         this.setIfaceStatus('ReGaHSS', false);
                     } else if (res && Array.isArray(res)) {
                         const d = new Date();
-                        res.forEach(prg => {
+                        res.forEach((prg) => {
                             prg.type = 'PROGRAM';
-                            prg.ts = (new Date(prg.ts + ' UTC+' + (d.getTimezoneOffset() / -60))).getTime();
+                            prg.ts = new Date(prg.ts + ' UTC+' + d.getTimezoneOffset() / -60).getTime();
                             if (!this.program[prg.name]) {
                                 this.program[prg.name] = {};
                             }
@@ -1387,9 +1495,9 @@ module.exports = function (RED) {
                                     active: prg.active,
                                     activePrevious: this.program[prg.name].active,
                                     ts: prg.ts,
-                                    tsPrevious: this.program[prg.name].ts
+                                    tsPrevious: this.program[prg.name].ts,
                                 };
-                                Object.keys(this.programCallbacks).forEach(key => {
+                                Object.keys(this.programCallbacks).forEach((key) => {
                                     const {filter, callback} = this.programCallbacks[key];
                                     if (!filter.name || filter.name === prg.name) {
                                         callback(this.program[prg.name]);
@@ -1408,20 +1516,22 @@ module.exports = function (RED) {
          * @param config
          */
         initIfaces(config) {
-            Object.keys(this.ifaceTypes).forEach(iface => {
+            Object.keys(this.ifaceTypes).forEach((iface) => {
                 const enabled = config[this.ifaceTypes[iface].conf + 'Enabled'];
                 this.ifaceTypes[iface].enabled = enabled;
                 if (enabled) {
                     this.createClient(iface)
                         .then(() => {
                             if (this.ifaceTypes[iface].init) {
-                                return this.rpcInit(iface).then(() => {
-                                    this.setIfaceStatus(iface, true);
-                                }).catch(error => {
-                                    this.logger.error('init', iface, error);
-                                    this.hadTimeout.add(iface);
-                                    this.setIfaceStatus(iface, false);
-                                });
+                                return this.rpcInit(iface)
+                                    .then(() => {
+                                        this.setIfaceStatus(iface, true);
+                                    })
+                                    .catch((error) => {
+                                        this.logger.error('init', iface, error);
+                                        this.hadTimeout.add(iface);
+                                        this.setIfaceStatus(iface, false);
+                                    });
                             }
 
                             this.setIfaceStatus(iface, true);
@@ -1438,7 +1548,7 @@ module.exports = function (RED) {
          * @returns {Promise<any>}
          */
         createClient(iface) {
-            return new Promise(resolve => {
+            return new Promise((resolve) => {
                 const {rpc, port, path, protocol, auth, user, pass, tls, inSecure} = this.ifaceTypes[iface];
                 const clientOptions = {};
                 if (path) {
@@ -1462,10 +1572,8 @@ module.exports = function (RED) {
 
                 this.logger.debug('rpc client created', iface, JSON.stringify(clientOptions));
                 if (this.methodCallQueue[iface]) {
-                    this.methodCallQueue[iface].forEach(c => {
-                        this.methodCall(iface, c[0], c[1])
-                            .then(c[2])
-                            .catch(c[3]);
+                    this.methodCallQueue[iface].forEach((c) => {
+                        this.methodCall(iface, c[0], c[1]).then(c[2]).catch(c[3]);
                     });
                     delete this.methodCallQueue[iface];
                 }
@@ -1490,16 +1598,22 @@ module.exports = function (RED) {
                 this.methodCall(iface, 'init', [initUrl, initId])
                     .then(() => {
                         if (iface === 'CUxD') {
-                            this.getDevices(iface).then(() => resolve(iface)).catch(() => resolve(iface));
+                            this.getDevices(iface)
+                                .then(() => resolve(iface))
+                                .catch(() => resolve(iface));
                         } else if (['BidCos-RF', 'BidCos-Wired', 'HmIP-RF'].includes(iface)) {
-                            this.methodCall(iface, 'getLinks', []).then(res => {
-                                this.links[iface] = res;
-                                resolve(iface);
-                            }).catch(() => resolve(iface));
+                            this.methodCall(iface, 'getLinks', [])
+                                .then((res) => {
+                                    this.links[iface] = res;
+                                    resolve(iface);
+                                })
+                                .catch(() => resolve(iface));
                         } else {
                             resolve(iface);
                         }
-                    }).catch(error => reject(error)).finally(() => {
+                    })
+                    .catch((error) => reject(error))
+                    .finally(() => {
                         if (this.ifaceTypes[iface].ping) {
                             this.rpcCheckInit(iface);
                         }
@@ -1517,7 +1631,7 @@ module.exports = function (RED) {
         getLinks(iface, address, receiver) {
             const links = [];
             if (this.links[iface]) {
-                this.links[iface].forEach(link => {
+                this.links[iface].forEach((link) => {
                     if (link[receiver ? 'RECEIVER' : 'SENDER'] === address) {
                         links.push(link[receiver ? 'SENDER' : 'RECEIVER']);
                     }
@@ -1534,34 +1648,36 @@ module.exports = function (RED) {
          */
         getDevices(iface) {
             return new Promise((resolve, reject) => {
-                this.methodCall(iface, 'listDevices', []).then(devices => {
-                    if (!this.metadata.devices[iface]) {
-                        this.metadata.devices[iface] = {};
-                    }
-
-                    const knownDevices = [];
-                    let change = false;
-                    devices.forEach(device => {
-                        knownDevices.push(device.ADDRESS);
-                        if (!this.metadata.devices[iface][device.ADDRESS]) {
-                            this.newDevice(iface, device);
-                            change = true;
+                this.methodCall(iface, 'listDevices', [])
+                    .then((devices) => {
+                        if (!this.metadata.devices[iface]) {
+                            this.metadata.devices[iface] = {};
                         }
-                    });
 
-                    Object.keys(this.metadata.devices[iface]).forEach(addr => {
-                        if (!knownDevices.includes(addr)) {
-                            this.deleteDevice(iface, addr);
-                            change = true;
+                        const knownDevices = [];
+                        let change = false;
+                        devices.forEach((device) => {
+                            knownDevices.push(device.ADDRESS);
+                            if (!this.metadata.devices[iface][device.ADDRESS]) {
+                                this.newDevice(iface, device);
+                                change = true;
+                            }
+                        });
+
+                        Object.keys(this.metadata.devices[iface]).forEach((addr) => {
+                            if (!knownDevices.includes(addr)) {
+                                this.deleteDevice(iface, addr);
+                                change = true;
+                            }
+                        });
+
+                        if (change) {
+                            this.saveMetadata();
                         }
-                    });
 
-                    if (change) {
-                        this.saveMetadata();
-                    }
-
-                    resolve();
-                }).catch(reject);
+                        resolve();
+                    })
+                    .catch(reject);
             });
         }
 
@@ -1582,11 +1698,11 @@ module.exports = function (RED) {
                 this.hadTimeout.add(iface);
                 this.setIfaceStatus(iface, false);
                 this.logger.warn('ping timeout', iface, elapsed);
-                this.rpcInit(iface).catch(error => this.logger.error(error.message));
+                this.rpcInit(iface).catch((error) => this.logger.error(error.message));
                 return;
             }
 
-            if (elapsed >= (pingTimeout / 2)) {
+            if (elapsed >= pingTimeout / 2) {
                 //this.logger.trace('ping', iface, elapsed);
                 this.methodCall(iface, 'ping', ['nr']).catch(() => {
                     this.setIfaceStatus(iface, false);
@@ -1605,19 +1721,21 @@ module.exports = function (RED) {
         rpcClose() {
             this.logger.debug('rpcClose');
             const calls = [];
-            Object.keys(this.clients).forEach(iface => {
+            Object.keys(this.clients).forEach((iface) => {
                 if (this.ifaceTypes[iface].init) {
                     this.logger.debug('queue de-init ' + iface + ' ' + this.initUrl(iface));
                     calls.push(() => {
-                        return new Promise(resolve => {
+                        return new Promise((resolve) => {
                             this.logger.debug('de-init ' + iface + ' ' + this.initUrl(iface));
                             this.methodCall(iface, 'init', [this.initUrl(iface), ''])
                                 .then(() => {
                                     this.logger.info('de-init ' + iface + ' ' + this.initUrl(iface) + ' done');
                                     resolve();
                                 })
-                                .catch(error => {
-                                    this.logger.error('de-init ' + iface + ' ' + this.initUrl(iface) + ' failed ' + error);
+                                .catch((error) => {
+                                    this.logger.error(
+                                        'de-init ' + iface + ' ' + this.initUrl(iface) + ' failed ' + error,
+                                    );
                                     resolve();
                                 });
                         });
@@ -1627,7 +1745,7 @@ module.exports = function (RED) {
 
             this.logger.debug('queue binrpc server closing');
             calls.push(() => {
-                return new Promise(resolve => {
+                return new Promise((resolve) => {
                     this.logger.debug('binrpc server closing');
                     let timeout;
                     if (this.servers.binrpc && this.servers.binrpc.server) {
@@ -1649,7 +1767,7 @@ module.exports = function (RED) {
 
             this.logger.debug('xmlrpc binrpc server closing');
             calls.push(() => {
-                return new Promise(resolve => {
+                return new Promise((resolve) => {
                     this.logger.debug('xmlrpc server closing');
                     let timeout;
                     if (this.servers.http && this.servers.http.close) {
@@ -1682,7 +1800,7 @@ module.exports = function (RED) {
          */
         initUrl(iface) {
             const {protocol} = this.ifaceTypes[iface];
-            const port = (protocol === 'binrpc' ? this.rpcBinPort : this.rpcXmlPort);
+            const port = protocol === 'binrpc' ? this.rpcBinPort : this.rpcXmlPort;
             return protocol + '://' + (this.rpcInitAddress || this.rpcServerHost) + ':' + port;
         }
 
@@ -1694,7 +1812,7 @@ module.exports = function (RED) {
         rpcServer(iface) {
             const url = this.initUrl(iface);
             const {rpc, protocol} = this.ifaceTypes[iface];
-            const port = (protocol === 'binrpc' ? this.rpcBinPort : this.rpcXmlPort);
+            const port = protocol === 'binrpc' ? this.rpcBinPort : this.rpcXmlPort;
             if (!this.servers[protocol]) {
                 this.servers[protocol] = rpc.createServer({host: this.rpcServerHost, port}, () => {
                     // Todo homematic-xmlrpc and binrpc module: clarify onListening callback params
@@ -1703,12 +1821,12 @@ module.exports = function (RED) {
                 });
 
                 // Todo homematic-xmlrpc and binrpc module: emit error event on server object to eliminate access to httpServer/server
-                this.servers[protocol][protocol === 'binrpc' ? 'server' : 'httpServer'].on('error', err => {
+                this.servers[protocol][protocol === 'binrpc' ? 'server' : 'httpServer'].on('error', (err) => {
                     this.logger.error('binrpc ' + err.message);
                     this.serverError[iface] = err.message;
                 });
 
-                Object.keys(this.rpcMethods).forEach(method => {
+                Object.keys(this.rpcMethods).forEach((method) => {
                     this.servers[protocol].on(method, (err, parameters, callback) => {
                         if (err) {
                             this.logger.error('rpc <', protocol, method, err);
@@ -1722,7 +1840,14 @@ module.exports = function (RED) {
                         if (isIterable(parameters)) {
                             this.rpcMethods[method](err, parameters, callback);
                         } else {
-                            this.logger.error('rpc <', protocol, 'method', method, 'params not iterable', JSON.stringify(parameters));
+                            this.logger.error(
+                                'rpc <',
+                                protocol,
+                                'method',
+                                method,
+                                'params not iterable',
+                                JSON.stringify(parameters),
+                            );
                             callback(null, '');
                         }
                     });
@@ -1769,7 +1894,7 @@ module.exports = function (RED) {
             this.paramsQueue.push({
                 iface,
                 address: device.ADDRESS,
-                paramset
+                paramset,
             });
         }
 
@@ -1778,16 +1903,17 @@ module.exports = function (RED) {
             if (item) {
                 const {iface, address, paramset} = item;
                 this.methodCall(iface, 'getParamset', [address, paramset])
-                    .then(res => {
+                    .then((res) => {
                         this.params[paramset][address] = res;
                     })
-                    .catch(error => this.logger.error(error))
+                    .catch((error) => this.logger.error(error))
                     .then(() => {
                         clearTimeout(this.getParamsTimeout);
                         this.getParamsTimeout = setTimeout(() => {
                             this.paramsQueueShift();
                         }, 200);
-                    }).catch(() => {});
+                    })
+                    .catch(() => {});
             } else {
                 this.logger.debug(JSON.stringify(this.params));
             }
@@ -1800,14 +1926,14 @@ module.exports = function (RED) {
          */
         paramsetQueuePush(iface, device) {
             if (device && device.PARAMSETS) {
-                device.PARAMSETS.forEach(paramset => {
+                device.PARAMSETS.forEach((paramset) => {
                     const name = this.paramsetName(iface, device, paramset);
                     if (!this.paramsetDescriptions[name]) {
                         this.paramsetQueue.push({
                             iface,
                             name,
                             address: device.ADDRESS,
-                            paramset
+                            paramset,
                         });
                     }
                 });
@@ -1839,7 +1965,7 @@ module.exports = function (RED) {
                     setImmediate(() => this.paramsetQueueShift());
                 } else {
                     this.methodCall(iface, 'getParamsetDescription', [address, paramset])
-                        .then(res => {
+                        .then((res) => {
                             //this.logger.trace('paramsetDescription', name);
                             this.newParamsetDescriptionCount += 1;
                             this.newParamsetDescription = true;
@@ -1850,14 +1976,15 @@ module.exports = function (RED) {
                                 this.saveParamsets();
                             }
                         })
-                        .catch(error => this.logger.error(error))
+                        .catch((error) => this.logger.error(error))
                         .then(() => {
                             this.paramsetPending = false;
                             clearTimeout(this.getParamsetTimeout);
                             this.getParamsetTimeout = setTimeout(() => {
                                 this.paramsetQueueShift();
                             }, 200);
-                        }).catch(() => {});
+                        })
+                        .catch(() => {});
                 }
             } else {
                 this.paramsetPending = false;
@@ -1919,7 +2046,10 @@ module.exports = function (RED) {
                 throw new Error('device type undefined: ' + JSON.stringify(device));
             }
 
-            if (this.metadata.types[iface][device.TYPE] && !this.metadata.types[iface][device.TYPE].includes(device.ADDRESS)) {
+            if (
+                this.metadata.types[iface][device.TYPE] &&
+                !this.metadata.types[iface][device.TYPE].includes(device.ADDRESS)
+            ) {
                 this.metadata.types[iface][device.TYPE].push(device.ADDRESS);
             } else {
                 this.metadata.types[iface][device.TYPE] = [device.ADDRESS];
@@ -1950,7 +2080,7 @@ module.exports = function (RED) {
         listDevices(iface) {
             const result = [];
             if (this.metadata.devices[iface]) {
-                Object.keys(this.metadata.devices[iface]).forEach(addr => {
+                Object.keys(this.metadata.devices[iface]).forEach((addr) => {
                     const dev = this.metadata.devices[iface][addr];
                     if (dev.TYPE === 'HmIP-RCV-50' || dev.PARENT_TYPE === 'HmIP-RCV-50') {
                         // Würgaround for Firmware 3.43.15
@@ -1979,8 +2109,8 @@ module.exports = function (RED) {
             switch (iface) {
                 case 'HmIP-RF':
                 // fallthrough by intention
-                case 'VirtualDevices':
-                    const d = { // eslint-disable-line no-case-declarations
+                case 'VirtualDevices': {
+                    const d = {
                         ADDRESS: device.ADDRESS,
                         VERSION: device.VERSION,
                         AES_ACTIVE: device.AES_ACTIVE,
@@ -2002,9 +2132,9 @@ module.exports = function (RED) {
                         TEAM: device.TEAM,
                         TEAM_CHANNELS: device.TEAM_CHANNELS,
                         TEAM_TAG: device.TEAM_TAG,
-                        TYPE: device.TYPE
+                        TYPE: device.TYPE,
                     };
-                    Object.keys(d).forEach(k => {
+                    Object.keys(d).forEach((k) => {
                         if (typeof d[k] === 'undefined') {
                             delete d[k];
                         }
@@ -2016,6 +2146,8 @@ module.exports = function (RED) {
                     });
 
                     return d;
+                }
+
                 default:
                     return {ADDRESS: device.ADDRESS, VERSION: device.VERSION};
             }
@@ -2074,7 +2206,7 @@ module.exports = function (RED) {
                     const [idInit, devices] = parameters;
                     const iface = this.getIfaceFromIdInit(idInit);
 
-                    devices.forEach(device => {
+                    devices.forEach((device) => {
                         this.newDevice(iface, device);
                     });
 
@@ -2087,7 +2219,7 @@ module.exports = function (RED) {
                     const [idInit, devices] = parameters;
                     const iface = this.getIfaceFromIdInit(idInit);
 
-                    devices.forEach(device => {
+                    devices.forEach((device) => {
                         this.deleteDevice(iface, device);
                     });
 
@@ -2137,7 +2269,7 @@ module.exports = function (RED) {
                     let direction;
                     let pong = true;
                     if (isIterable(parameters[0])) {
-                        parameters[0].forEach(call => {
+                        parameters[0].forEach((call) => {
                             if (call && call.methodName === 'event') {
                                 queue.push(call);
                                 if (isIterable(call.params)) {
@@ -2169,13 +2301,20 @@ module.exports = function (RED) {
                             } else if (call && this.rpcMethods[call.methodName]) {
                                 pong = false;
                                 if (isIterable(call.params)) {
-                                    this.rpcMethods[call.methodName](call.methodName, call.params, (_, res) => result.push(res));
+                                    this.rpcMethods[call.methodName](call.methodName, call.params, (_, res) =>
+                                        result.push(res),
+                                    );
                                 } else {
-                                    this.logger.error('rpc <', call.methodName, 'params not iterable', JSON.stringify(call.params));
+                                    this.logger.error(
+                                        'rpc <',
+                                        call.methodName,
+                                        'params not iterable',
+                                        JSON.stringify(call.params),
+                                    );
                                 }
                             }
                         });
-                        queue.forEach(call => {
+                        queue.forEach((call) => {
                             this.publishEvent(call.params, working, direction);
                         });
                     }
@@ -2191,7 +2330,7 @@ module.exports = function (RED) {
                     }
 
                     callback(null, result);
-                }
+                },
             };
         }
 
@@ -2302,7 +2441,7 @@ module.exports = function (RED) {
                 'room',
                 'function',
                 'rooms',
-                'functions'
+                'functions',
             ]);
 
             const propertiesArray = Object.keys(filter);
@@ -2321,7 +2460,7 @@ module.exports = function (RED) {
             this.callbacks[id] = {filter, callback};
 
             if (filter.cache && this.cachedValuesReceived) {
-                Object.keys(this.values).forEach(dp => {
+                Object.keys(this.values).forEach((dp) => {
                     const message = {...this.values[dp]};
                     message.cache = true;
                     message.change = false;
@@ -2350,11 +2489,11 @@ module.exports = function (RED) {
                 this.logger.trace('unsubscribe', id);
                 delete this.callbacks[id];
 
-                Object.keys(this.callbackBlacklists).forEach(dp => {
+                Object.keys(this.callbackBlacklists).forEach((dp) => {
                     this.callbackBlacklists[dp].delete(id);
                 });
 
-                Object.keys(this.callbackWhitelists).forEach(dp => {
+                Object.keys(this.callbackWhitelists).forEach((dp) => {
                     this.callbackWhitelists[dp].delete(id);
                 });
 
@@ -2377,13 +2516,13 @@ module.exports = function (RED) {
             }
 
             const messageLower = {};
-            Object.keys(message).forEach(k => {
+            Object.keys(message).forEach((k) => {
                 messageLower[k.toLowerCase()] = message[k];
             });
 
             const match = topic.match(/\${[^}]+}/g);
             if (match) {
-                match.forEach(v => {
+                match.forEach((v) => {
                     const key = v.substr(2, v.length - 3);
                     const rx = new RegExp('\\${' + key + '}', 'g');
                     let rkey = key.toLowerCase();
@@ -2413,15 +2552,20 @@ module.exports = function (RED) {
                 this.values[datapointName] = {};
             }
 
-            const device = this.metadata.devices[iface] && this.metadata.devices[iface][channel] && this.metadata.devices[iface][channel].PARENT;
+            const device =
+                this.metadata.devices[iface] &&
+                this.metadata.devices[iface][channel] &&
+                this.metadata.devices[iface][channel].PARENT;
             const ts = now();
             let change = false;
 
-            const valueStable = (additions && additions.working) ? this.values[datapointName].valueStable : payload;
+            const valueStable = additions && additions.working ? this.values[datapointName].valueStable : payload;
 
             let description = {};
             if (this.metadata.devices[iface] && this.metadata.devices[iface][channel]) {
-                description = this.getParamsetDescription(iface, this.metadata.devices[iface][channel], 'VALUES', datapoint) || {};
+                description =
+                    this.getParamsetDescription(iface, this.metadata.devices[iface][channel], 'VALUES', datapoint) ||
+                    {};
             }
 
             if (
@@ -2435,16 +2579,23 @@ module.exports = function (RED) {
 
             this.logger.trace('createMessage', channel, datapoint, payload, 'change=' + change);
 
-            const message = {topic: '',
+            const message = {
+                topic: '',
                 payload,
                 ccu: this.host,
                 iface,
                 device,
                 deviceName: this.channelNames[device],
-                deviceType: this.metadata.devices[iface] && this.metadata.devices[iface][device] && this.metadata.devices[iface][device].TYPE,
+                deviceType:
+                    this.metadata.devices[iface] &&
+                    this.metadata.devices[iface][device] &&
+                    this.metadata.devices[iface][device].TYPE,
                 channel,
                 channelName: this.channelNames[channel],
-                channelType: this.metadata.devices[iface] && this.metadata.devices[iface][channel] && this.metadata.devices[iface][channel].TYPE,
+                channelType:
+                    this.metadata.devices[iface] &&
+                    this.metadata.devices[iface][channel] &&
+                    this.metadata.devices[iface][channel].TYPE,
                 channelIndex: channel && Number.parseInt(channel.split(':')[1], 10),
                 datapoint,
                 datapointName,
@@ -2459,13 +2610,21 @@ module.exports = function (RED) {
                 valueEnum: description.ENUM ? description.ENUM[Number(payload)] : undefined,
                 valueStable,
                 rooms: this.channelRooms[channel] || [],
-                room: this.channelRooms[channel] && this.channelRooms[channel].length > 0 ? this.channelRooms[channel][0] : undefined,
+                room:
+                    this.channelRooms[channel] && this.channelRooms[channel].length > 0
+                        ? this.channelRooms[channel][0]
+                        : undefined,
                 functions: this.channelFunctions[channel] || [],
-                function: this.channelFunctions[channel] && this.channelFunctions[channel].length > 0 ? this.channelFunctions[channel][0] : undefined,
+                function:
+                    this.channelFunctions[channel] && this.channelFunctions[channel].length > 0
+                        ? this.channelFunctions[channel][0]
+                        : undefined,
                 ts,
                 tsPrevious: this.values[datapointName].ts,
                 lc: change ? ts : this.values[datapointName].lc,
-                change, ...additions};
+                change,
+                ...additions,
+            };
 
             message.stable = !message.working;
 
@@ -2494,16 +2653,27 @@ module.exports = function (RED) {
 
             //this.logger.trace('publishEvent', JSON.stringify(params));
 
-            const message = this.createMessage(iface, channel, datapoint, payload, {cache: false, uncertain: false, working, direction});
+            const message = this.createMessage(iface, channel, datapoint, payload, {
+                cache: false,
+                uncertain: false,
+                working,
+                direction,
+            });
 
             let waitForWorking = false;
 
             if (message.channelType && !working) {
-                if (message.datapoint === 'STATE' && message.channelType.match(/SIGNAL|SWITCH|RAINDETECTOR_HEAT|ALARMACTUATOR/)) {
+                if (
+                    message.datapoint === 'STATE' &&
+                    message.channelType.match(/SIGNAL|SWITCH|RAINDETECTOR_HEAT|ALARMACTUATOR/)
+                ) {
                     waitForWorking = true;
                 } else if (message.datapoint === 'ARMSTATE' && message.channelType === 'ARMING') {
                     waitForWorking = true;
-                } else if (message.datapoint.startsWith('LEVEL') && message.channelType.match(/DIMMER|DUAL_WHITE|BLIND|SHUTTER|JALOUSIE|WINMATIC|KEYMATIC/)) {
+                } else if (
+                    message.datapoint.startsWith('LEVEL') &&
+                    message.channelType.match(/DIMMER|DUAL_WHITE|BLIND|SHUTTER|JALOUSIE|WINMATIC|KEYMATIC/)
+                ) {
                     waitForWorking = true;
                 }
             }
@@ -2513,9 +2683,17 @@ module.exports = function (RED) {
                 this.workingTimeout[message.datapointName] = setTimeout(() => {
                     const datapointNamePrefix = iface + '.' + channel + '.';
 
-                    if (this.values[datapointNamePrefix + 'WORKING'] || this.values[datapointNamePrefix + 'WORKING_SLATS']) {
-                        message.working = this.values[datapointNamePrefix + 'WORKING'] && this.values[datapointNamePrefix + 'WORKING'].value;
-                        message.working = message.working || (this.values[datapointNamePrefix + 'WORKING_SLATS'] && this.values[datapointNamePrefix + 'WORKING_SLATS'].value);
+                    if (
+                        this.values[datapointNamePrefix + 'WORKING'] ||
+                        this.values[datapointNamePrefix + 'WORKING_SLATS']
+                    ) {
+                        message.working =
+                            this.values[datapointNamePrefix + 'WORKING'] &&
+                            this.values[datapointNamePrefix + 'WORKING'].value;
+                        message.working =
+                            message.working ||
+                            (this.values[datapointNamePrefix + 'WORKING_SLATS'] &&
+                                this.values[datapointNamePrefix + 'WORKING_SLATS'].value);
                         message.working = Boolean(message.working);
                     } else if (this.values[datapointNamePrefix + 'PROCESS']) {
                         message.working = Boolean(this.values[datapointNamePrefix + 'PROCESS'].value);
@@ -2562,7 +2740,7 @@ module.exports = function (RED) {
             if (filter) {
                 const arrayAttr = Object.keys(filter);
 
-                for (let i = 0, {length} = arrayAttr; match && (i < length); i++) {
+                for (let i = 0, {length} = arrayAttr; match && i < length; i++) {
                     const attr = arrayAttr[i];
 
                     if (attr === 'cache') {
@@ -2578,7 +2756,7 @@ module.exports = function (RED) {
 
                     if (attr === 'change') {
                         // if filter.change==true - Drop messages with msg.change==false - except msg.cache==true && filter.cache==true
-                        if ((filter.change && !message.change) && !(filter.cache && message.cache)) {
+                        if (filter.change && !message.change && !(filter.cache && message.cache)) {
                             //this.logger.trace('cb mismatch change ' + id + ' ' + filter.change + ' ' + msg.change + ' ' + msg.cache);
                             return false;
                         }
@@ -2606,7 +2784,8 @@ module.exports = function (RED) {
                         continue;
                     }
 
-                    if (filter[attr] === '') { // TODO rethink
+                    if (filter[attr] === '') {
+                        // TODO rethink
                         continue;
                     }
 
@@ -2618,7 +2797,7 @@ module.exports = function (RED) {
                         if (filter[attr] instanceof RegExp) {
                             match = false;
                             this.logger.trace('cb test regex array', id, attr, filter[attr], message[attr]);
-                            message[attr].forEach(item => {
+                            message[attr].forEach((item) => {
                                 if (filter[attr].test(item)) {
                                     match = true;
                                 }
@@ -2633,7 +2812,9 @@ module.exports = function (RED) {
                             match = false;
                         }
                     } else if (filter[attr] !== message[attr]) {
-                        this.logger.trace('cb mismatch misc ' + id + ' ' + attr + ' ' + filter[attr] + ' ' + message[attr]);
+                        this.logger.trace(
+                            'cb mismatch misc ' + id + ' ' + attr + ' ' + filter[attr] + ' ' + message[attr],
+                        );
                         match = false;
                     }
                 }
@@ -2665,7 +2846,7 @@ module.exports = function (RED) {
                 this.callbackWhitelists[message.datapointName] = new Set();
             }
 
-            Object.keys(this.callbacks).forEach(key => {
+            Object.keys(this.callbacks).forEach((key) => {
                 if (this.callbackBlacklists[message.datapointName].has(key)) {
                     //this.logger.trace('blacklistet ' + key + ' ' + msg.datapointName);
                     return;
@@ -2715,7 +2896,16 @@ module.exports = function (RED) {
                         this.methodCallQueue[iface] = [[method, parameters, resolve, reject]];
                     }
                 } else {
-                    reject(new Error('unknown interface ' + iface + ' ' + Object.keys(this.clients) + ' ' + Object.keys(this.ifaceTypes)));
+                    reject(
+                        new Error(
+                            'unknown interface ' +
+                                iface +
+                                ' ' +
+                                Object.keys(this.clients) +
+                                ' ' +
+                                Object.keys(this.ifaceTypes),
+                        ),
+                    );
                 }
             });
         }
@@ -2732,13 +2922,13 @@ module.exports = function (RED) {
          */
         setValueQueued(iface, address, datapoint, value, burst, force) {
             return new Promise((resolve, reject) => {
-                this.setValueQueue = this.setValueQueue.filter(element => {
+                this.setValueQueue = this.setValueQueue.filter((element) => {
                     return element.iface !== iface || element.address !== address || element.datapoint !== datapoint;
                 });
                 const datapointName = iface + '.' + address + '.' + datapoint;
                 const currentValue = this.values[datapointName] && this.values[datapointName].value;
                 const cache = this.values[datapointName] && this.values[datapointName].cache;
-                if (force || (value !== currentValue) || cache || datapoint.startsWith('PRESS_')) {
+                if (force || value !== currentValue || cache || datapoint.startsWith('PRESS_')) {
                     this.setValueQueue.push({iface, address, datapoint, value, burst, resolve, reject});
                     this.setValueShiftQueue();
                 } else {
@@ -2774,7 +2964,7 @@ module.exports = function (RED) {
                         resolve();
                     }
                 })
-                .catch(error => {
+                .catch((error) => {
                     if (!timeout) {
                         reject(error);
                     }
@@ -2823,10 +3013,12 @@ module.exports = function (RED) {
                         }, this.setValueThrottle);
                     }
 
-                    this.methodCall(iface, 'setValue', parameters).then(resolve).catch(error => {
-                        this.logger.error('rpc >', iface, 'setValue', JSON.stringify(parameters), '<', error);
-                        reject(error);
-                    });
+                    this.methodCall(iface, 'setValue', parameters)
+                        .then(resolve)
+                        .catch((error) => {
+                            this.logger.error('rpc >', iface, 'setValue', JSON.stringify(parameters), '<', error);
+                            reject(error);
+                        });
                 }
             });
         }
@@ -2842,10 +3034,12 @@ module.exports = function (RED) {
                 const [iface] = id.split('.');
                 const {params, resolve, reject} = this.setValueCache[id];
                 delete this.setValueCache[id];
-                return this.methodCall(iface, 'setValue', params).then(resolve).catch(error => {
-                    this.logger.error('rpc >', iface, 'setValue', JSON.stringify(params), '<', error);
-                    reject(error);
-                });
+                return this.methodCall(iface, 'setValue', params)
+                    .then(resolve)
+                    .catch((error) => {
+                        this.logger.error('rpc >', iface, 'setValue', JSON.stringify(params), '<', error);
+                        reject(error);
+                    });
             }
         }
 
@@ -2869,7 +3063,8 @@ module.exports = function (RED) {
                     case 'BOOL':
                         if (value === 'false') {
                             value = false;
-                        } else if (!isNaN(value)) { // Make sure that the string "0" gets casted to boolean false
+                        } else if (!isNaN(value)) {
+                            // Make sure that the string "0" gets casted to boolean false
                             value = Number(value);
                         }
 
@@ -2888,7 +3083,7 @@ module.exports = function (RED) {
                         break;
                     case 'ENUM':
                         if (typeof value === 'string') {
-                            if (paramset.ENUM && (paramset.ENUM.includes(value))) {
+                            if (paramset.ENUM && paramset.ENUM.includes(value)) {
                                 value = paramset.ENUM.indexOf(value);
                             }
                         }
@@ -2943,7 +3138,5 @@ module.exports = function (RED) {
         }
     }
 
-    RED.nodes.registerType('ccu-connection', CcuConnectionNode, {
-
-    });
+    RED.nodes.registerType('ccu-connection', CcuConnectionNode, {});
 };

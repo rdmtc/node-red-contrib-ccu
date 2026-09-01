@@ -1,5 +1,4 @@
-/* global describe, it, after, before, afterEach */
-/* eslint-disable no-template-curly-in-string, no-unused-vars, unicorn/filename-case */
+/* eslint-disable no-unused-vars */
 
 const fs = require('fs');
 const path = require('path');
@@ -32,7 +31,7 @@ const flow1 = [
         rpcInitAddress: '127.0.0.1',
         rpcServerHost: '127.0.0.1',
         rpcBinPort: '2047',
-        rpcXmlPort: '2048'
+        rpcXmlPort: '2048',
     },
     {
         id: 'ns',
@@ -49,37 +48,28 @@ const flow1 = [
         propertyType: 'msg',
         rules: [
             {
-                t: 'true'
+                t: 'true',
             },
             {
-                t: 'else'
-            }
+                t: 'else',
+            },
         ],
         checkall: 'true',
         repair: false,
         outputs: 2,
-        wires: [
-            [
-                'nhtrue'
-            ],
-            [
-                'nhfalse'
-            ]
-        ]
+        wires: [['nhtrue'], ['nhfalse']],
     },
     {
         id: 'nhtrue',
-        type: 'helper'
-
+        type: 'helper',
     },
     {
         id: 'nhfalse',
-        type: 'helper'
-
+        type: 'helper',
     },
     {
         id: 'nh',
-        type: 'helper'
+        type: 'helper',
     },
     {
         id: 'ng',
@@ -94,12 +84,8 @@ const flow1 = [
         datapointProperty: 'value',
         setProp: 'payload',
         setPropType: 'msg',
-        wires: [
-            [
-                'nh'
-            ]
-        ]
-    }
+        wires: [['nh']],
+    },
 ];
 
 describe('context flow1', () => {
@@ -173,7 +159,7 @@ describe('context flow1', () => {
     describe('node get value', () => {
         it('should send value of if HmIP-RF/Test-WGC:3/STATE', function (done) {
             this.timeout(10000);
-            nh.once('input', message => {
+            nh.once('input', (message) => {
                 message.payload.should.equal(false);
                 done();
             });
@@ -185,7 +171,7 @@ describe('context flow1', () => {
         });
         it('should send value of if HmIP-RF/Test-WGC:3/STATE', function (done) {
             this.timeout(10000);
-            nh.once('input', message => {
+            nh.once('input', (message) => {
                 message.payload.should.equal(true);
                 done();
             });

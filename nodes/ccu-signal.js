@@ -29,16 +29,19 @@ module.exports = function (RED) {
                     .then(() => this.getValue(values, 'repeat', message))
                     .then(() => this.getValue(values, 'volume', message))
                     .then(() => this.getValue(values, 'soundLevel', message))
-                    .catch(error => {
+                    .catch((error) => {
                         this.error(error.message);
                     })
                     .then(() => {
-                        this.sendCommand({...this.config, ...values}).then(() => {
-                            done();
-                        }).catch(error => {
-                            done(error);
-                        });
-                    }).catch(() => {});
+                        this.sendCommand({...this.config, ...values})
+                            .then(() => {
+                                done();
+                            })
+                            .catch((error) => {
+                                done(error);
+                            });
+                    })
+                    .catch(() => {});
             });
         }
 
@@ -56,12 +59,16 @@ module.exports = function (RED) {
                     payload = ['1', config.repeat, 108000, ...config.led.split(',')];
                     return this.ccu.setValue(config.iface, config.channel, 'SUBMIT', payload);
                 case 'ALARM_SWITCH_VIRTUAL_RECEIVER':
-                    return this.ccu.methodCall(config.iface, 'putParamset', [config.channel, 'VALUES', {
-                        ACOUSTIC_ALARM_SELECTION: config.acousticAlarmSelection,
-                        DURATION_UNIT: config.durationUnit,
-                        DURATION_VALUE: Number.parseInt(config.durationValue, 10) || 0,
-                        OPTICAL_ALARM_SELECTION: config.opticalAlarmSelection
-                    }]);
+                    return this.ccu.methodCall(config.iface, 'putParamset', [
+                        config.channel,
+                        'VALUES',
+                        {
+                            ACOUSTIC_ALARM_SELECTION: config.acousticAlarmSelection,
+                            DURATION_UNIT: config.durationUnit,
+                            DURATION_VALUE: Number.parseInt(config.durationValue, 10) || 0,
+                            OPTICAL_ALARM_SELECTION: config.opticalAlarmSelection,
+                        },
+                    ]);
                 case 'DIMMER_VIRTUAL_RECEIVER': {
                     const parameters = {
                         LEVEL: config.dimmerLevel / 100,
@@ -70,7 +77,7 @@ module.exports = function (RED) {
                         DURATION_UNIT: config.durationUnit,
                         DURATION_VALUE: Number.parseInt(config.durationValue, 10) || 0,
                         REPETITIONS: Number(config.repetitions),
-                        OUTPUT_SELECT_SIZE: config.dimmerList.length
+                        OUTPUT_SELECT_SIZE: config.dimmerList.length,
                     };
                     config.dimmerList.forEach((item, i) => {
                         const index = i + 1;
@@ -81,14 +88,18 @@ module.exports = function (RED) {
                 }
 
                 case 'BSL_DIMMER_VIRTUAL_RECEIVER': {
-                    return this.ccu.methodCall(config.iface, 'putParamset', [config.channel, 'VALUES', {
-                        LEVEL: config.dimmerLevel / 100,
-                        RAMP_TIME_UNIT: config.rampTimeUnit,
-                        RAMP_TIME_VALUE: Number(config.rampTimeValue),
-                        DURATION_UNIT: config.durationUnit,
-                        DURATION_VALUE: Number.parseInt(config.durationValue, 10) || 0,
-                        COLOR: Number(config.dimmerColor)
-                    }]);
+                    return this.ccu.methodCall(config.iface, 'putParamset', [
+                        config.channel,
+                        'VALUES',
+                        {
+                            LEVEL: config.dimmerLevel / 100,
+                            RAMP_TIME_UNIT: config.rampTimeUnit,
+                            RAMP_TIME_VALUE: Number(config.rampTimeValue),
+                            DURATION_UNIT: config.durationUnit,
+                            DURATION_VALUE: Number.parseInt(config.durationValue, 10) || 0,
+                            COLOR: Number(config.dimmerColor),
+                        },
+                    ]);
                 }
 
                 case 'ACOUSTIC_SIGNAL_VIRTUAL_RECEIVER': {
@@ -99,7 +110,7 @@ module.exports = function (RED) {
                         DURATION_UNIT: config.durationUnit,
                         DURATION_VALUE: Number.parseInt(config.durationValue, 10) || 0,
                         REPETITIONS: Number(config.repetitions),
-                        OUTPUT_SELECT_SIZE: config.soundList.length
+                        OUTPUT_SELECT_SIZE: config.soundList.length,
                     };
                     config.soundList.forEach((item, i) => {
                         const index = i + 1;

@@ -116,6 +116,8 @@
         }
     });
 
+    // called from the inline onclick attribute of the authentication checkbox
+    // eslint-disable-next-line no-unused-vars
     function TLSSSL(){        
         if (document.getElementById('node-config-input-authentication').checked && !document.getElementById('node-config-input-tls').checked){
             document.getElementById('node-config-input-tls').checked = true

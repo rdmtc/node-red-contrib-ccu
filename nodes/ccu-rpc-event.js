@@ -18,7 +18,7 @@ module.exports = function (RED) {
                 cache: config.cache,
                 change: config.change,
                 stable: config.working,
-                iface: config.iface
+                iface: config.iface,
             };
 
             this.ccu.register(this);
@@ -33,9 +33,8 @@ module.exports = function (RED) {
                 'channelName',
                 'channelType',
                 'channelIndex',
-                'datapoint'
-
-            ].forEach(attr => {
+                'datapoint',
+            ].forEach((attr) => {
                 if (!config[attr]) {
                     return;
                 }
@@ -46,7 +45,7 @@ module.exports = function (RED) {
                     filter[attr] = config[attr];
                 }
             });
-            this.idSubscription = this.ccu.subscribe(filter, message => {
+            this.idSubscription = this.ccu.subscribe(filter, (message) => {
                 message.topic = this.ccu.topicReplace(config.topic, message);
                 this.send(message);
             });

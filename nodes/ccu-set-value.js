@@ -37,13 +37,13 @@ module.exports = function (RED) {
                 channelIndexRx: config.channelIndexRx,
                 channelNameRx: config.channelNameRx,
                 datapointRx: config.datapointRx,
-                force: config.force
+                force: config.force,
             };
 
             this.blacklist = new Set();
             this.whitelist = new Set();
 
-            this.on('input', message => {
+            this.on('input', (message) => {
                 this.setValues(message);
             });
 
@@ -66,7 +66,7 @@ module.exports = function (RED) {
         setValues(message) {
             const {config} = this;
             let dynamicConfig = false;
-            Object.keys(config).forEach(key => {
+            Object.keys(config).forEach((key) => {
                 if (!config[key]) {
                     if (key in message) {
                         dynamicConfig = true;
@@ -81,12 +81,12 @@ module.exports = function (RED) {
             }
 
             let count = 0;
-            Object.keys(this.ccu.metadata.devices).forEach(iface => {
+            Object.keys(this.ccu.metadata.devices).forEach((iface) => {
                 if (config.iface && iface !== config.iface) {
                     return;
                 }
 
-                Object.keys(this.ccu.metadata.devices[iface]).forEach(address => {
+                Object.keys(this.ccu.metadata.devices[iface]).forEach((address) => {
                     if (this.blacklist.has(address)) {
                         return;
                     }
@@ -130,12 +130,18 @@ module.exports = function (RED) {
                                 return;
                             }
 
-                            if (config.deviceNameRx === 'str' && this.ccu.channelNames[channel.PARENT] !== config.deviceName) {
+                            if (
+                                config.deviceNameRx === 'str' &&
+                                this.ccu.channelNames[channel.PARENT] !== config.deviceName
+                            ) {
                                 this.blacklist.add(address);
                                 return;
                             }
 
-                            if (config.deviceNameRx === 're' && !this.ccu.channelNames[channel.PARENT].match(new RegExp(config.deviceName))) {
+                            if (
+                                config.deviceNameRx === 're' &&
+                                !this.ccu.channelNames[channel.PARENT].match(new RegExp(config.deviceName))
+                            ) {
                                 this.blacklist.add(address);
                                 return;
                             }
@@ -171,7 +177,10 @@ module.exports = function (RED) {
                                 return;
                             }
 
-                            if (config.channelIndexRx === 're' && !address.split(':')[1].match(new RegExp(String(config.channelIndex)))) {
+                            if (
+                                config.channelIndexRx === 're' &&
+                                !address.split(':')[1].match(new RegExp(String(config.channelIndex)))
+                            ) {
                                 this.blacklist.add(address);
                                 return;
                             }
@@ -183,12 +192,18 @@ module.exports = function (RED) {
                                 return;
                             }
 
-                            if (config.channelNameRx === 'str' && this.ccu.channelNames[address] !== config.channelName) {
+                            if (
+                                config.channelNameRx === 'str' &&
+                                this.ccu.channelNames[address] !== config.channelName
+                            ) {
                                 this.blacklist.add(address);
                                 return;
                             }
 
-                            if (config.channelNameRx === 're' && !this.ccu.channelNames[address].match(new RegExp(config.channelName))) {
+                            if (
+                                config.channelNameRx === 're' &&
+                                !this.ccu.channelNames[address].match(new RegExp(config.channelName))
+                            ) {
                                 this.blacklist.add(address);
                                 return;
                             }
@@ -207,7 +222,7 @@ module.exports = function (RED) {
 
                             if (config.roomsRx === 're') {
                                 let match = false;
-                                this.ccu.channelRooms[address].forEach(room => {
+                                this.ccu.channelRooms[address].forEach((room) => {
                                     if (room.match(new RegExp(config.rooms))) {
                                         match = true;
                                     }
@@ -225,14 +240,17 @@ module.exports = function (RED) {
                                 return;
                             }
 
-                            if (config.functionsRx === 'str' && !this.ccu.channelFunctions[address].includes(config.functions)) {
+                            if (
+                                config.functionsRx === 'str' &&
+                                !this.ccu.channelFunctions[address].includes(config.functions)
+                            ) {
                                 this.blacklist.add(address);
                                 return;
                             }
 
                             if (config.functionsRx === 're') {
                                 let match = false;
-                                this.ccu.channelFunctions[address].forEach(func => {
+                                this.ccu.channelFunctions[address].forEach((func) => {
                                     if (func.match(new RegExp(config.functions))) {
                                         match = true;
                                     }
@@ -250,7 +268,7 @@ module.exports = function (RED) {
                     const psKey = this.ccu.paramsetName(iface, channel, 'VALUES');
                     if (this.ccu.paramsetDescriptions[psKey]) {
                         const rx = new RegExp(config.datapoint);
-                        Object.keys(this.ccu.paramsetDescriptions[psKey]).forEach(dp => {
+                        Object.keys(this.ccu.paramsetDescriptions[psKey]).forEach((dp) => {
                             if (config.datapointRx === 'str' && dp !== config.datapoint) {
                                 return;
                             }
@@ -262,8 +280,14 @@ module.exports = function (RED) {
                             const datapointName = iface + '.' + address + '.' + dp;
                             const currentValue = this.ccu.values[datapointName] && this.ccu.values[datapointName].value;
                             count += 1;
-                            if (dp.startsWith('PRESS_') || typeof currentValue === 'undefined' || currentValue !== message.payload) {
-                                this.ccu.setValueQueued(iface, address, dp, message.payload, false, config.force).catch(() => {});
+                            if (
+                                dp.startsWith('PRESS_') ||
+                                typeof currentValue === 'undefined' ||
+                                currentValue !== message.payload
+                            ) {
+                                this.ccu
+                                    .setValueQueued(iface, address, dp, message.payload, false, config.force)
+                                    .catch(() => {});
                             }
                         });
                     }

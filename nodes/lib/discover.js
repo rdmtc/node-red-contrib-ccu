@@ -12,11 +12,11 @@ const SERVICE_PORTS = {
     'BidCos-RF': 2001,
     'HmIP-RF': 2010,
     VirtualDevices: 9292,
-    CUxD: 8701
+    CUxD: 8701,
 };
 
 function checkService(host, port) {
-    return new Promise(resolve => {
+    return new Promise((resolve) => {
         const c = net.connect({port, host, timeout: 1200}, () => {
             resolve(true);
             c.end();
@@ -74,7 +74,7 @@ function hmDiscover(options, callback) {
     const remoteport = 43439;
     // Kept verbatim from hm-discover — Buffer.from() coerces the string
     // elements to 0x00, and that is the datagram CCUs answer to.
-    const message = Buffer.from([0x02, 0x8F, 0x91, 0xC0, 0x01, 'e', 'Q', '3', 0x2D, 0x2A, 0x00, 0x2A, 0x00, 0x49]);
+    const message = Buffer.from([0x02, 0x8f, 0x91, 0xc0, 0x01, 'e', 'Q', '3', 0x2d, 0x2a, 0x00, 0x2a, 0x00, 0x49]);
     const found = [];
     const foundAddresses = [];
     const client = dgram.createSocket('udp4');
@@ -95,12 +95,14 @@ function hmDiscover(options, callback) {
             type: parsed.type,
             serial: parsed.serial,
             version: parsed.version,
-            address: remote.address
+            address: remote.address,
         };
 
-        Promise.all(Object.keys(SERVICE_PORTS).map(name =>
-            checkService(remote.address, SERVICE_PORTS[name]).then(ok => [name, ok])
-        )).then(entries => {
+        Promise.all(
+            Object.keys(SERVICE_PORTS).map((name) =>
+                checkService(remote.address, SERVICE_PORTS[name]).then((ok) => [name, ok]),
+            ),
+        ).then((entries) => {
             const interfaces = {};
             entries.forEach(([name, ok]) => {
                 interfaces[name] = ok;

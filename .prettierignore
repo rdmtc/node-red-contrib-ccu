@@ -1,0 +1,10 @@
+node_modules
+coverage
+package-lock.json
+paramsets.json
+nodes/**/*.html
+nodes/locales
+nodes/ccu-switch.js
+tools/paramsets-join.js
+test/simulator-data
+docs

@@ -1,5 +1,4 @@
-/* global describe, it, after, before, afterEach */
-/* eslint-disable no-template-curly-in-string, no-unused-vars, unicorn/filename-case */
+/* eslint-disable no-unused-vars */
 
 const fs = require('fs');
 const path = require('path');
@@ -26,13 +25,11 @@ const flow1 = [
         change: false,
         cache: true,
 
-        wires: [
-            ['nh']
-        ]
+        wires: [['nh']],
     },
     {
         id: 'nh',
-        type: 'helper'
+        type: 'helper',
     },
     {
         id: 'nc',
@@ -51,13 +48,13 @@ const flow1 = [
         rpcInitAddress: '127.0.0.1',
         rpcServerHost: '127.0.0.1',
         rpcBinPort: '2047',
-        rpcXmlPort: '2048'
+        rpcXmlPort: '2048',
     },
     {
         id: 'np',
         type: 'ccu-poll',
-        ccuConfig: 'nc'
-    }
+        ccuConfig: 'nc',
+    },
 ];
 const flow2 = [
     {
@@ -69,13 +66,11 @@ const flow2 = [
         change: true,
         cache: false,
 
-        wires: [
-            ['nh']
-        ]
+        wires: [['nh']],
     },
     {
         id: 'nh',
-        type: 'helper'
+        type: 'helper',
     },
     {
         id: 'nc',
@@ -94,13 +89,13 @@ const flow2 = [
         rpcInitAddress: '127.0.0.1',
         rpcServerHost: '127.0.0.1',
         rpcBinPort: '2047',
-        rpcXmlPort: '2048'
+        rpcXmlPort: '2048',
     },
     {
         id: 'np',
         type: 'ccu-poll',
-        ccuConfig: 'nc'
-    }
+        ccuConfig: 'nc',
+    },
 ];
 const flow3 = [
     {
@@ -112,13 +107,11 @@ const flow3 = [
         change: true,
         cache: true,
 
-        wires: [
-            ['nh']
-        ]
+        wires: [['nh']],
     },
     {
         id: 'nh',
-        type: 'helper'
+        type: 'helper',
     },
     {
         id: 'ns',
@@ -127,9 +120,7 @@ const flow3 = [
         script: '',
         ccuConfig: 'nc',
         topic: '${CCU}/${Interface}',
-        wires: [
-            []
-        ]
+        wires: [[]],
     },
     {
         id: 'npr',
@@ -137,9 +128,7 @@ const flow3 = [
         name: 'Anwesend',
         ccuConfig: 'nc',
         topic: 'ReGaHSS/${Name}',
-        wires: [
-            ['nh']
-        ]
+        wires: [['nh']],
     },
     {
         id: 'nc',
@@ -158,13 +147,13 @@ const flow3 = [
         rpcInitAddress: '127.0.0.1',
         rpcServerHost: '127.0.0.1',
         rpcBinPort: '2047',
-        rpcXmlPort: '2048'
+        rpcXmlPort: '2048',
     },
     {
         id: 'np',
         type: 'ccu-poll',
-        ccuConfig: 'nc'
-    }
+        ccuConfig: 'nc',
+    },
 ];
 
 describe('regahss flow1', () => {
@@ -209,8 +198,9 @@ describe('regahss flow1', () => {
     describe('node ccu-sysvar', () => {
         it('should send message on start', function (done) {
             this.timeout(30000);
-            nh.once('input', message => {
-                message.should.have.properties({topic: 'ReGaHSS/Anwesenheit',
+            nh.once('input', (message) => {
+                message.should.have.properties({
+                    topic: 'ReGaHSS/Anwesenheit',
                     payload: false,
                     ccu: 'localhost',
                     iface: 'ReGaHSS',
@@ -224,7 +214,7 @@ describe('regahss flow1', () => {
                     enum: ['nicht anwesend', 'anwesend'],
                     id: 950,
                     cache: true,
-                    change: false
+                    change: false,
                 });
                 done();
             });
@@ -232,7 +222,7 @@ describe('regahss flow1', () => {
 
         it('should send message after receive with change', function (done) {
             this.timeout(30000);
-            nh.once('input', message => {
+            nh.once('input', (message) => {
                 message.should.have.properties({
                     payload: true,
                     value: true,
@@ -240,7 +230,7 @@ describe('regahss flow1', () => {
                     valueEnum: 'anwesend',
                     valueEnumPrevious: 'nicht anwesend',
                     cache: false,
-                    change: true
+                    change: true,
                 });
                 done();
             });
@@ -251,7 +241,7 @@ describe('regahss flow1', () => {
     describe('node ccu-sysvar and ccu-poll', () => {
         it('should send message after poll with change', function (done) {
             this.timeout(30000);
-            nh.once('input', message => {
+            nh.once('input', (message) => {
                 message.should.have.properties({
                     payload: false,
                     value: false,
@@ -259,7 +249,7 @@ describe('regahss flow1', () => {
                     valueEnum: 'nicht anwesend',
                     valueEnumPrevious: 'anwesend',
                     cache: false,
-                    change: true
+                    change: true,
                 });
                 done();
             });
@@ -274,7 +264,7 @@ describe('regahss flow1', () => {
 
         it('should send message after poll with unchanged', function (done) {
             this.timeout(30000);
-            nh.once('input', message => {
+            nh.once('input', (message) => {
                 message.should.have.properties({
                     payload: false,
                     value: false,
@@ -282,7 +272,7 @@ describe('regahss flow1', () => {
                     valueEnum: 'nicht anwesend',
                     valueEnumPrevious: 'nicht anwesend',
                     cache: false,
-                    change: false
+                    change: false,
                 });
                 done();
             });
@@ -309,7 +299,7 @@ describe('regahss flow2', () => {
         }, 2000);
     });
 
-    before(done => {
+    before((done) => {
         removeFiles();
         hmSim = new HmSim(hmSimOptions());
         helper.startServer(() => {
@@ -350,7 +340,7 @@ describe('regahss flow2', () => {
 
         it('should send message after receive with change', function (done) {
             this.timeout(30000);
-            nh.once('input', message => {
+            nh.once('input', (message) => {
                 message.should.have.properties({
                     payload: true,
                     value: true,
@@ -358,7 +348,7 @@ describe('regahss flow2', () => {
                     valueEnum: 'anwesend',
                     valueEnumPrevious: 'nicht anwesend',
                     cache: false,
-                    change: true
+                    change: true,
                 });
                 done();
             });
@@ -369,7 +359,7 @@ describe('regahss flow2', () => {
     describe('node ccu-sysvar and ccu-poll', () => {
         it('should send message after poll with change', function (done) {
             this.timeout(30000);
-            nh.once('input', message => {
+            nh.once('input', (message) => {
                 message.should.have.properties({
                     payload: false,
                     value: false,
@@ -377,7 +367,7 @@ describe('regahss flow2', () => {
                     valueEnum: 'nicht anwesend',
                     valueEnumPrevious: 'anwesend',
                     cache: false,
-                    change: true
+                    change: true,
                 });
                 done();
             });
@@ -426,7 +416,7 @@ describe('regahss flow3', () => {
         }, 2000);
     });
 
-    before(done => {
+    before((done) => {
         removeFiles();
         hmSim = new HmSim(hmSimOptions());
         helper.startServer(() => {
@@ -455,8 +445,9 @@ describe('regahss flow3', () => {
     describe('node ccu-sysvar', () => {
         it('should send message on start', function (done) {
             this.timeout(30000);
-            nh.once('input', message => {
-                message.should.have.properties({topic: 'ReGaHSS/Anwesenheit',
+            nh.once('input', (message) => {
+                message.should.have.properties({
+                    topic: 'ReGaHSS/Anwesenheit',
                     payload: false,
                     ccu: 'localhost',
                     iface: 'ReGaHSS',
@@ -470,14 +461,14 @@ describe('regahss flow3', () => {
                     enum: ['nicht anwesend', 'anwesend'],
                     id: 950,
                     cache: true,
-                    change: false
+                    change: false,
                 });
                 done();
             });
         });
         it('should send message with change', function (done) {
             this.timeout(10000);
-            nh.once('input', message => {
+            nh.once('input', (message) => {
                 message.should.have.properties({
                     payload: true,
                     value: true,
@@ -485,7 +476,7 @@ describe('regahss flow3', () => {
                     valueEnum: 'anwesend',
                     valueEnumPrevious: 'nicht anwesend',
                     cache: false,
-                    change: true
+                    change: true,
                 });
                 done();
             });
@@ -498,7 +489,7 @@ describe('regahss flow3', () => {
         });
         it('should send message with change', function (done) {
             this.timeout(10000);
-            nh.once('input', message => {
+            nh.once('input', (message) => {
                 message.should.have.properties({
                     payload: false,
                     value: false,
@@ -506,7 +497,7 @@ describe('regahss flow3', () => {
                     valueEnum: 'nicht anwesend',
                     valueEnumPrevious: 'anwesend',
                     cache: false,
-                    change: true
+                    change: true,
                 });
                 done();
             });
@@ -522,7 +513,7 @@ describe('regahss flow3', () => {
     describe('node ccu-sysvar and ccu-script', () => {
         it('should send message with change', function (done) {
             this.timeout(10000);
-            nh.once('input', message => {
+            nh.once('input', (message) => {
                 message.should.have.properties({
                     payload: true,
                     value: true,
@@ -530,7 +521,7 @@ describe('regahss flow3', () => {
                     valueEnum: 'anwesend',
                     valueEnumPrevious: 'nicht anwesend',
                     cache: false,
-                    change: true
+                    change: true,
                 });
                 done();
             });
@@ -538,7 +529,7 @@ describe('regahss flow3', () => {
         });
         it('should send message with change', function (done) {
             this.timeout(10000);
-            nh.once('input', message => {
+            nh.once('input', (message) => {
                 message.should.have.properties({
                     payload: false,
                     value: false,
@@ -546,7 +537,7 @@ describe('regahss flow3', () => {
                     valueEnum: 'nicht anwesend',
                     valueEnumPrevious: 'anwesend',
                     cache: false,
-                    change: true
+                    change: true,
                 });
                 done();
             });
@@ -556,7 +547,7 @@ describe('regahss flow3', () => {
     describe('node ccu-program', () => {
         it('should execute on incoming msg', function (done) {
             this.timeout(10000);
-            nh.once('input', message => {
+            nh.once('input', (message) => {
                 message.should.have.properties({
                     id: 2329,
                     ccu: 'localhost',
@@ -566,7 +557,7 @@ describe('regahss flow3', () => {
                     payload: true,
                     value: true,
                     active: true,
-                    topic: 'ReGaHSS/Anwesend'
+                    topic: 'ReGaHSS/Anwesend',
                 });
                 done();
             });

@@ -31,7 +31,7 @@ module.exports = function (RED) {
                     gruen: '0x84',
                     grün: '0x84',
                     green: '0x84',
-                    blue: '0x85'
+                    blue: '0x85',
                 };
 
                 if (map[col]) {
@@ -87,18 +87,33 @@ module.exports = function (RED) {
                     'signal rot': '0x8B',
                     red: '0x8B',
                     signalred: '0x8B',
-                    'signal red': '0x8B'
+                    'signal red': '0x8B',
                 };
 
                 if (map[ico]) {
                     ico = map[ico];
                 }
 
-                if (!['0x80', '0x81', '0x82', '0x83', '0x84', '0x85', '0x86', '0x87', '0x88', '0x89', '0x8a', '0x8b'].includes(ico)) {
+                if (
+                    ![
+                        '0x80',
+                        '0x81',
+                        '0x82',
+                        '0x83',
+                        '0x84',
+                        '0x85',
+                        '0x86',
+                        '0x87',
+                        '0x88',
+                        '0x89',
+                        '0x8a',
+                        '0x8b',
+                    ].includes(ico)
+                ) {
                     ico = '';
                 }
 
-                return ico ? (',0x13,' + ico) : '';
+                return ico ? ',0x13,' + ico : '';
             }
 
             function convertString(string) {
@@ -117,11 +132,11 @@ module.exports = function (RED) {
                     ä: '0x7B',
                     ö: '0x7C',
                     ü: '0x7D',
-                    ß: '0x5F'
+                    ß: '0x5F',
                 };
                 const res = [];
-                string.split('').forEach(c => {
-                    res.push(charcodes[c] || ('0x' + c.charCodeAt(0).toString(16).toUpperCase()));
+                string.split('').forEach((c) => {
+                    res.push(charcodes[c] || '0x' + c.charCodeAt(0).toString(16).toUpperCase());
                 });
 
                 return ',0x12,' + res.slice(0, 12).join(',');
@@ -163,10 +178,12 @@ module.exports = function (RED) {
 
                 payload += ',0x03';
 
-                this.ccu.setValue(config.iface, config.channel, 'SUBMIT', payload)
+                this.ccu
+                    .setValue(config.iface, config.channel, 'SUBMIT', payload)
                     .then(() => {
                         done();
-                    }).catch(error => {
+                    })
+                    .catch((error) => {
                         done(error);
                     });
             });

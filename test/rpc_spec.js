@@ -1,5 +1,4 @@
-/* global describe, it, after, before, afterEach */
-/* eslint-disable no-template-curly-in-string, no-unused-vars, unicorn/filename-case */
+/* eslint-disable no-unused-vars */
 
 const fs = require('fs');
 const path = require('path');
@@ -50,16 +49,11 @@ const flow1 = [
         working: false,
         cache: true,
         topic: '${CCU}/${Interface}/${channelName}/${datapoint}',
-        wires: [
-            [
-                'nh'
-            ]
-        ]
+        wires: [['nh']],
     },
     {
         id: 'nh',
-        type: 'helper'
-
+        type: 'helper',
     },
     {
         id: 'nc',
@@ -79,7 +73,7 @@ const flow1 = [
         rpcInitAddress: '127.0.0.1',
         rpcServerHost: '127.0.0.1',
         rpcBinPort: '2047',
-        rpcXmlPort: '2048'
+        rpcXmlPort: '2048',
     },
     {
         id: 'nv',
@@ -100,11 +94,7 @@ const flow1 = [
         working: false,
         ccuConfig: 'nc',
         topic: '${CCU}/${Interface}/${channel}/${datapoint}',
-        wires: [
-            [
-                'nh'
-            ]
-        ]
+        wires: [['nh']],
     },
     {
         id: 'nr',
@@ -114,8 +104,8 @@ const flow1 = [
         topic: '${CCU}/${Interface}/${Method}',
         method: '',
         params: '',
-        ccuConfig: 'nc'
-    }
+        ccuConfig: 'nc',
+    },
 ];
 
 describe('rpc flow1', () => {
@@ -165,10 +155,10 @@ describe('rpc flow1', () => {
     describe('node rpc', () => {
         it('should call setValue method', function (done) {
             this.timeout(10000);
-            nh.once('input', message => {
+            nh.once('input', (message) => {
                 message.should.have.properties({
                     topic: 'localhost/BidCos-RF/HM-RCV-50:2/PRESS_SHORT',
-                    payload: true
+                    payload: true,
                 });
                 done();
             });
@@ -179,7 +169,7 @@ describe('rpc flow1', () => {
     describe('node rpc-event', () => {
         it('should send msg on BidCos-RF/HM-RCV-50:1/PRESS_SHORT event', function (done) {
             this.timeout(10000);
-            nh.once('input', message => {
+            nh.once('input', (message) => {
                 message.should.have.properties({
                     topic: 'localhost/BidCos-RF/HM-RCV-50:1/PRESS_SHORT',
                     payload: true,
@@ -207,7 +197,7 @@ describe('rpc flow1', () => {
                     function: 'Taster',
                     change: true,
                     cache: false,
-                    stable: true
+                    stable: true,
                 });
                 done();
             });
@@ -215,7 +205,7 @@ describe('rpc flow1', () => {
         });
         it('should send msg on HmIP-RF/Test-WGC:1/PRESS_SHORT event', function (done) {
             this.timeout(10000);
-            nh.once('input', message => {
+            nh.once('input', (message) => {
                 message.should.have.properties({
                     topic: 'localhost/HmIP-RF/Test-WGC:1/PRESS_SHORT',
                     payload: true,
@@ -243,7 +233,7 @@ describe('rpc flow1', () => {
                     function: 'Taster',
                     change: true,
                     cache: false,
-                    stable: true
+                    stable: true,
                 });
                 done();
             });
@@ -256,7 +246,8 @@ describe('rpc flow1', () => {
             this.timeout(10000);
             function handler(message) {
                 if (message.topic === 'localhost/HmIP-RF/Test-WGC:3/STATE') {
-                    message.should.have.properties({topic: 'localhost/HmIP-RF/Test-WGC:3/STATE',
+                    message.should.have.properties({
+                        topic: 'localhost/HmIP-RF/Test-WGC:3/STATE',
                         payload: true,
                         ccu: 'localhost',
                         iface: 'HmIP-RF',
@@ -280,7 +271,7 @@ describe('rpc flow1', () => {
                         functions: ['Verschluss'],
                         function: 'Verschluss',
                         change: true,
-                        cache: false
+                        cache: false,
                     });
                     nh.removeListener('input', handler);
                     done();
@@ -295,7 +286,8 @@ describe('rpc flow1', () => {
             this.timeout(10000);
             function handler(message) {
                 if (message.topic === 'localhost/HmIP-RF/Test-WGC:3/STATE') {
-                    message.should.have.properties({topic: 'localhost/HmIP-RF/Test-WGC:3/STATE',
+                    message.should.have.properties({
+                        topic: 'localhost/HmIP-RF/Test-WGC:3/STATE',
                         payload: false,
                         ccu: 'localhost',
                         iface: 'HmIP-RF',
@@ -320,7 +312,7 @@ describe('rpc flow1', () => {
                         functions: ['Verschluss'],
                         function: 'Verschluss',
                         change: true,
-                        cache: false
+                        cache: false,
                     });
                     nh.removeListener('input', handler);
                     done();

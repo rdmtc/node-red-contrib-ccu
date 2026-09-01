@@ -14,7 +14,7 @@
                     return false;
                 }
             }},
-            topic: {value: '${CCU}/${Interface}/${Method}'} // eslint-disable-line no-template-curly-in-string
+            topic: {value: '${CCU}/${Interface}/${Method}'}  
         },
         inputs: 1,
         outputs: 1,
@@ -41,7 +41,6 @@
                 }
 
                 ifacesPending = true;
-                console.log('loadIfaces()');
                 $nodeInputIface.html('<option></option>');
                 const nodeId = $nodeInputCcuConfig.val();
                 if (nodeId === '_ADD_') {
@@ -64,7 +63,6 @@
             }
 
             $nodeInputCcuConfig.change(() => {
-                console.log('$nodeInputCcuConfig change');
                 loadIfaces(this.iface, () => {
                     ifacesLoaded = true;
                     $nodeInputIface.removeAttr('disabled');
@@ -83,7 +81,6 @@
 
             $('#node-input-iface').change(() => {
                 if (ifacesLoaded) {
-                    console.log('#node-input-iface change');
                     autocompleteMethods();
                 }
             });
@@ -116,7 +113,6 @@
                         methods = [];
                 }
 
-                console.log('autocompleteMethods', iface, methods.length);
                 $('#node-input-method').autocomplete('option', 'source', methods);
             }
         }
