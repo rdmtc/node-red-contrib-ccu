@@ -16,6 +16,13 @@ append commits automatically).
 
 ### Changed
 
+- `homematic-rega` 1.5 -> 2.0 and `homematic-xmlrpc` 1.0 -> 2.0. This
+  removes the long-deprecated `request` package and the fragile
+  xmlbuilder GitHub-tarball reference from the dependency tree; ReGa
+  timestamps are now converted inside the library, and the "uncertain
+  value" detection (ReGa reporting 1970-01-01) works on the timestamp
+  itself instead of a locale-dependent string compare. Requires Node
+  20.19+/22.12+ (`require(esm)`).
 - Runtime dependencies reduced from 10 to 4: the deprecated
   `string-similarity` package was replaced by an internal implementation
   with identical results, `hm-discover`, `nextport` and `buffer-base62`

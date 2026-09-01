@@ -8,7 +8,7 @@ const base62 = require('./lib/base62.js').toBase62;
 const {bestMatch} = require('./lib/similarity.js');
 const nextport = require('./lib/nextport.js');
 const hmDiscover = require('./lib/discover.js');
-const Rega = require('homematic-rega');
+const {Rega} = require('homematic-rega'); // ES module - require(esm) needs Node >= 20.19 / >= 22.12
 const xmlrpc = require('homematic-xmlrpc');
 const binrpc = require('binrpc');
 
@@ -20,6 +20,23 @@ const pkg = require(path.join(__dirname, '..', 'package.json'));
  * @param obj
  * @returns {boolean}
  */
+/* homematic-rega 2.x has a promise API; these adapters feed the existing
+   callback-style call sites. execToCallback maps exec()'s {output, objects}
+   to the old (err, output, objects) signature. */
+function toCallback(promise, callback) {
+    promise.then(
+        (res) => callback(null, res),
+        (err) => callback(err),
+    );
+}
+
+function execToCallback(promise, callback) {
+    promise.then(
+        ({output, objects}) => callback(null, output, objects),
+        (err) => callback(err),
+    );
+}
+
 function isIterable(object) {
     return object != null && typeof object[Symbol.iterator] === 'function' && typeof object.forEach === 'function';
 }
@@ -549,10 +566,9 @@ module.exports = function (RED) {
                 host: this.host,
                 port: this.isLocal ? 8183 : config.tls ? 48181 : 8181,
                 tls: config.tls,
-                inSecure: config.inSecure,
-                auth: config.authentication,
-                user: config.username,
-                pass: config.password,
+                insecure: config.inSecure,
+                username: config.authentication ? config.username : undefined,
+                password: config.authentication ? config.password : undefined,
             });
 
             this.enabledIfaces = [];
@@ -954,12 +970,12 @@ module.exports = function (RED) {
         getGroupsData() {
             return new Promise((resolve) => {
                 this.logger.debug('virtualdevices get groups');
-                this.rega.exec(
-                    `
+                execToCallback(
+                    this.rega.exec(`
                     var stdoutGroups;
                     var stderrGroups;
                     system.Exec("cat /etc/config/groups.gson", &stdoutGroups, &stderrGroups);
-                `,
+                `),
                     (err, stdout, objects) => {
                         if (!err && objects && objects.stderrGroups === 'null') {
                             try {
@@ -996,13 +1012,13 @@ module.exports = function (RED) {
         getRegaValues() {
             return new Promise((resolve, reject) => {
                 this.logger.info('rega getValues');
-                this.rega.getValues((err, res) => {
+                toCallback(this.rega.getValues(), (err, res) => {
                     if (err) {
                         reject(new Error('rega getValues ' + err.message));
                     } else {
-                        const d = new Date();
                         res.forEach((dp) => {
-                            const ts = new Date(dp.ts + ' UTC+' + d.getTimezoneOffset() / -60).getTime();
+                            // dp.ts is epoch ms since homematic-rega 2.x (0 = never)
+                            const ts = dp.ts;
                             const [iface, channel, datapoint] = dp.name.split('.');
                             if (this.enabledIfaces.includes(iface) && datapoint) {
                                 if (['RSSI_DEVICE', 'RSSI_PEER'].includes(datapoint)) {
@@ -1013,7 +1029,7 @@ module.exports = function (RED) {
                                     cache: true,
                                     change: false,
                                     working: false,
-                                    uncertain: dp.ts === '1970-01-01 01:00:00',
+                                    uncertain: dp.ts === 0,
                                     ts,
                                     lc: ts,
                                 });
@@ -1038,7 +1054,7 @@ module.exports = function (RED) {
         getRegaChannels() {
             return new Promise((resolve, reject) => {
                 this.logger.debug('rega getChannels');
-                this.rega.getChannels((err, res) => {
+                toCallback(this.rega.getChannels(), (err, res) => {
                     if (err) {
                         reject(new Error('rega getChannels ' + err.message));
                     } else {
@@ -1066,7 +1082,7 @@ module.exports = function (RED) {
         getRegaRooms() {
             return new Promise((resolve, reject) => {
                 this.logger.debug('rega getRooms');
-                this.rega.getRooms((err, res) => {
+                toCallback(this.rega.getRooms(), (err, res) => {
                     if (err) {
                         reject(new Error('rega getRooms ' + err.message));
                     } else {
@@ -1102,7 +1118,7 @@ module.exports = function (RED) {
         getRegaFunctions() {
             return new Promise((resolve, reject) => {
                 this.logger.debug('rega getFunctions');
-                this.rega.getFunctions((err, res) => {
+                toCallback(this.rega.getFunctions(), (err, res) => {
                     if (err) {
                         reject(new Error('rega getFunctions ' + err.message));
                     } else {
@@ -1143,7 +1159,7 @@ module.exports = function (RED) {
                 if (program) {
                     const script = `dom.GetObject(${program.id}).Active(${active});`;
                     this.logger.debug('rega programActive', name, script);
-                    this.rega.exec(script + '\n', (err) => {
+                    execToCallback(this.rega.exec(script + '\n'), (err) => {
                         if (err) {
                             reject(err);
                         } else {
@@ -1171,8 +1187,10 @@ module.exports = function (RED) {
                     const d = new Date();
                     const script = `dom.GetObject(${program.id}).ProgramExecute();`;
                     this.logger.debug('rega programExecute', name, script);
-                    this.rega.exec(
-                        script + `\nvar lastExecTime = dom.GetObject(${program.id}).ProgramLastExecuteTime();\n`,
+                    execToCallback(
+                        this.rega.exec(
+                            script + `\nvar lastExecTime = dom.GetObject(${program.id}).ProgramLastExecuteTime();\n`,
+                        ),
                         (err, res, objects) => {
                             if (err) {
                                 reject(err);
@@ -1238,7 +1256,7 @@ module.exports = function (RED) {
 
                     const script = `dom.GetObject(${sysvar.id}).State(${value});`;
                     this.logger.debug('setVariable', name, script);
-                    this.rega.exec(script + '\n', (err) => {
+                    execToCallback(this.rega.exec(script + '\n'), (err) => {
                         if (err) {
                             reject(err);
                         } else {
@@ -1425,18 +1443,16 @@ module.exports = function (RED) {
         getRegaVariables() {
             return new Promise((resolve, reject) => {
                 this.logger.debug('getRegaVariables');
-                this.rega.getVariables((err, res) => {
+                toCallback(this.rega.getVariables(), (err, res) => {
                     if (err) {
                         reject(err);
                         this.hadTimeout.add('ReGaHSS');
                         this.setIfaceStatus('ReGaHSS', false);
                     } else {
-                        const d = new Date();
                         res.forEach((sysvar) => {
                             //this.logger.trace(JSON.stringify(sysvar));
-                            sysvar.ts = sysvar.ts
-                                ? new Date(sysvar.ts + ' UTC+' + d.getTimezoneOffset() / -60).getTime()
-                                : d.getTime();
+                            // sysvar.ts is epoch ms since homematic-rega 2.x (0 = never)
+                            sysvar.ts = sysvar.ts || Date.now();
                             this.updateRegaVariable(sysvar);
                         });
                         if (!this.hasRegaVariables) {
@@ -1464,16 +1480,15 @@ module.exports = function (RED) {
         getRegaPrograms() {
             return new Promise((resolve, reject) => {
                 this.logger.debug('getRegaPrograms');
-                this.rega.getPrograms((err, res) => {
+                toCallback(this.rega.getPrograms(), (err, res) => {
                     if (err) {
                         reject(err);
                         this.hadTimeout.add('ReGaHSS');
                         this.setIfaceStatus('ReGaHSS', false);
                     } else if (res && Array.isArray(res)) {
-                        const d = new Date();
                         res.forEach((prg) => {
                             prg.type = 'PROGRAM';
-                            prg.ts = new Date(prg.ts + ' UTC+' + d.getTimezoneOffset() / -60).getTime();
+                            // prg.ts is epoch ms since homematic-rega 2.x (0 = never)
                             if (!this.program[prg.name]) {
                                 this.program[prg.name] = {};
                             }
@@ -1820,9 +1835,10 @@ module.exports = function (RED) {
                     this.serverError[iface] = null;
                 });
 
-                // Todo homematic-xmlrpc and binrpc module: emit error event on server object to eliminate access to httpServer/server
-                this.servers[protocol][protocol === 'binrpc' ? 'server' : 'httpServer'].on('error', (err) => {
-                    this.logger.error('binrpc ' + err.message);
+                // Todo binrpc module: emit error event on server object to eliminate the reach-in
+                const errorEmitter = protocol === 'binrpc' ? this.servers[protocol].server : this.servers[protocol];
+                errorEmitter.on('error', (err) => {
+                    this.logger.error(protocol + ' ' + err.message);
                     this.serverError[iface] = err.message;
                 });
 
@@ -3127,7 +3143,7 @@ module.exports = function (RED) {
          */
         script(script) {
             return new Promise((resolve, reject) => {
-                this.rega.exec(script, (err, payload, objects) => {
+                execToCallback(this.rega.exec(script), (err, payload, objects) => {
                     if (err) {
                         reject(err);
                     } else {

@@ -1,6 +1,6 @@
 {
   "name": "node-red-contrib-ccu",
-  "version": "4.0.0-dev.5",
+  "version": "4.0.0-dev.6",
   "license": "MIT",
   "main": "none",
   "keywords": [
@@ -51,8 +51,8 @@
   ],
   "dependencies": {
     "binrpc": "^3.3.1",
-    "homematic-rega": "^1.5.2",
-    "homematic-xmlrpc": "^1.0.2",
+    "homematic-rega": "^2.0.0",
+    "homematic-xmlrpc": "^2.0.0",
     "mqtt-wildcard": "^3.0.9"
   },
   "deprecated": false,
@@ -78,7 +78,7 @@
     }
   },
   "engines": {
-    "node": ">=20"
+    "node": "^20.19 || ^22.12 || >=24"
   },
   "homepage": "https://github.com/rdmtc/node-red-contrib-ccu#readme",
   "node-red": {
