@@ -25,9 +25,10 @@ Decisions (D-n) stay here as the record of why things are the way they
 are; answered open questions are rewritten in place
 (`**answered <date>** — …`).
 
-Status 2026-09-01: Phase 1 done (see archive), Phase 2 next; work lands
-on master as `4.0.0-dev.n` pre-releases (dev number bumped per
-significant step). Research basis:
+Status 2026-09-01: Phase 1 done (see archive); Phase 2 items 1–3 and
+5–7 done as `4.0.0-dev.5`…`dev.8` — remaining before the 4.0.0 release:
+the binrpc 3.3.2 publish (§5.4, maintainer action), an editor smoke test
+on real Node-RED 4/5, and the release/announcement itself (§5.8). Research basis:
 the GitHub tracker/PRs/forks, homematic-forum.de, Node-RED release notes and
 scorecard criteria, and the hm2mqtt.js 3.0 rewrite (same author), which
 already re-derived and modernized large parts of `ccu-connection.js` and
@@ -146,19 +147,31 @@ node-red.version floors (D-1/D-13) were pulled forward from Phase 2.
 
 The user-facing release. Ship as one major:
 
-1. **Fix the Node-RED 4.x editor select-population bug** (§8.1). The
-   one thing blocking current users; must be written from scratch.
-2. Raise engines / declare `node-red.version` (D-1, D-13).
-3. `homematic-xmlrpc` 2.0 + `homematic-rega` 2.0 (D-4), including the
-   dynamic-import shim for rega and removing the `httpServer` reach-in.
-4. binrpc crash fix released and picked up (D-5) — addresses #160-class
-   crashes on CCU connection loss, the top robustness complaint in the
-   forum and tracker.
-5. CCU-Jack interface (D-14).
-6. Undefined-payload guard from PR [#173](https://github.com/rdmtc/node-red-contrib-ccu/pull/173)
-   (the guard only, fixed up — `!== undefined`, and its `message.cache || true`
-   bug corrected; the auto-subscribe half is a feature redesign, see B-2).
-7. `examples/` with a handful of importable flows (D-13).
+1. **done 2026-09-01 (dev.5)** — Node-RED 4.x editor select-population
+   bug fixed (§8.1); the cold-start empty-list case stays open for the
+   Phase 3 loader consolidation. Needs a smoke test in a real Node-RED
+   4/5 editor before release.
+2. **done 2026-09-01 (dev.1)** — engines `^20.19 || ^22.12 || >=24`
+   (require(esm), tightened in dev.6), `node-red.version >=4.0.0`
+   (D-1, D-13).
+3. **done 2026-09-01 (dev.6)** — `homematic-xmlrpc` 2.0 +
+   `homematic-rega` 2.0 (D-4): rega loaded via require(esm), call sites
+   fed through promise→callback adapters, timestamps now epoch ms from
+   the lib (the #96 uncertain marker is `ts === 0`), the `httpServer`
+   reach-in remains only for binrpc. `request` and the xmlbuilder
+   tarball are out of the runtime tree.
+4. **open — needs maintainer action**: binrpc crash fix (D-5). Merge
+   [hobbyquaker/binrpc#10](https://github.com/hobbyquaker/binrpc/pull/10)
+   and publish binrpc 3.3.2, then `npm update binrpc` here (dependency
+   is `^3.3.1`, no code change needed). Addresses #160-class crashes on
+   CCU connection loss. No local binrpc checkout exists.
+5. **done 2026-09-01 (dev.7)** — CCU-Jack interface (D-14): port
+   configurable (2121 / 2122 TLS), discovery probes it; closes #164.
+6. **done 2026-09-01 (dev.8)** — undefined-payload guard from PR
+   [#173](https://github.com/rdmtc/node-red-contrib-ccu/pull/173) (the
+   guard only; the auto-subscribe half is a feature redesign, see B-2).
+7. **done 2026-09-01 (dev.8)** — `examples/` with three importable
+   flows (D-13).
 8. Release via the new OIDC pipeline (D-10). Announce in the
    homematic-forum RedMatic subforum — the community patching RedMatic by
    hand is the audience, and coordination with the RedMatic revival
