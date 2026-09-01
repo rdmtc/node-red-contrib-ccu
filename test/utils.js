@@ -3,12 +3,17 @@ const path = require('path');
 
 module.exports = {
     removeFiles() {
-        try {
-            fs.unlinkSync(path.join(__dirname, '..', 'ccu_localhost.json'));
-            fs.unlinkSync(path.join(__dirname, '..', 'ccu_paramsets_v2.json'));
-            fs.unlinkSync(path.join(__dirname, '..', 'ccu_rega_localhost.json'));
-            fs.unlinkSync(path.join(__dirname, '..', 'ccu_values_localhost.json'));
-        } catch {}
+        const files = [
+            'ccu_localhost.json',
+            'ccu_paramsets_v2.json',
+            'ccu_rega_localhost.json',
+            'ccu_values_localhost.json'
+        ];
+        for (const file of files) {
+            try {
+                fs.unlinkSync(path.join(__dirname, '..', file));
+            } catch {}
+        }
     },
     hmSimOptions() {
         const {devices} = JSON.parse(fs.readFileSync(path.join(__dirname, 'simulator-data/devices.json')));

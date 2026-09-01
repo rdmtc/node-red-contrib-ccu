@@ -134,6 +134,7 @@ describe('rpc flow1', () => {
     });
 
     before(function (done) {
+        removeFiles();
         this.timeout(7000);
         hmSim = new HmSim(hmSimOptions());
         helper.startServer(() => {

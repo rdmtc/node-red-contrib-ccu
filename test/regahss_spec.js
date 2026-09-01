@@ -182,6 +182,7 @@ describe('regahss flow1', () => {
     });
 
     before(function (done) {
+        removeFiles();
         this.timeout(12000);
         hmSim = new HmSim(hmSimOptions());
         helper.startServer(() => {
@@ -309,6 +310,7 @@ describe('regahss flow2', () => {
     });
 
     before(done => {
+        removeFiles();
         hmSim = new HmSim(hmSimOptions());
         helper.startServer(() => {
             helper.load([nodeConnection, nodeSysvar, nodePoll], flow2, () => {
@@ -425,6 +427,7 @@ describe('regahss flow3', () => {
     });
 
     before(done => {
+        removeFiles();
         hmSim = new HmSim(hmSimOptions());
         helper.startServer(() => {
             helper.load([nodeConnection, nodeSysvar, nodePoll, nodeScript, nodeProgram], flow3, () => {

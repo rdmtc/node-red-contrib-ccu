@@ -120,6 +120,7 @@ describe('context flow1', () => {
 
     before(function (done) {
         this.timeout(12000);
+        removeFiles();
         hmSim = new HmSim(hmSimOptions());
         helper.startServer(() => {
             helper.load([nodeConnection, nodeSwitch, nodeGetValue], flow1, () => {
