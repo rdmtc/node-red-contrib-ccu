@@ -48,6 +48,11 @@ append commits automatically).
 
 ### Fixed
 
+- Node-RED no longer crashes when the CCU connection drops at an
+  unfortunate moment: binrpc 3.3.2 adds the missing socket error
+  listener (a response arriving after a timeout killed the whole
+  process) and stops the methodCall callback from firing twice on
+  failed connections. (#160)
 - The value node no longer writes to the CCU when the incoming message
   has no `payload` (previously `undefined` was passed to setValue).
   From PR #173.

@@ -27,9 +27,8 @@ are; answered open questions are rewritten in place
 
 Status 2026-09-01: Phase 1 done (see archive); Phase 2 items 1–3 and
 5–7 done as `4.0.0-dev.5`…`dev.8` — remaining before the 4.0.0 release:
-the binrpc 3.3.2 publish (§5.4, maintainer action), a manual smoke test
-of the config dialogs in a real Node-RED 4/5 editor, and the
-release/announcement itself (§5.8) — released independently of the
+a manual smoke test of the config dialogs in a real Node-RED 4/5
+editor, and the release/announcement itself (§5.8) — released independently of the
 RedMatic revival timeline (OQ-4). Verified locally on Node 24: 23/23
 specs against Node-RED 4.1 and against Node-RED 5.0.5 (OQ-2). npm OIDC
 trusted publishing is configured for release.yml (D-10 infrastructure in
@@ -165,11 +164,14 @@ The user-facing release. Ship as one major:
    the lib (the #96 uncertain marker is `ts === 0`), the `httpServer`
    reach-in remains only for binrpc. `request` and the xmlbuilder
    tarball are out of the runtime tree.
-4. **open — needs maintainer action**: binrpc crash fix (D-5). Merge
+4. **done 2026-09-01 (dev.9)** — binrpc 3.3.2 published (with
+   provenance, via binrpc's own new OIDC release workflow) and picked up
+   here through the `^3.3.1` range: adds the missing socket error
+   listener from
    [hobbyquaker/binrpc#10](https://github.com/hobbyquaker/binrpc/pull/10)
-   and publish binrpc 3.3.2, then `npm update binrpc` here (dependency
-   is `^3.3.1`, no code change needed). Addresses #160-class crashes on
-   CCU connection loss. No local binrpc checkout exists.
+   (a late response after a timeout crashed the whole Node-RED process)
+   plus a fix for the methodCall callback firing twice on failed
+   connections. Addresses the #160 crash class (D-5).
 5. **done 2026-09-01 (dev.7)** — CCU-Jack interface (D-14): port
    configurable (2121 / 2122 TLS), discovery probes it; closes #164.
 6. **done 2026-09-01 (dev.8)** — undefined-payload guard from PR
