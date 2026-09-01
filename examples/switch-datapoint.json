@@ -1,0 +1,86 @@
+[
+  {
+    "id": "inject-on",
+    "type": "inject",
+    "name": "ON",
+    "props": [
+      {
+        "p": "payload"
+      }
+    ],
+    "payload": "true",
+    "payloadType": "bool",
+    "x": 130,
+    "y": 80,
+    "wires": [["value-set"]]
+  },
+  {
+    "id": "inject-off",
+    "type": "inject",
+    "name": "OFF",
+    "props": [
+      {
+        "p": "payload"
+      }
+    ],
+    "payload": "false",
+    "payloadType": "bool",
+    "x": 130,
+    "y": 140,
+    "wires": [["value-set"]]
+  },
+  {
+    "id": "value-set",
+    "type": "ccu-value",
+    "name": "Switch actuator",
+    "iface": "HmIP-RF",
+    "channel": "",
+    "datapoint": "STATE",
+    "mode": "",
+    "start": true,
+    "change": true,
+    "cache": false,
+    "queue": true,
+    "on": 0,
+    "onType": "undefined",
+    "ramp": 0,
+    "rampType": "undefined",
+    "working": false,
+    "ccuConfig": "ccu-conn-example",
+    "topic": "${CCU}/${Interface}/${channel}/${datapoint}",
+    "x": 340,
+    "y": 110,
+    "wires": [["debug-state"]]
+  },
+  {
+    "id": "debug-state",
+    "type": "debug",
+    "name": "state",
+    "active": true,
+    "tosidebar": true,
+    "complete": "payload",
+    "x": 550,
+    "y": 110,
+    "wires": []
+  },
+  {
+    "id": "ccu-conn-example",
+    "type": "ccu-connection",
+    "name": "CCU",
+    "host": "ccu3-hostname-or-ip",
+    "regaEnabled": true,
+    "bcrfEnabled": true,
+    "iprfEnabled": true,
+    "virtEnabled": false,
+    "bcwiEnabled": false,
+    "cuxdEnabled": false,
+    "jackEnabled": false,
+    "regaPoll": true,
+    "regaInterval": "30",
+    "rpcPingTimeout": "60",
+    "rpcInitAddress": "",
+    "rpcServerHost": "",
+    "rpcBinPort": "2047",
+    "rpcXmlPort": "2048"
+  }
+]

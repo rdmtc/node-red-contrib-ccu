@@ -62,6 +62,12 @@ module.exports = function (RED) {
                     return;
                 }
 
+                if (message.payload === undefined) {
+                    // don't write to the CCU when the incoming msg carries no payload (PR #173)
+                    done();
+                    return;
+                }
+
                 let ramp;
                 switch (config.rampType) {
                     case 'msg':

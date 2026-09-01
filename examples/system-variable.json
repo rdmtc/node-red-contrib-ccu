@@ -1,0 +1,60 @@
+[
+  {
+    "id": "sysvar-watch",
+    "type": "ccu-sysvar",
+    "name": "Presence",
+    "ccuConfig": "ccu-conn-example",
+    "topic": "${CCU}/SysVar/${Name}",
+    "change": true,
+    "cache": true,
+    "x": 340,
+    "y": 100,
+    "wires": [["debug-sysvar"]]
+  },
+  {
+    "id": "debug-sysvar",
+    "type": "debug",
+    "name": "sysvar",
+    "active": true,
+    "tosidebar": true,
+    "complete": "payload",
+    "x": 550,
+    "y": 100,
+    "wires": []
+  },
+  {
+    "id": "inject-set",
+    "type": "inject",
+    "name": "set true",
+    "props": [
+      {
+        "p": "payload"
+      }
+    ],
+    "payload": "true",
+    "payloadType": "bool",
+    "x": 140,
+    "y": 100,
+    "wires": [["sysvar-watch"]]
+  },
+  {
+    "id": "ccu-conn-example",
+    "type": "ccu-connection",
+    "name": "CCU",
+    "host": "ccu3-hostname-or-ip",
+    "regaEnabled": true,
+    "bcrfEnabled": true,
+    "iprfEnabled": true,
+    "virtEnabled": false,
+    "bcwiEnabled": false,
+    "cuxdEnabled": false,
+    "jackEnabled": false,
+    "regaPoll": true,
+    "regaInterval": "30",
+    "rpcPingTimeout": "60",
+    "rpcInitAddress": "",
+    "rpcServerHost": "",
+    "rpcBinPort": "2047",
+    "rpcXmlPort": "2048"
+  }
+]

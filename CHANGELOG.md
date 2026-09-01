@@ -16,6 +16,9 @@ append commits automatically).
 
 ### Added
 
+- Importable example flows (`examples/`, shown in the editor's import
+  dialog): switching a datapoint, receiving RPC events, reading and
+  setting a system variable.
 - CCU-Jack can be enabled as an additional interface on the connection
   node (XMLRPC on port 2121, or 2122 with TLS; port configurable). CCU
   discovery now probes for CCU-Jack as well. Based on PR #162, closes
@@ -45,6 +48,9 @@ append commits automatically).
 
 ### Fixed
 
+- The value node no longer writes to the CCU when the incoming message
+  has no `payload` (previously `undefined` was passed to setValue).
+  From PR #173.
 - On Node-RED 4.x, node configuration dialogs had to be opened several
   times before the interface/device/channel/datapoint selects populated.
   The editor now triggers the initial load itself instead of relying on
