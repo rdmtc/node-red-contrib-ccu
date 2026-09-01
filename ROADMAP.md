@@ -25,8 +25,9 @@ Decisions (D-n) stay here as the record of why things are the way they
 are; answered open questions are rewritten in place
 (`**answered <date>** — …`).
 
-Status 2026-09-01: Phase 1 in progress on master as `4.0.0-dev.n`
-pre-releases (dev number bumped per significant step). Research basis:
+Status 2026-09-01: Phase 1 done (see archive), Phase 2 next; work lands
+on master as `4.0.0-dev.n` pre-releases (dev number bumped per
+significant step). Research basis:
 the GitHub tracker/PRs/forks, homematic-forum.de, Node-RED release notes and
 scorecard criteria, and the hm2mqtt.js 3.0 rewrite (same author), which
 already re-derived and modernized large parts of `ccu-connection.js` and
@@ -45,7 +46,7 @@ whose ROADMAP documents several verified bugs in this repo.
 
 **Phases**
 
-- [4. Phase 1 — tooling groundwork](#4-phase-1--tooling-groundwork-no-behavior-change)
+- [4. Phase 1 — tooling groundwork](#4-phase-1--tooling-groundwork-no-behavior-change) ✅ [archived](roadmap-archive/phase-1.md)
 - [5. Phase 2 — compatibility release 4.0.0](#5-phase-2--compatibility-release-400)
 - [6. Phase 3 — refactor & tests](#6-phase-3--refactor--tests)
 - [7. Phase 4 — features & devices B-1…B-10](#7-phase-4--features--device-backlog)
@@ -134,23 +135,12 @@ maintenance ends 2026-12-31), **CommonJS throughout** (D-2).
 
 ## 4. Phase 1 — tooling groundwork (no behavior change)
 
-Everything here is invisible to users and safe to land incrementally on
-master. Target: a working modern dev loop.
-
-1. New CI workflow (D-9); delete Travis leftovers, fix badges.
-2. xo → ESLint 9 flat config + Prettier (D-3); remove husky; keep the
-   `ccu-switch.*`/`paramsets-join.js` lint excludes initially, burn them
-   down later.
-3. Drop `promise.prototype.finally` + shim call, move `obj-ease` to
-   devDeps, inline Dice coefficient for `string-similarity` (D-6).
-4. Vendor micro-deps (D-7).
-5. nyc/coveralls/camo-purge → c8 (D-8); bump mocha → 10,
-   node-red-node-test-helper → 0.3.6, node-red devDep → 4.x; use npm
-   `overrides` to force `homematic-xmlrpc ^2.0.0` into `hm-simulator`
-   (hm2mqtt does exactly this).
-6. Remove leftover editor debug output (`console.log` in
-   `ccu-value.html` etc.).
-7. `CHANGELOG.md` bootstrap (D-11).
+**✅ done 2026-09-01** — moved to
+[roadmap-archive/phase-1.md](roadmap-archive/phase-1.md). Shipped as
+`4.0.0-dev.1` … `4.0.0-dev.4`: CI matrix (Node 20/22/24 × Node-RED 4/5)
+plus the OIDC release pipeline, ESLint 9 + Prettier, runtime deps 10 → 4,
+mocha 11 / test-helper 0.3.6 / c8, CHANGELOG bootstrap. The engines /
+node-red.version floors (D-1/D-13) were pulled forward from Phase 2.
 
 ## 5. Phase 2 — compatibility release 4.0.0
 
@@ -299,14 +289,14 @@ caught (the devDep pin to `^1.1.2` is why it never was).
 
 ## 11. Open questions
 
-| ID   | Question                                                                                                                                                                                                                                                | Proposal                                                                                                            |
-| ---- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------- |
-| OQ-1 | **answered 2026-09-01** — Node floor 20 or 22? Floor stays `>=20` (homematic-rega/xmlrpc 2.0 requirement, keeps standalone NR 4.x users); the primary target is Node 24 + Node-RED 5, which RedMatic bundles via its own armv7l runtime (hm2mqtt H-39). | Revisit the floor when NR 4.x maintenance ends (2026-12-31).                                                        |
-| OQ-2 | Does `node-red-node-test-helper` 0.3.6 run cleanly under Node-RED 4.x and 5.x for our specs?                                                                                                                                                            | Verify in Phase 1 step 5; if 5.x breaks, keep the 5.x CI leg runtime-only (start Node-RED, load nodes) until fixed. |
-| OQ-3 | Vendor vs. keep `mqtt-wildcard` (own package, fine) — is vendoring 4 micro-deps worth it, or only the dormant ones (`hm-discover`, `nextport`, `buffer-base62`)?                                                                                        | Vendor the dormant three, keep `mqtt-wildcard` as a dep.                                                            |
-| OQ-4 | Coordinate 4.0.0 with the RedMatic revival timeline — which ships first?                                                                                                                                                                                | RedMatic bundles this package; this 4.0.0 should land first. Sync via rdmtc/RedMatic ROADMAP.                       |
-| OQ-5 | `paramsets.json` regeneration: is the `tools/paramsets-join.js` pipeline still runnable against a current CCU/OpenCCU, and should paramset updates become a recurring (scripted/CI) job instead of hand-curated?                                        | Evaluate in Phase 4 / B-1.                                                                                          |
-| OQ-6 | SPECIAL paramset key handling (old todo item — which device even uses it? how to test?)                                                                                                                                                                 | Parked; only becomes relevant if a B-1 device needs it.                                                             |
+| ID   | Question                                                                                                                                                                                                                                                | Proposal                                                                                                                                                                        |
+| ---- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| OQ-1 | **answered 2026-09-01** — Node floor 20 or 22? Floor stays `>=20` (homematic-rega/xmlrpc 2.0 requirement, keeps standalone NR 4.x users); the primary target is Node 24 + Node-RED 5, which RedMatic bundles via its own armv7l runtime (hm2mqtt H-39). | Revisit the floor when NR 4.x maintenance ends (2026-12-31).                                                                                                                    |
+| OQ-2 | Does `node-red-node-test-helper` 0.3.6 run cleanly under Node-RED 4.x and 5.x for our specs?                                                                                                                                                            | Verified for 4.x locally (23/23 specs on Node 20 / NR 4.1); 5.x pending first CI run. If 5.x breaks, keep the 5.x CI leg runtime-only (start Node-RED, load nodes) until fixed. |
+| OQ-3 | Vendor vs. keep `mqtt-wildcard` (own package, fine) — is vendoring 4 micro-deps worth it, or only the dormant ones (`hm-discover`, `nextport`, `buffer-base62`)?                                                                                        | Vendor the dormant three, keep `mqtt-wildcard` as a dep.                                                                                                                        |
+| OQ-4 | Coordinate 4.0.0 with the RedMatic revival timeline — which ships first?                                                                                                                                                                                | RedMatic bundles this package; this 4.0.0 should land first. Sync via rdmtc/RedMatic ROADMAP.                                                                                   |
+| OQ-5 | `paramsets.json` regeneration: is the `tools/paramsets-join.js` pipeline still runnable against a current CCU/OpenCCU, and should paramset updates become a recurring (scripted/CI) job instead of hand-curated?                                        | Evaluate in Phase 4 / B-1.                                                                                                                                                      |
+| OQ-6 | SPECIAL paramset key handling (old todo item — which device even uses it? how to test?)                                                                                                                                                                 | Parked; only becomes relevant if a B-1 device needs it.                                                                                                                         |
 
 ## 12. GitHub issue snapshot
 

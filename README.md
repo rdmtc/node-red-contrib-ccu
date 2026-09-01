@@ -1,10 +1,7 @@
 # node-red-contrib-ccu
 
-[![NPM version](https://badge.fury.io/js/node-red-contrib-ccu.svg)](http://badge.fury.io/js/node-red-contrib-ccu)
-[![Dependencies Status](https://david-dm.org/rdmtc/node-red-contrib-ccu/status.svg)](https://david-dm.org/rdmtc/node-red-contrib-ccu)
-[![Build Status](https://travis-ci.org/rdmtc/node-red-contrib-ccu.svg?branch=master)](https://travis-ci.org/rdmtc/node-red-contrib-ccu)
-[![Coverage Status](https://coveralls.io/repos/github/rdmtc/node-red-contrib-ccu/badge.svg?branch=master)](https://coveralls.io/github/rdmtc/node-red-contrib-ccu?branch=master)
-[![XO code style](https://img.shields.io/badge/code_style-XO-5ed9c7.svg)](https://github.com/sindresorhus/xo)
+[![NPM version](https://img.shields.io/npm/v/node-red-contrib-ccu.svg)](https://www.npmjs.com/package/node-red-contrib-ccu)
+[![CI](https://github.com/rdmtc/node-red-contrib-ccu/actions/workflows/ci.yml/badge.svg)](https://github.com/rdmtc/node-red-contrib-ccu/actions/workflows/ci.yml)
 [![License][mit-badge]][mit-url]
 
 > Node-RED Nodes for the Homematic CCU
@@ -13,8 +10,8 @@ With these Nodes you can connect [Homematic](https://github.com/hobbyquaker/awes
 [Node-RED](https://nodered.org/). Homematic is a series of smart home automation hardware from the manufacturer
 [eQ-3](http://www.eq-3.de/), popular especially in Germany.
 
-**⚠️ node-red-contrib-ccu >= 3.0 needs Node-RED >= 1.0.** If you're still on Node-RED 0.20 or lower you should use the
-latest 2.x version of node-red-contrib-ccu.
+**⚠️ node-red-contrib-ccu >= 4.0 needs Node-RED >= 4.0 and Node.js >= 20** (primary target: Node-RED 5 on Node 24).
+On older Node-RED versions use the latest 3.x release of node-red-contrib-ccu.
 
 For the communication with the CCU both RPC and ReGaHSS remote script are used. It's possible to connect to multiple
 CCUs from one Node-RED instance. RPC setValue calls can be comfortably complemented with ON_TIME and RAMP_TIME values
