@@ -21,12 +21,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        node: [20, 22, 24]
+        node: [22, 24]
         node-red: [4, 5]
-        exclude:
-          # Node-RED 5 requires Node >= 22.9
-          - node: 20
-            node-red: 5
     name: test (node ${{ matrix.node }}, node-red ${{ matrix.node-red }})
     steps:
       - uses: actions/checkout@v4
