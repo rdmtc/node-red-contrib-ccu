@@ -27,8 +27,9 @@ are; answered open questions are rewritten in place
 
 Status 2026-09-01: Phase 1 done (see archive); Phase 2 items 1–3 and
 5–7 done as `4.0.0-dev.5`…`dev.8` — remaining before the 4.0.0 release:
-a manual smoke test of the config dialogs in a real Node-RED 4/5
-editor, and the release/announcement itself (§5.8) — released independently of the
+only the release/announcement itself (§5.8) — the 2026-09-02 smoke test
+on Node-RED 5.0.6 / Node 24 passed (editor dialogs populate on first
+open, all interfaces connect, CCU reboot survived crash-free) — released independently of the
 RedMatic revival timeline (OQ-4). Verified locally on Node 24: 23/23
 specs against Node-RED 4.1 and against Node-RED 5.0.5 (OQ-2). npm OIDC
 trusted publishing is configured for release.yml (D-10 infrastructure in
@@ -151,10 +152,12 @@ node-red.version floors (D-1/D-13) were pulled forward from Phase 2.
 
 The user-facing release. Ship as one major:
 
-1. **done 2026-09-01 (dev.5)** — Node-RED 4.x editor select-population
-   bug fixed (§8.1); the cold-start empty-list case stays open for the
-   Phase 3 loader consolidation. Needs a smoke test in a real Node-RED
-   4/5 editor before release.
+1. **done 2026-09-01 (dev.5), verified 2026-09-02** — Node-RED 4.x
+   editor select-population bug fixed (§8.1) and confirmed in a real
+   Node-RED 5.0.6 editor (node-red-dev smoke test): interface/channel/
+   datapoint selects and autocomplete populate on first open. The
+   cold-start empty-list case stays open for the Phase 3 loader
+   consolidation.
 2. **done 2026-09-01 (dev.1)** — engines `^20.19 || ^22.12 || >=24`
    (require(esm), tightened in dev.6), `node-red.version >=4.0.0`
    (D-1, D-13).
@@ -235,8 +238,8 @@ to 5 retries (1 s apart), and the `_ADD_` code path no longer leaves the
 latch stuck in the two files that had that variant (ccu-get-value,
 ccu-switch). Defect 3 (cold start can return an empty channel list with no
 retry) remains open — fold it into the Phase 3 editor-loader
-consolidation (§6.4). Needs verification on a real Node-RED 4.x/5.x
-editor; CI has no editor tests.
+consolidation (§6.4). Verified 2026-09-02 in a real Node-RED 5.0.6
+editor (smoke test); CI still has no editor tests.
 
 Same pattern in 9 editor files (`ccu-value`, `ccu-set-value`,
 `ccu-get-value`, `ccu-rpc`, `ccu-rpc-event`, `ccu-signal`, `ccu-display`,
