@@ -7,6 +7,15 @@ append commits automatically).
 
 ## Unreleased (4.1.0)
 
+### Fixed
+
+- Slat positions on HmIP blind actuators (HmIP-FBL, HmIP-BBL,
+  HmIP-DRBLI4, ...) can now be set through the value/set-value nodes:
+  the actuators accept but ignore a lone LEVEL_2 write, so writes to
+  LEVEL_2 are transparently remapped to the COMBINED_PARAMETER
+  datapoint (`L2=<percent>`), which is what the CCU itself sends.
+  (#136, #154, #175)
+
 ### Changed
 
 - binrpc 3.3.2 -> 4.2.0: zero runtime dependencies (the unmaintained

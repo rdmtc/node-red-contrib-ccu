@@ -18,6 +18,8 @@ the roadmap's contents index (marked ✅ there, linking here).
 
 **Backlog items**
 
+- [B-14.md](B-14.md) — COMBINED_PARAMETER mapping for HmIP slat writes ✅
+  2026-09-02 (#136/#154/#175, pending hardware confirmation).
 - [B-6.md](B-6.md) — binrpc rewrite without abandoned deps ✅ 2026-09-02
   (delivered upstream as binrpc 4.1/4.2, picked up as ^4.2.0).
 

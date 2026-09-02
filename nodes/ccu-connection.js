@@ -6,6 +6,7 @@ const crypto = require('crypto');
 
 const base62 = require('./lib/base62.js').toBase62;
 const {castValue, castSysvar} = require('./lib/cast.js');
+const {combinedParameterValue} = require('./lib/combined.js');
 const {createMessage} = require('./lib/message.js');
 const {topicReplace} = require('./lib/topic.js');
 const {bestMatch} = require('./lib/similarity.js');
@@ -2931,6 +2932,17 @@ module.exports = function (RED) {
          * @returns {Promise<any>}
          */
         setValue(iface, address, datapoint, value, burst) {
+            const device = this.metadata.devices[iface] && this.metadata.devices[iface][address];
+            const description = this.paramsetDescriptions[this.paramsetName(iface, device, 'VALUES')];
+            const combined = combinedParameterValue(datapoint, value, description);
+            if (combined !== null) {
+                // HmIP actuators accept but ignore a lone LEVEL_2 write; the CCU
+                // itself writes COMBINED_PARAMETER instead (#136 #154 #175)
+                this.logger.debug('setValue', datapoint, value, '-> COMBINED_PARAMETER', combined);
+                datapoint = 'COMBINED_PARAMETER';
+                value = combined;
+            }
+
             return new Promise((resolve, reject) => {
                 const id = `${iface}.${address}.${datapoint}`;
                 value = this.paramCast(iface, address, 'VALUES', datapoint, value);
