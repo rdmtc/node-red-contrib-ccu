@@ -6,6 +6,7 @@ const crypto = require('crypto');
 
 const base62 = require('./lib/base62.js').toBase62;
 const {castValue} = require('./lib/cast.js');
+const {createMessage} = require('./lib/message.js');
 const {topicReplace} = require('./lib/topic.js');
 const {bestMatch} = require('./lib/similarity.js');
 const nextport = require('./lib/nextport.js');
@@ -2590,88 +2591,7 @@ module.exports = function (RED) {
          * @returns {*}
          */
         createMessage(iface, channel, datapoint, payload, additions) {
-            const datapointName = iface + '.' + channel + '.' + datapoint;
-            if (!this.values[datapointName]) {
-                this.values[datapointName] = {};
-            }
-
-            const device =
-                this.metadata.devices[iface] &&
-                this.metadata.devices[iface][channel] &&
-                this.metadata.devices[iface][channel].PARENT;
-            const ts = now();
-            let change = false;
-
-            const valueStable = additions && additions.working ? this.values[datapointName].valueStable : payload;
-
-            let description = {};
-            if (this.metadata.devices[iface] && this.metadata.devices[iface][channel]) {
-                description =
-                    this.getParamsetDescription(iface, this.metadata.devices[iface][channel], 'VALUES', datapoint) ||
-                    {};
-            }
-
-            if (
-                description.TYPE === 'ACTION' ||
-                this.values[datapointName].cache ||
-                this.values[datapointName].payload !== payload ||
-                this.values[datapointName].valueStable !== valueStable
-            ) {
-                change = true;
-            }
-
-            this.logger.trace('createMessage', channel, datapoint, payload, 'change=' + change);
-
-            const message = {
-                topic: '',
-                payload,
-                ccu: this.host,
-                iface,
-                device,
-                deviceName: this.channelNames[device],
-                deviceType:
-                    this.metadata.devices[iface] &&
-                    this.metadata.devices[iface][device] &&
-                    this.metadata.devices[iface][device].TYPE,
-                channel,
-                channelName: this.channelNames[channel],
-                channelType:
-                    this.metadata.devices[iface] &&
-                    this.metadata.devices[iface][channel] &&
-                    this.metadata.devices[iface][channel].TYPE,
-                channelIndex: channel && Number.parseInt(channel.split(':')[1], 10),
-                datapoint,
-                datapointName,
-                datapointType: description.TYPE,
-                datapointMin: description.MIN,
-                datapointMax: description.MAX,
-                datapointEnum: description.ENUM,
-                datapointDefault: description.DEFAULT,
-                datapointControl: description.CONTROL,
-                value: payload,
-                valuePrevious: this.values[datapointName].value,
-                valueEnum: description.ENUM ? description.ENUM[Number(payload)] : undefined,
-                valueStable,
-                rooms: this.channelRooms[channel] || [],
-                room:
-                    this.channelRooms[channel] && this.channelRooms[channel].length > 0
-                        ? this.channelRooms[channel][0]
-                        : undefined,
-                functions: this.channelFunctions[channel] || [],
-                function:
-                    this.channelFunctions[channel] && this.channelFunctions[channel].length > 0
-                        ? this.channelFunctions[channel][0]
-                        : undefined,
-                ts,
-                tsPrevious: this.values[datapointName].ts,
-                lc: change ? ts : this.values[datapointName].lc,
-                change,
-                ...additions,
-            };
-
-            message.stable = !message.working;
-
-            return message;
+            return createMessage(this, iface, channel, datapoint, payload, additions);
         }
 
         /**
