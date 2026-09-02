@@ -5,6 +5,5 @@ paramsets.json
 nodes/**/*.html
 nodes/locales
 nodes/ccu-switch.js
-tools/paramsets-join.js
 test/simulator-data
 docs

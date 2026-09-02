@@ -11,7 +11,6 @@ module.exports = [
             // excluded from linting since the xo days — burn down later
             'nodes/ccu-switch.js',
             'nodes/ccu-switch.html',
-            'tools/paramsets-join.js',
         ],
     },
     js.configs.recommended,

@@ -1,18 +1,60 @@
+#!/usr/bin/env node
+/* Merge a paramsets dump (from tools/paramsets-fetch.js, or a user's
+   <userDir>/paramsets.json contributed in an issue) into the shipped
+   paramsets.json.
+
+   Usage: node tools/paramsets-join.js [dumpfile]   (default: ccu_paramsets_dump.json)
+
+   The dump wins per paramset key (whole-object replacement, so parameters
+   removed by a firmware update do not linger); existing keys are never
+   deleted (users on old device firmware still need them). Output is
+   key-sorted for stable diffs. See docs/paramsets.md. */
+
 const fs = require('fs');
 const path = require('path');
-const oe = require('obj-ease');
 
-const f1 = 'paramsets.json';
-const f2 = 'ccu_paramsets_v2.json';
+const target = path.join(__dirname, '..', 'paramsets.json');
+const dumpFile = process.argv[2] || 'ccu_paramsets_dump.json';
 
-const ps1 = require(path.join(__dirname, '..', f1));
-const ps2 = require(path.join(__dirname, '..', f2));
+const paramsets = JSON.parse(fs.readFileSync(target));
+const dump = JSON.parse(fs.readFileSync(dumpFile));
 
-console.log(f1, Object.keys(ps1).length);
-console.log(f2, Object.keys(ps2).length);
+console.log('paramsets.json:', Object.keys(paramsets).length, 'keys');
+console.log(dumpFile + ':', Object.keys(dump).length, 'keys');
 
-oe.extend(ps1, ps2);
+let added = 0;
+let changed = 0;
+let unchanged = 0;
 
-console.log('joined', Object.keys(ps1).length);
+Object.keys(dump).forEach((key) => {
+    if (paramsets[key] === undefined) {
+        added++;
+    } else if (JSON.stringify(paramsets[key]) === JSON.stringify(dump[key])) {
+        unchanged++;
+        return;
+    } else {
+        changed++;
+    }
 
-fs.writeFileSync(path.join(__dirname, '..', f1), JSON.stringify(ps1, null, '  '));
+    paramsets[key] = dump[key];
+});
+
+const sorted = {};
+Object.keys(paramsets)
+    .sort()
+    .forEach((k) => {
+        sorted[k] = paramsets[k];
+    });
+
+fs.writeFileSync(target, JSON.stringify(sorted, null, 2));
+console.log(
+    'added ' +
+        added +
+        ', changed ' +
+        changed +
+        ', unchanged ' +
+        unchanged +
+        ' -> ' +
+        Object.keys(sorted).length +
+        ' keys total',
+);

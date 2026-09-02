@@ -98,7 +98,12 @@ HmIP-BSL (fw 1.0.2), HMIP-eTRV/eTRV-2/-B/-B1/-B-2/-C/-C-2, MP3P, BROLL(?);
 30 BidCos types; HmIP-HEATING group now FIRMWARE 2.0.0 / VERSION 131072
 (→ *new* key vs. the stale `1.0.0/65536` entries in the repo file).
 
-## 3. Recommended regeneration procedure
+## 3. Regeneration procedure
+
+**Status 2026-09-02: `tools/paramsets-fetch.js` and the modernized
+`tools/paramsets-join.js` are implemented and smoke-tested against the
+live CCU (3 keys fetched, joined, validated). Remaining: update the CCU
+to 3.89.x, run the full fetch, join, validate, commit.**
 
 1. **New `tools/paramsets-fetch.js`** (Node, uses the existing
    `homematic-xmlrpc` dep; `binrpc` dep for CUxD/BidCos-RF if ever needed —
