@@ -813,7 +813,7 @@ module.exports = function (RED) {
                     this.logger.info('metadata loaded from', this.metadataFile);
                     resolve();
                 } catch {
-                    this.logger.warn('metadata new empty');
+                    this.logger.info('no cached metadata yet, starting empty');
                     this.metadata = {
                         devices: {},
                         types: {},
@@ -850,7 +850,12 @@ module.exports = function (RED) {
                     */
                     resolve();
                 } catch (error) {
-                    this.logger.error('error loading regadata ' + error.message);
+                    if (error.code === 'ENOENT') {
+                        this.logger.info('no cached regadata yet (first start)');
+                    } else {
+                        this.logger.error('error loading regadata ' + error.message);
+                    }
+
                     resolve();
                 }
             });
@@ -877,7 +882,12 @@ module.exports = function (RED) {
 
                     resolve();
                 } catch (error) {
-                    this.logger.error('error loading values ' + error.message);
+                    if (error.code === 'ENOENT') {
+                        this.logger.info('no cached values yet (first start)');
+                    } else {
+                        this.logger.error('error loading values ' + error.message);
+                    }
+
                     resolve();
                 }
             });
@@ -1599,7 +1609,17 @@ module.exports = function (RED) {
                     this.clients[iface] = rpc.createClient(clientOptions);
                 }
 
-                this.logger.debug('rpc client created', iface, JSON.stringify(clientOptions));
+                this.logger.info(
+                    'rpc client ' +
+                        iface +
+                        ' ' +
+                        (protocol === 'binrpc' ? 'binrpc' : tls ? 'xmlrpc/tls' : 'xmlrpc') +
+                        ' ' +
+                        this.host +
+                        ':' +
+                        port +
+                        (path ? '/' + path : ''),
+                );
                 if (this.methodCallQueue[iface]) {
                     this.methodCallQueue[iface].forEach((c) => {
                         this.methodCall(iface, c[0], c[1]).then(c[2]).catch(c[3]);
@@ -1623,7 +1643,21 @@ module.exports = function (RED) {
                 const initId = 'nr_' + hash + '_' + iface;
                 this.lastEvent[iface] = now();
 
-                this.logger.info('init ' + iface + ' ' + initUrl + ' ' + initId);
+                const {protocol, port} = this.ifaceTypes[iface];
+                this.logger.info(
+                    'init ' +
+                        iface +
+                        ' (' +
+                        (protocol === 'binrpc' ? 'binrpc' : 'xmlrpc') +
+                        ' ' +
+                        this.host +
+                        ':' +
+                        port +
+                        ') callback ' +
+                        initUrl +
+                        ' ' +
+                        initId,
+                );
                 this.methodCall(iface, 'init', [initUrl, initId])
                     .then(() => {
                         if (iface === 'CUxD') {
