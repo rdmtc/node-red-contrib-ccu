@@ -16,6 +16,11 @@ the roadmap's contents index (marked ✅ there, linking here).
   (CI + OIDC release pipeline, ESLint 9 + Prettier, dependency pruning
   10 → 4, mocha 11 / test-helper 0.3.6 / c8, CHANGELOG bootstrap).
 
+**Backlog items**
+
+- [B-6.md](B-6.md) — binrpc rewrite without abandoned deps ✅ 2026-09-02
+  (delivered upstream as binrpc 4.1/4.2, picked up as ^4.2.0).
+
 **Pre-roadmap history**
 
 - [todo-history.md](todo-history.md) — items completed under the old

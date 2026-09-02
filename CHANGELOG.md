@@ -5,6 +5,21 @@ Notable changes to node-red-contrib-ccu. Format follows
 user-visible symptom and the cause, not the commit list (the release notes
 append commits automatically).
 
+## Unreleased (4.1.0)
+
+### Changed
+
+- binrpc 3.3.2 -> 4.2.0: zero runtime dependencies (the unmaintained
+  `binary`/`put` packages are gone from the whole tree), fragmented TCP
+  frames are reassembled correctly (previously a header split across
+  chunks caused "malformed response" errors or a hanging request), and
+  truncated payloads no longer throw from inside socket handlers.
+- New maintainer tooling for the shipped device descriptions:
+  `tools/paramsets-fetch.js` fetches paramset descriptions from a live
+  CCU, `tools/paramsets-join.js` merges dumps (including
+  user-contributed `paramsets.json` files from issue reports). See
+  docs/paramsets.md.
+
 ## 4.0.0 (2026-09-02)
 
 ### Breaking
