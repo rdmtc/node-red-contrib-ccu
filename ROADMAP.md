@@ -25,15 +25,10 @@ Decisions (D-n) stay here as the record of why things are the way they
 are; answered open questions are rewritten in place
 (`**answered <date>** — …`).
 
-Status 2026-09-01: Phase 1 done (see archive); Phase 2 items 1–3 and
-5–7 done as `4.0.0-dev.5`…`dev.8` — remaining before the 4.0.0 release:
-only the release/announcement itself (§5.8) — the 2026-09-02 smoke test
-on Node-RED 5.0.6 / Node 24 passed (editor dialogs populate on first
-open, all interfaces connect, CCU reboot survived crash-free) — released independently of the
-RedMatic revival timeline (OQ-4). Verified locally on Node 24: 23/23
-specs against Node-RED 4.1 and against Node-RED 5.0.5 (OQ-2). npm OIDC
-trusted publishing is configured for release.yml (D-10 infrastructure in
-place). Research basis:
+Status 2026-09-02: **4.0.0 is released** (npm latest, OIDC provenance,
+GitHub release). Phases 1 and 2 are done and archived. Next: Phase 3
+(refactor & tests) and the Phase 4 backlog (B-1…B-11); work continues on
+master with CI (Node 22/24 × Node-RED 4/5) as the gate. Research basis:
 the GitHub tracker/PRs/forks, homematic-forum.de, Node-RED release notes and
 scorecard criteria, and the hm2mqtt.js 3.0 rewrite (same author), which
 already re-derived and modernized large parts of `ccu-connection.js` and
@@ -53,7 +48,7 @@ whose ROADMAP documents several verified bugs in this repo.
 **Phases**
 
 - [4. Phase 1 — tooling groundwork](#4-phase-1--tooling-groundwork-no-behavior-change) ✅ [archived](roadmap-archive/phase-1.md)
-- [5. Phase 2 — compatibility release 4.0.0](#5-phase-2--compatibility-release-400)
+- [5. Phase 2 — compatibility release 4.0.0](#5-phase-2--compatibility-release-400) ✅ [archived](roadmap-archive/phase-2.md)
 - [6. Phase 3 — refactor & tests](#6-phase-3--refactor--tests)
 - [7. Phase 4 — features & devices B-1…B-11](#7-phase-4--features--device-backlog)
 
@@ -150,42 +145,11 @@ node-red.version floors (D-1/D-13) were pulled forward from Phase 2.
 
 ## 5. Phase 2 — compatibility release 4.0.0
 
-The user-facing release. Ship as one major:
-
-1. **done 2026-09-01 (dev.5), verified 2026-09-02** — Node-RED 4.x
-   editor select-population bug fixed (§8.1) and confirmed in a real
-   Node-RED 5.0.6 editor (node-red-dev smoke test): interface/channel/
-   datapoint selects and autocomplete populate on first open. The
-   cold-start empty-list case stays open for the Phase 3 loader
-   consolidation.
-2. **done 2026-09-01 (dev.1)** — engines `^20.19 || ^22.12 || >=24`
-   (require(esm), tightened in dev.6), `node-red.version >=4.0.0`
-   (D-1, D-13).
-3. **done 2026-09-01 (dev.6)** — `homematic-xmlrpc` 2.0 +
-   `homematic-rega` 2.0 (D-4): rega loaded via require(esm), call sites
-   fed through promise→callback adapters, timestamps now epoch ms from
-   the lib (the #96 uncertain marker is `ts === 0`), the `httpServer`
-   reach-in remains only for binrpc. `request` and the xmlbuilder
-   tarball are out of the runtime tree.
-4. **done 2026-09-01 (dev.9)** — binrpc 3.3.2 published (with
-   provenance, via binrpc's own new OIDC release workflow) and picked up
-   here through the `^3.3.1` range: adds the missing socket error
-   listener from
-   [hobbyquaker/binrpc#10](https://github.com/hobbyquaker/binrpc/pull/10)
-   (a late response after a timeout crashed the whole Node-RED process)
-   plus a fix for the methodCall callback firing twice on failed
-   connections. Addresses the #160 crash class (D-5).
-5. **done 2026-09-01 (dev.7)** — CCU-Jack interface (D-14): port
-   configurable (2121 / 2122 TLS), discovery probes it; closes #164.
-6. **done 2026-09-01 (dev.8)** — undefined-payload guard from PR
-   [#173](https://github.com/rdmtc/node-red-contrib-ccu/pull/173) (the
-   guard only; the auto-subscribe half is a feature redesign, see B-2).
-7. **done 2026-09-01 (dev.8)** — `examples/` with three importable
-   flows (D-13).
-8. Release via the new OIDC pipeline (D-10). Announce in the
-   homematic-forum RedMatic subforum — the community patching RedMatic by
-   hand is the audience, and coordination with the RedMatic revival
-   (rdmtc/RedMatic ROADMAP) makes 4.0.0 the version it bundles.
+**✅ done 2026-09-02** — moved to
+[roadmap-archive/phase-2.md](roadmap-archive/phase-2.md). Released as
+v4.0.0 on npm (OIDC provenance) and GitHub; first release since
+Jan 2022. Editor fix, rega/xmlrpc 2.0, binrpc 3.3.2, CCU-Jack, payload
+guard, examples — all verified in the 2026-09-02 smoke test.
 
 ## 6. Phase 3 — refactor & tests
 

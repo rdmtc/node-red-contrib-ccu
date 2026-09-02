@@ -9,6 +9,9 @@ the roadmap's contents index (marked ✅ there, linking here).
 
 **Phases**
 
+- [phase-2.md](phase-2.md) — Phase 2: compatibility release 4.0.0 ✅
+  2026-09-02 (editor fix, rega/xmlrpc 2.0, binrpc 3.3.2, CCU-Jack,
+  released to npm with OIDC provenance).
 - [phase-1.md](phase-1.md) — Phase 1: tooling groundwork ✅ 2026-09-01
   (CI + OIDC release pipeline, ESLint 9 + Prettier, dependency pruning
   10 → 4, mocha 11 / test-helper 0.3.6 / c8, CHANGELOG bootstrap).
