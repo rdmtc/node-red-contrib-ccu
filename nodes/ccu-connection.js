@@ -5,6 +5,8 @@ const fs = require('fs');
 const crypto = require('crypto');
 
 const base62 = require('./lib/base62.js').toBase62;
+const {castValue} = require('./lib/cast.js');
+const {topicReplace} = require('./lib/topic.js');
 const {bestMatch} = require('./lib/similarity.js');
 const nextport = require('./lib/nextport.js');
 const hmDiscover = require('./lib/discover.js');
@@ -2575,30 +2577,7 @@ module.exports = function (RED) {
          * @returns {*}
          */
         topicReplace(topic, message) {
-            if (!topic || typeof message !== 'object') {
-                return topic;
-            }
-
-            const messageLower = {};
-            Object.keys(message).forEach((k) => {
-                messageLower[k.toLowerCase()] = message[k];
-            });
-
-            const match = topic.match(/\${[^}]+}/g);
-            if (match) {
-                match.forEach((v) => {
-                    const key = v.substr(2, v.length - 3);
-                    const rx = new RegExp('\\${' + key + '}', 'g');
-                    let rkey = key.toLowerCase();
-                    if (rkey === 'interface') {
-                        rkey = 'iface';
-                    }
-
-                    topic = topic.replace(rx, typeof messageLower[rkey] === 'undefined' ? '' : messageLower[rkey]);
-                });
-            }
-
-            return topic;
+            return topicReplace(topic, message);
         }
 
         /**
@@ -3119,69 +3098,12 @@ module.exports = function (RED) {
         paramCast(iface, address, psName, datapoint, value) {
             const device = this.metadata.devices[iface] && this.metadata.devices[iface][address];
             const psKey = this.paramsetName(iface, device, psName);
-            const paramset = this.paramsetDescriptions[psKey] && this.paramsetDescriptions[psKey][datapoint];
-            if (paramset) {
-                switch (paramset.TYPE) {
-                    case 'ACTION':
-                    // Fallthrough by intention
-                    case 'BOOL':
-                        if (value === 'false') {
-                            value = false;
-                        } else if (!isNaN(value)) {
-                            // Make sure that the string "0" gets casted to boolean false
-                            value = Number(value);
-                        }
-
-                        value = Boolean(value);
-                        break;
-                    case 'FLOAT':
-                        value = Number.parseFloat(value) || 0;
-                        /* Todo: rethink, deactivate boundary check for now (https://github.com/rdmtc/node-red-contrib-ccu/issues/74)
-                        if (typeof paramset.MIN !== 'undefined' && value < paramset.MIN) {
-                            value = paramset.MIN;
-                        } else if (typeof paramset.MAX !== 'undefined' && value > paramset.MAX) {
-                            value = paramset.MAX;
-                        }
-                        */
-                        value = {explicitDouble: value};
-                        break;
-                    case 'ENUM':
-                        if (typeof value === 'string') {
-                            if (paramset.ENUM && paramset.ENUM.includes(value)) {
-                                value = paramset.ENUM.indexOf(value);
-                            }
-                        }
-
-                    // Fallthrough by intention
-                    case 'INTEGER':
-                        if (typeof value === 'boolean') {
-                            value = Number(value);
-                        } else {
-                            value = Number.parseInt(value, 10) || 0;
-                        }
-                        /* Todo: rethink, deactivate boundary check for now (https://github.com/rdmtc/node-red-contrib-ccu/issues/74)
-                        if (typeof paramset.MIN !== 'undefined' && value < paramset.MIN) {
-                            value = paramset.MIN;
-                        } else if (typeof paramset.MAX !== 'undefined' && value > paramset.MAX) {
-                            value = paramset.MAX;
-                        }
-                        */
-
-                        break;
-                    case 'STRING':
-                        value = String(value);
-                        break;
-                    default:
-                }
-            } else {
+            const description = this.paramsetDescriptions[psKey] && this.paramsetDescriptions[psKey][datapoint];
+            if (!description) {
                 this.logger.warn('unknown paramsetDescription ', psKey, datapoint);
-                // Fallback: use string for numbers, this should work for double and integer datapoints
-                if (typeof value === 'number') {
-                    value = String(value);
-                }
             }
 
-            return value;
+            return castValue(value, description);
         }
 
         /**
