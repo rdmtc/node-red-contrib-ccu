@@ -116,7 +116,7 @@ async function fetchIface(iface, spec, host, dump, {delay, limit}) {
                 dump[key] = await methodCall(client, 'getParamsetDescription', [device.ADDRESS, paramset]);
                 fetched++;
                 process.stdout.write('\r' + iface + ': ' + fetched + ' keys fetched');
-            } catch (error) {
+            } catch {
                 failed++;
                 await sleep(delay);
                 try {
