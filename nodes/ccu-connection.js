@@ -5,7 +5,7 @@ const fs = require('fs');
 const crypto = require('crypto');
 
 const base62 = require('./lib/base62.js').toBase62;
-const {castValue} = require('./lib/cast.js');
+const {castValue, castSysvar} = require('./lib/cast.js');
 const {createMessage} = require('./lib/message.js');
 const {topicReplace} = require('./lib/topic.js');
 const {bestMatch} = require('./lib/similarity.js');
@@ -1257,29 +1257,7 @@ module.exports = function (RED) {
                 const sysvar = this.sysvar[name];
                 delete this.setVariableQueue[name];
                 if (sysvar) {
-                    switch (sysvar.valueType) {
-                        case 'boolean':
-                            if (typeof value === 'string') {
-                                if (sysvar.enum.includes(value)) {
-                                    value = sysvar.enum.indexOf(value);
-                                }
-                            }
-
-                            value = Boolean(value);
-                            break;
-                        case 'string':
-                            value = '"' + value + '"';
-                            break;
-                        default:
-                            if (typeof value === 'string') {
-                                if (sysvar.enum.includes(value)) {
-                                    value = sysvar.enum.indexOf(value);
-                                }
-                            }
-
-                            value = Number.parseFloat(value) || 0;
-                            break;
-                    }
+                    value = castSysvar(value, sysvar);
 
                     const script = `dom.GetObject(${sysvar.id}).State(${value});`;
                     this.logger.debug('setVariable', name, script);

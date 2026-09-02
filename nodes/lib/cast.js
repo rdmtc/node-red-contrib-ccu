@@ -67,4 +67,40 @@ function castValue(value, description) {
     return value;
 }
 
-module.exports = {castValue};
+/**
+ * Cast a value for writing a ReGa system variable — returns the literal to
+ * embed in the `dom.GetObject(id).State(...)` script. Extracted unchanged
+ * from ccu-connection.js setVariable (Phase 3).
+ * @param {*} value
+ * @param {{valueType: string, enum: string[]}} sysvar
+ * @returns {boolean|number|string} script literal (strings come back quoted)
+ */
+function castSysvar(value, sysvar) {
+    switch (sysvar.valueType) {
+        case 'boolean':
+            if (typeof value === 'string') {
+                if (sysvar.enum.includes(value)) {
+                    value = sysvar.enum.indexOf(value);
+                }
+            }
+
+            value = Boolean(value);
+            break;
+        case 'string':
+            value = '"' + value + '"';
+            break;
+        default:
+            if (typeof value === 'string') {
+                if (sysvar.enum.includes(value)) {
+                    value = sysvar.enum.indexOf(value);
+                }
+            }
+
+            value = Number.parseFloat(value) || 0;
+            break;
+    }
+
+    return value;
+}
+
+module.exports = {castValue, castSysvar};
