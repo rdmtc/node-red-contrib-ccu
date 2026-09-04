@@ -62,9 +62,10 @@ Lab addresses and credentials are intentionally **not** in this file
 ## B-16 branch `b-16-homeassistant` (2026-09-04, target 4.2.0)
 
 - Implemented and committed on the branch (not pushed): ccu-homeassistant
-  node + `lib/haroles.js` + `lib/hadiscovery.js` (ported from hm2mqtt.js,
-  channel TYPE as primary role key because the paramset cache has no
-  CONTROL hints), 24 unit tests, ccu-mqtt HA command words + empty-name
+  node + `lib/haroles.js` + `lib/hadiscovery.js` (ported from hm2mqtt.js;
+  channel TYPE is the primary role key because only ~45 % of the shipped
+  VALUES descriptions carry CONTROL hints), 24 unit tests, ccu-mqtt HA
+  command words + empty-name
   topic fix, ccu-connection `deregister` fix and `type=devices` admin
   endpoint, README section, `examples/home-assistant.json`, CHANGELOG
   "Unreleased (4.2.0)". Details in ROADMAP B-16.

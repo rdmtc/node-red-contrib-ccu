@@ -4,7 +4,7 @@ const assert = require('node:assert/strict');
 const {channelRole, haUnit, isFraction, ROLE_BY_TYPE, PARAMETERS} = require('../../nodes/lib/haroles.js');
 
 test('role comes from the channel TYPE when the description has no CONTROL hints', () => {
-    // the shipped paramsets.json carries no CONTROL fields at all
+    // about half of the shipped paramsets.json VALUES entries carry no CONTROL fields
     const noControl = {STATE: {TYPE: 'BOOL', OPERATIONS: 7}};
     assert.equal(channelRole('SWITCH_VIRTUAL_RECEIVER', noControl), 'switch');
     assert.equal(channelRole('SWITCH_TRANSMITTER', noControl), 'switch_state');

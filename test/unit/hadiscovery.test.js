@@ -12,8 +12,8 @@ const {
     discoveryMessages,
 } = require('../../nodes/lib/hadiscovery.js');
 
-/* Fixtures are built from the shipped paramsets.json, i.e. descriptions
-   without CONTROL hints — exactly what an existing install has. */
+/* Fixtures are built from the shipped paramsets.json — exactly what an
+   existing install has (some entries carry CONTROL hints, others do not). */
 
 function fixture(iface, address, type, firmware, version, channelTypes, names = {}) {
     const devices = {[iface]: {}};

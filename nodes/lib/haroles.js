@@ -2,10 +2,11 @@
    Ported from hm2mqtt.js lib/roles.js (same author) for B-16.
 
    hm2mqtt derives the role from the CONTROL hint eQ-3 puts on every VALUES
-   parameter. The paramset cache shipped with this package (and therefore the
-   persisted cache of every existing install) carries no CONTROL fields, so
-   here the channel TYPE is the primary key and CONTROL only refines where a
-   live-fetched description has it. Pure functions and tables, no I/O. */
+   parameter. In the paramset cache shipped with this package (and therefore
+   in the persisted cache of existing installs) only about half of the VALUES
+   descriptions carry CONTROL fields — the older contributed user dumps were
+   stripped of them — so here the channel TYPE is the primary key and CONTROL
+   only refines where the description has it. Pure functions and tables, no I/O. */
 
 /** CONTROL hint of a channel's primary datapoint → role; checked in this order */
 const ROLE_BY_CONTROL = [
