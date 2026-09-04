@@ -104,6 +104,9 @@ test('HmIP switch actuator: one switch from the first virtual receiver, state fr
     assert.equal(sw.stat_t, 'hm/status/ABC0001:3/STATE', 'state topic is the SWITCH_TRANSMITTER channel');
     assert.equal(sw.cmd_t, 'hm/set/ABC0001:4/STATE');
     assert.equal(sw.pl_on, 'true');
+    assert.equal(sw.pl_off, 'false');
+    assert.equal(sw.stat_on, 'ON', 'templated state must be compared with ON/OFF, not the command payloads');
+    assert.equal(sw.stat_off, 'OFF');
     assert.equal(sw.val_tpl, "{{ 'ON' if value_json.val else 'OFF' }}");
     assert.equal(sw.en, undefined, 'first receiver is enabled');
 
@@ -127,7 +130,7 @@ test('HmIP key channels become event entities', () => {
 test('maintenance channel: availability from UNREACH, diagnostics disabled by default', () => {
     const b = block(bsm());
     assert.deepEqual(b.availability, [
-        {t: 'hm/status/ABC0001:0/UNREACH', avty_tpl: "{{ 'offline' if value_json.val else 'online' }}"},
+        {t: 'hm/status/ABC0001:0/UNREACH', val_tpl: "{{ 'offline' if value_json.val else 'online' }}"},
     ]);
     const rssi = b.components['0_RSSI_DEVICE'];
     assert.equal(rssi.p, 'sensor');
@@ -169,6 +172,8 @@ test('generic entities: write-only ACTION → button, writable FLOAT → number,
     const process = b.components['4_PROCESS'];
     assert.equal(process.p, 'sensor');
     assert.equal(process.val_tpl, '{{ ["STABLE","NOT_STABLE"][value_json.val | int(0)] }}');
+    assert.equal(process.dev_cla, undefined, '"running" is a binary_sensor class — HA rejects it on a sensor');
+    assert.equal(b.components['4_ON_TIME'].dev_cla, undefined);
 });
 
 test('HM blind: cover with position, DIRECTION state and no tilt', () => {
@@ -319,7 +324,7 @@ test('plain payloads: templates read `value` and parse 0/1/true/on', () => {
     assert.equal(sw.val_tpl, "{{ 'ON' if (value | string | lower) in ('1', 'true', 'on') else 'OFF' }}");
     assert.equal(b.components['0_RSSI_DEVICE'].val_tpl, '{{ value }}');
     assert.deepEqual(
-        b.availability[0].avty_tpl,
+        b.availability[0].val_tpl,
         "{{ 'offline' if (value | string | lower) in ('1', 'true', 'on') else 'online' }}",
     );
 });
@@ -371,6 +376,29 @@ test('discoveryMessages: selected devices, missing addresses, devices without en
     assert.equal(messages[0].topic, 'homeassistant/device/ccu_ABC0001/config');
     assert.deepEqual(missing, ['GONE01', 'ABC0001:4'], 'channels are not devices');
     assert.deepEqual(empty, ['EMPTY01']);
+});
+
+test('HmIP wired input channel: opening binary_sensor plus a key event for its presses', () => {
+    const fx = fixture(
+        'HmIP-RF',
+        'ABC0004',
+        'HmIPW-DRI16',
+        '1.2.2',
+        1,
+        ['MAINTENANCE', 'MULTI_MODE_INPUT_TRANSMITTER'],
+        {
+            ABC0004: 'Eingänge',
+        },
+    );
+    const b = block(fx);
+    const contact = b.components['1_STATE'];
+    assert.equal(contact.p, 'binary_sensor');
+    assert.equal(contact.dev_cla, 'opening');
+    const ev = b.components['1_PRESS'];
+    assert.equal(ev.p, 'event');
+    assert.deepEqual(ev.evt_typ, ['press_short', 'press_long', 'press_long_release']);
+    assert.equal(b.components['1_PRESS_SHORT'], undefined);
+    assert.equal(b.components['1_PRESS_LONG_START'], undefined, 'readable-only ACTION yields no generic entity');
 });
 
 test('topics are taken verbatim from the callbacks (custom ccu-mqtt templates)', () => {

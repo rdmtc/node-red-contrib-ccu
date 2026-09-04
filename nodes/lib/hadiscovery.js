@@ -19,6 +19,28 @@ const TILT_TYPES = /BLIND/;
 /** Platforms without a state topic. */
 const STATELESS = new Set(['button', 'notify', 'scene', 'tag']);
 
+/** device classes that only binary_sensor knows — a sensor/number with one of them is rejected by HA */
+const BINARY_ONLY_CLASSES = new Set([
+    'running',
+    'update',
+    'problem',
+    'tamper',
+    'connectivity',
+    'motion',
+    'occupancy',
+    'safety',
+    'opening',
+    'window',
+    'door',
+    'smoke',
+    'plug',
+    'light',
+    'lock',
+    'presence',
+    'vibration',
+    'sound',
+]);
+
 /**
  * @typedef {object} DiscoveryContext
  * @property {string} [prefix] discovery prefix (default homeassistant)
@@ -230,6 +252,33 @@ function deviceBlock(ctx, iface, device) {
         const key = (dp) => `${ch.index}_${dp}`;
         const disabled = ch.secondary ? {en: false} : {};
 
+        /** key presses: one event entity per channel, fed by the aggregate <channel>/PRESS item
+            that the ccu-homeassistant node publishes */
+        const pressEvent = () => {
+            const types = ['PRESS_SHORT', 'PRESS_LONG', 'PRESS_LONG_RELEASE', 'PRESS_CONT'].filter((dp) => has(dp));
+            if (types.length === 0) {
+                return;
+            }
+
+            add(
+                key('PRESS'),
+                e('PRESS', 'event', label, {
+                    extra: {
+                        dev_cla: 'button',
+                        evt_typ: types.map((x) => x.toLowerCase()),
+                        val_tpl: `{{ {'event_type': (${t.v} | string | lower)} | tojson }}`,
+                    },
+                }),
+            );
+            for (const dp of types) {
+                consumed.add(dp);
+            }
+        };
+
+        // HA compares the templated state with state_on/state_off, which default to the
+        // command payloads — say explicitly that the template yields ON/OFF
+        const onOff = {pl_on: 'true', pl_off: 'false', stat_on: 'ON', stat_off: 'OFF'};
+
         switch (ch.role) {
             case 'switch':
                 if (has('STATE')) {
@@ -240,8 +289,7 @@ function deviceBlock(ctx, iface, device) {
                             extra: {
                                 stat_t: sst('STATE'),
                                 val_tpl: t.bool(),
-                                pl_on: 'true',
-                                pl_off: 'false',
+                                ...onOff,
                                 ...disabled,
                             },
                         }),
@@ -370,6 +418,8 @@ function deviceBlock(ctx, iface, device) {
                     consumed.add('STATE');
                 }
 
+                // HmIP input channels (FCI, DRI16/32, SCI) report presses as well
+                pressEvent();
                 break;
             case 'rotary_handle':
                 if (has('STATE')) {
@@ -390,27 +440,9 @@ function deviceBlock(ctx, iface, device) {
                 }
 
                 break;
-            case 'key': {
-                const types = ['PRESS_SHORT', 'PRESS_LONG', 'PRESS_LONG_RELEASE', 'PRESS_CONT'].filter((dp) => has(dp));
-                if (types.length > 0) {
-                    // the aggregate PRESS item is published by the ccu-homeassistant node itself
-                    add(
-                        key('PRESS'),
-                        e('PRESS', 'event', label, {
-                            extra: {
-                                dev_cla: 'button',
-                                evt_typ: types.map((x) => x.toLowerCase()),
-                                val_tpl: `{{ {'event_type': (${t.v} | string | lower)} | tojson }}`,
-                            },
-                        }),
-                    );
-                    for (const dp of types) {
-                        consumed.add(dp);
-                    }
-                }
-
+            case 'key':
+                pressEvent();
                 break;
-            }
 
             case 'climate_hmip':
                 if (has('SET_POINT_TEMPERATURE')) {
@@ -615,6 +647,9 @@ function deviceBlock(ctx, iface, device) {
                 ...(facts.ent_cat && {ent_cat: facts.ent_cat}),
                 ...(!enabled && {en: false}),
             };
+            // sensor/number accept only their own device classes, select none at all
+            const sensorCommon = BINARY_ONLY_CLASSES.has(common.dev_cla) ? {...common, dev_cla: undefined} : common;
+            const selectCommon = {...common, dev_cla: undefined};
             const unit = facts.unit || haUnit(d.UNIT);
             const value = isFraction(d) ? t.percent : t.num;
             if (d.TYPE === 'BOOL' || d.TYPE === 'ACTION') {
@@ -631,7 +666,7 @@ function deviceBlock(ctx, iface, device) {
                         key(dp),
                         e(dp, 'switch', dpLabel, {
                             command: true,
-                            extra: {val_tpl: t.bool(), pl_on: 'true', pl_off: 'false', ...common},
+                            extra: {val_tpl: t.bool(), ...onOff, ...common},
                         }),
                     );
                 } else if (d.TYPE === 'BOOL') {
@@ -656,7 +691,7 @@ function deviceBlock(ctx, iface, device) {
                                 options: d.VALUE_LIST,
                                 val_tpl: `{{ ${JSON.stringify(d.VALUE_LIST)}[${t.int}] }}`,
                                 cmd_tpl: `{{ ${JSON.stringify(d.VALUE_LIST)}.index(value) }}`,
-                                ...common,
+                                ...selectCommon,
                             },
                         }),
                     );
@@ -664,7 +699,7 @@ function deviceBlock(ctx, iface, device) {
                     add(
                         key(dp),
                         e(dp, 'sensor', dpLabel, {
-                            extra: {val_tpl: `{{ ${JSON.stringify(d.VALUE_LIST)}[${t.int}] }}`, ...common},
+                            extra: {val_tpl: `{{ ${JSON.stringify(d.VALUE_LIST)}[${t.int}] }}`, ...sensorCommon},
                         }),
                     );
                 }
@@ -686,7 +721,7 @@ function deviceBlock(ctx, iface, device) {
                                 step: d.TYPE === 'INTEGER' ? 1 : isFraction(d) ? 1 : 0.1,
                                 ...(unit && {unit_of_meas: unit}),
                                 ...(isFraction(d) && {cmd_tpl: '{{ (value / 100) | round(3) }}'}),
-                                ...common,
+                                ...sensorCommon,
                             },
                         }),
                     );
@@ -700,7 +735,7 @@ function deviceBlock(ctx, iface, device) {
                             val_tpl: value,
                             ...(unit && {unit_of_meas: unit}),
                             ...(facts.stat_cla && {stat_cla: facts.stat_cla}),
-                            ...common,
+                            ...sensorCommon,
                         },
                     }),
                 );
@@ -708,7 +743,7 @@ function deviceBlock(ctx, iface, device) {
             }
 
             if (d.TYPE === 'STRING' && readable) {
-                add(key(dp), e(dp, 'sensor', dpLabel, {extra: {val_tpl: t.num, ...common}}));
+                add(key(dp), e(dp, 'sensor', dpLabel, {extra: {val_tpl: t.num, ...sensorCommon}}));
             }
         }
     }
@@ -719,9 +754,11 @@ function deviceBlock(ctx, iface, device) {
 
     // availability: the device's UNREACH (retained by ccu-mqtt) — there is no
     // bridge "connected" topic in the ccu-mqtt topic scheme
+    // (an entry of the availability list takes `val_tpl`; `avty_tpl` is only valid at
+    // the top level next to `avty_t` — HA rejects the whole device payload otherwise)
     const availability = [];
     if (maintenance && maintenance.description.UNREACH) {
-        availability.push({t: st(iface, maintenance.ADDRESS, 'UNREACH'), avty_tpl: t.bool('offline', 'online')});
+        availability.push({t: st(iface, maintenance.ADDRESS, 'UNREACH'), val_tpl: t.bool('offline', 'online')});
     }
 
     return {

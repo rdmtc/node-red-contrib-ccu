@@ -125,10 +125,19 @@ module.exports = function (RED) {
 
                 return (device.CHILDREN || []).every((ch) => {
                     const channel = ccu.metadata.devices[iface][ch];
-                    // getParamsetDescription answers {} (and queues the fetch) while uncached
-                    return (
-                        !channel || Object.keys(ccu.getParamsetDescription(iface, channel, 'VALUES') || {}).length > 0
-                    );
+                    if (!channel) {
+                        return true;
+                    }
+
+                    // cached = key present; a legitimately empty VALUES paramset ({}) counts as
+                    // cached, only a missing key means the fetch is still pending
+                    const key = ccu.paramsetName(iface, channel, 'VALUES');
+                    if (ccu.paramsetDescriptions[key] !== undefined) {
+                        return true;
+                    }
+
+                    ccu.getParamsetDescription(iface, channel, 'VALUES'); // queues the fetch
+                    return false;
                 });
             });
         }

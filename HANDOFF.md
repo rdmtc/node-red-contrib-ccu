@@ -69,16 +69,22 @@ Lab addresses and credentials are intentionally **not** in this file
   topic fix, ccu-connection `deregister` fix and `type=devices` admin
   endpoint, README section, `examples/home-assistant.json`, CHANGELOG
   "Unreleased (4.2.0)". Details in ROADMAP B-16.
-- Local `npm test`: lint + 70 pure tests green. The mocha integration
+- Local `npm test`: lint + 71 pure tests green. The mocha integration
   suite cannot run on this WSL machine (hm-simulator's port 8181 →
   EADDRINUSE, identical on master) — push the branch and let CI run it.
-- Manual test plan (needs Home Assistant ≥ 2024.11 + a broker): deploy
-  the example flow on the Node-RED test box, tick 2–3 devices (HmIP
-  switch actuator, blind, thermostat, a key), check HA's MQTT integration
-  shows the devices with the expected entities and no "invalid config"
-  log lines; toggle a switch from HA (→ `hm/set/<addr>/STATE` → device),
-  press a key (event entity fires via `…/PRESS`), untick a device +
-  deploy → gone from HA.
+- **Lab test done 2026-09-04** on the CCU3 lab box (branch build
+  installed into RedMatic, `node-red-contrib-aedes` as broker inside
+  Node-RED, flow tab "B-16 Home Assistant" left deployed there) against
+  Home Assistant 2026.9.0 in docker on WSL: 3 wired devices discovered
+  (232 entities, 47 enabled), switch round trip on/off, DRI16 event
+  entities, removal on untick — all good after fixing three payload
+  defects HA had rejected (see ROADMAP B-16). Scripts for the whole setup
+  (install, deploy, HA onboarding, status via comms websocket) are in
+  this session's scratchpad; the lab hand-over note lists the HA
+  container and login.
+- Still open: editor smoke test in a browser on the lab box (device
+  table, ccu-mqtt select), light/cover/climate payloads (use the
+  HmIP-PDT on the OpenCCU box), a real key press, CI.
 - Merge after 4.1.0 is released (rebase onto master; the CHANGELOG has
   separate Unreleased sections, so this is trivial).
 
