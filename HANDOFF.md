@@ -20,7 +20,7 @@ Lab addresses and credentials are intentionally **not** in this file
 
 - **The production CCU3 stays on firmware 3.87.6.** No update for the
   sake of the paramsets regeneration. The regen runs against it as-is;
-  what matters is the set of *paired* device types, and 3.87.6 already
+  what matters is the set of _paired_ device types, and 3.87.6 already
   reports the current descriptions for those (verified for the heating
   group / eTRV in docs/paramsets.md §4).
 - **Two lab systems exist** (set up for the RedMatic 9.0.0 work, see
@@ -53,12 +53,12 @@ Lab addresses and credentials are intentionally **not** in this file
    blind): on the Node-RED test box, write a slat value to the paired
    HmIP-FBL's virtual-receiver channel (`:4`) via a ccu-value node with
    datapoint LEVEL_2; the debug log should show `setValue LEVEL_2 <v> ->
-   COMBINED_PARAMETER L2=<pct>` and the slats should move. Deploy
+COMBINED_PARAMETER L2=<pct>` and the slats should move. Deploy
    procedure below.
 3. **Release 4.1.0**: CHANGELOG heading `## Unreleased (4.1.0)` →
    `## 4.1.0 (<date>)`, `npm pkg set version=4.1.0`, commit
    (`4.1.0: <short title>`), push, wait for CI green, `git tag v4.1.0 &&
-   git push origin v4.1.0` — release.yml publishes via OIDC and creates
+git push origin v4.1.0` — release.yml publishes via OIDC and creates
    the GitHub release from the CHANGELOG.
 
 ## Infrastructure (this does not travel via git; addresses live outside the repo)
@@ -68,8 +68,8 @@ Lab addresses and credentials are intentionally **not** in this file
   `journalctl -u node-red`, user dir `/root/.node-red`, nginx TLS in
   front with internal CA certs. Deploy: `npm pack` → scp tarball →
   `cd /root/.node-red && npm install /tmp/<tarball> && systemctl restart
-  node-red`. Verify: `curl -s http://localhost:1880/nodes -H "Accept:
-  application/json"`.
+node-red`. Verify: `curl -s http://localhost:1880/nodes -H "Accept:
+application/json"`.
 - **Production CCU3** (fw 3.87.6, stays there): read-only ssh as root
   works. HmIP-only (no legacy BidCos devices paired). Gotcha that cost
   hours: the CCU firewall must allow the CCU → Node-RED callback port,
