@@ -7,13 +7,15 @@ Lab addresses and credentials are intentionally **not** in this file
 
 ## State
 
-- **4.0.0 released 2026-09-02** (npm latest, OIDC provenance, GitHub
-  release). Master is at `4.1.0-dev.5`+, **CI fully green** (lint + Node
-  22/24 × Node-RED 4/5).
-- In the Unreleased (4.1.0) changelog: binrpc 4.2.0, B-14
-  (LEVEL_2 → COMBINED_PARAMETER, unverified on hardware), paramsets
-  fetch/join tooling. Phase 3: cast/topic/message/castSysvar extracted,
-  43 unit tests (`npm run test:pure`).
+- **4.0.0 released 2026-09-02, 4.1.0 released 2026-09-04** (npm latest
+  = 4.1.0, OIDC provenance, GitHub releases). 4.1.0 = binrpc 4.2.0, B-14
+  (LEVEL_2 → COMBINED_PARAMETER, unverified on hardware by decision),
+  paramsets fetch/join tooling and the regenerated `paramsets.json`
+  (+605 keys from the production CCU and two lab CCUs). Phase 3:
+  cast/topic/message/castSysvar extracted, 43 unit tests
+  (`npm run test:pure`, 71 on the B-16 branch).
+- Branch `b-16-homeassistant` (4.2.0) is pushed and **CI green** on all
+  legs including the mocha integration suite.
 - Issue tracker fully triaged; B-6/B-14 archived; roadmap is current.
 
 ## Decisions (2026-09-04)
@@ -50,14 +52,55 @@ Lab addresses and credentials are intentionally **not** in this file
    (ccu-value node writing LEVEL_2 to the HmIP-FBL's `:4` channel on
    the Node-RED test box, log shows the COMBINED_PARAMETER remap) stays
    valid if it is ever wanted.
-3. **Release 4.1.0** — in progress 2026-09-04: CHANGELOG heading dated,
-   `npm pkg set version=4.1.0`, commit, push, CI green, `git tag v4.1.0
-&& git push origin v4.1.0` — release.yml publishes via OIDC and
-   creates the GitHub release from the CHANGELOG.
-4. **Release 4.2.0 = B-16** right after: user does the editor smoke test
-   on a lab CCU (the branch build is installed on both), then rebase the
-   branch onto master, push for CI, merge, date the CHANGELOG section,
-   version 4.2.0, tag. B-2 moves to 4.3.0.
+3. ~~Release 4.1.0~~ **done 2026-09-04** (tag v4.1.0, release.yml green,
+   npm latest 4.1.0). Follow-up worth doing: comment on #136/#154/#175
+   that 4.1.0 contains the LEVEL_2 fix and ask for confirmation on real
+   hardware (needs the user's go — outward-facing).
+4. **Release 4.2.0 = B-16** — editor smoke test done by the user
+   2026-09-04 (ok), released the same day: branch merged into master
+   with `--no-ff` (never rebase with `-X theirs` — it silently keeps the
+   branch side of conflicting doc hunks, which bit twice today), CHANGELOG
+   dated, version 4.2.0, tag v4.2.0. B-16 archived. B-2 is 4.3.0.
+
+## B-16 branch `b-16-homeassistant` (2026-09-04, target 4.2.0)
+
+- Implemented and committed on the branch (not pushed): ccu-homeassistant
+  node + `lib/haroles.js` + `lib/hadiscovery.js` (ported from hm2mqtt.js;
+  channel TYPE is the primary role key because only ~45 % of the shipped
+  VALUES descriptions carry CONTROL hints), 24 unit tests, ccu-mqtt HA
+  command words + empty-name
+  topic fix, ccu-connection `deregister` fix and `type=devices` admin
+  endpoint, README section, `examples/home-assistant.json`, CHANGELOG
+  "Unreleased (4.2.0)". Details in ROADMAP B-16.
+- Local `npm test`: lint + 71 pure tests green. The mocha integration
+  suite cannot run on this WSL machine (hm-simulator's port 8181 →
+  EADDRINUSE, identical on master) — push the branch and let CI run it.
+- **Lab test done 2026-09-04** on the CCU3 lab box (branch build
+  installed into RedMatic, `node-red-contrib-aedes` as broker inside
+  Node-RED, flow tab "B-16 Home Assistant" left deployed there) against
+  Home Assistant 2026.9.0 in docker on WSL: 3 wired devices discovered
+  (232 entities, 47 enabled), switch round trip on/off, DRI16 event
+  entities, removal on untick — all good after fixing three payload
+  defects HA had rejected (see ROADMAP B-16). Scripts for the whole setup
+  (install, deploy, HA onboarding, status via comms websocket) are in
+  this session's scratchpad; the lab hand-over note lists the HA
+  container and login.
+- Second round on the OpenCCU lab box (branch build installed there too,
+  flow tab "B-16 Home Assistant" with topic prefix `hm2/` and plain
+  payloads, publishing to the CCU3 box's broker): HmIP-PDT light round
+  trip with brightness verified, HmIP-WRC2 events discovered, no HA
+  warnings.
+- she (Smart Home Engine) as consumer: the user moved their she dev
+  instance to the test broker, and both lab flows now publish there as
+  well (second mqtt-broker config in each flow), so that instance's
+  HA-discovery view lists the 5 lab devices (no orphaned/duplicate
+  flags) — the quick check for future B-16 changes; a private she on the
+  lab broker exists too. Details and addresses in the lab hand-over note.
+- Still open: editor smoke test in a browser on a lab box (device table,
+  ccu-mqtt select), a real key press (event entity), CI. Cover/climate
+  payloads have no lab hardware — unit tests only.
+- Merge after 4.1.0 is released (rebase onto master; the CHANGELOG has
+  separate Unreleased sections, so this is trivial).
 
 ## Infrastructure (this does not travel via git; addresses live outside the repo)
 

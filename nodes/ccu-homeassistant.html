@@ -1,0 +1,334 @@
+<script type="text/javascript">
+    RED.nodes.registerType('ccu-homeassistant', {
+        category: 'ccu',
+        defaults: {
+            name: {value: ''},
+            ccuConfig: {value: 'localhost', type: 'ccu-connection', required: true},
+            mqttNode: {value: '', required: true},
+            prefix: {value: 'homeassistant'},
+            generic: {value: true},
+            devices: {value: {}},
+        },
+        inputs: 1,
+        outputs: 1,
+        icon: 'ccu.png',
+        color: '#c2d5e4',
+        paletteLabel: 'home assistant',
+        align: 'right',
+        label() {
+            return this.name || 'home assistant';
+        },
+        labelStyle() {
+            return this.name ? 'node_label_italic' : '';
+        },
+        oneditprepare() {
+            const that = this;
+            if (!this.devices) {
+                this.devices = {};
+            }
+
+            const $ccuConfig = $('#node-input-ccuConfig');
+            const $mqttNode = $('#node-input-mqttNode');
+            const $devices = $('#ha-devices');
+            const $filter = $('#ha-filter');
+            const $spinner = $('#ha-spinner');
+            const $message = $('#ha-message');
+
+            function escape(text) {
+                return $('<div>')
+                    .text(String(text === undefined || text === null ? '' : text))
+                    .html();
+            }
+
+            // the ccu-mqtt nodes of the flows whose topics this node reuses
+            function loadMqttNodes() {
+                const config = $ccuConfig.val();
+                const wanted = $mqttNode.val() || that.mqttNode;
+                $mqttNode.empty();
+                RED.nodes.eachNode((n) => {
+                    if (n.type !== 'ccu-mqtt') {
+                        return;
+                    }
+
+                    if (config && config !== '_ADD_' && n.ccuConfig !== config) {
+                        return;
+                    }
+
+                    const label = (n.name || 'mqtt') + '  (' + (n.topicOutputEvent || '') + ')';
+                    $mqttNode.append($('<option>').val(n.id).text(label));
+                });
+                if ($mqttNode.children().length === 0) {
+                    $mqttNode.append($('<option>').val('').text('— no ccu-mqtt node for this CCU —'));
+                }
+
+                if (wanted && $mqttNode.find('option[value="' + wanted + '"]').length > 0) {
+                    $mqttNode.val(wanted);
+                }
+            }
+
+            function applyFilter() {
+                const needle = String($filter.val() || '').toLowerCase();
+                $devices.find('tr.ha-device-row').each(function () {
+                    const $row = $(this);
+                    const haystack = $row.data('search');
+                    $row.toggle(!needle || haystack.indexOf(needle) !== -1);
+                });
+            }
+
+            function renderDevices(data) {
+                $devices.empty();
+                const addresses = Object.keys(data).sort((a, b) => {
+                    const na = data[a].name || a;
+                    const nb = data[b].name || b;
+                    return na.localeCompare(nb);
+                });
+                if (addresses.length === 0) {
+                    $message.text('No devices known yet — is the CCU connection deployed and initialized?').show();
+                    return;
+                }
+
+                addresses.forEach((addr) => {
+                    const dev = data[addr];
+                    const entry = that.devices[addr];
+                    const checked = Boolean(entry && entry.enabled === true);
+                    const search = [dev.name, addr, dev.type, dev.iface].join(' ').toLowerCase();
+                    const $row = $(
+                        '<tr class="ha-device-row">' +
+                            '<td class="ha-enabled"><input type="checkbox" class="ha-device" data-addr="' +
+                            escape(addr) +
+                            '"' +
+                            (checked ? ' checked' : '') +
+                            '></td>' +
+                            '<td class="ha-text" title="' +
+                            escape(dev.name) +
+                            '">' +
+                            escape(dev.name || addr) +
+                            '</td>' +
+                            '<td class="ha-text ha-small">' +
+                            escape(addr) +
+                            '</td>' +
+                            '<td class="ha-text ha-small">' +
+                            escape(dev.type) +
+                            '</td>' +
+                            '<td class="ha-text ha-small">' +
+                            escape(dev.iface) +
+                            '</td>' +
+                            '</tr>',
+                    );
+                    $row.data('search', search);
+                    $devices.append($row);
+                });
+                applyFilter();
+            }
+
+            let loading = false;
+            function loadDevices() {
+                const config = $ccuConfig.val();
+                $message.hide();
+                if (!config || config === '_ADD_') {
+                    $devices.empty();
+                    $message.text('Select a CCU connection first.').show();
+                    return;
+                }
+
+                if (loading) {
+                    return;
+                }
+
+                loading = true;
+                $spinner.show();
+                $.getJSON('ccu?config=' + config + '&type=devices')
+                    .done((data) => {
+                        renderDevices(data || {});
+                    })
+                    .fail(() => {
+                        $devices.empty();
+                        $message.text('CCU connection not ready — deploy the CCU config node first, then reopen.').show();
+                    })
+                    .always(() => {
+                        loading = false;
+                        $spinner.hide();
+                    });
+            }
+
+            $ccuConfig.on('change', () => {
+                loadMqttNodes();
+                loadDevices();
+            });
+            $filter.on('input keyup', applyFilter);
+            $('#ha-enable-all').on('click', () => {
+                $devices.find('tr.ha-device-row:visible input.ha-device').prop('checked', true);
+            });
+            $('#ha-disable-all').on('click', () => {
+                $devices.find('tr.ha-device-row:visible input.ha-device').prop('checked', false);
+            });
+
+            loadMqttNodes();
+            loadDevices();
+        },
+        oneditsave() {
+            const previous = this.devices || {};
+            const devices = {};
+            $('#ha-devices input.ha-device').each(function () {
+                const addr = $(this).data('addr');
+                if ($(this).is(':checked')) {
+                    devices[addr] = {enabled: true};
+                } else if (previous[addr]) {
+                    // was known before → publish a removal so Home Assistant forgets it
+                    devices[addr] = {enabled: false};
+                }
+            });
+            // keep entries of devices that were not listed this time (interface
+            // temporarily down) instead of dropping them
+            Object.keys(previous).forEach((addr) => {
+                if (!(addr in devices)) {
+                    devices[addr] = previous[addr];
+                }
+            });
+            this.devices = devices;
+        },
+    });
+</script>
+
+<script type="text/x-red" data-template-name="ccu-homeassistant">
+    <style>
+        label.ccu-checkbox {
+            display: block !important;
+            width: auto !important;
+        }
+        label.ccu-checkbox input {
+            width: auto !important;
+            margin-top: -3px !important;
+        }
+        #ha-devices {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        #ha-devices td {
+            padding: 1px 4px;
+            border-bottom: 1px solid #eee;
+        }
+        #ha-devices td.ha-text {
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            max-width: 220px;
+        }
+        #ha-devices td.ha-small {
+            font-size: 10px;
+            color: #666;
+            max-width: 120px;
+        }
+        #ha-devices td.ha-enabled {
+            width: 20px;
+        }
+        #ha-devices input.ha-device {
+            width: auto !important;
+            margin: 0 !important;
+        }
+        #ha-toolbar {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+            margin-bottom: 6px;
+        }
+        #ha-toolbar input {
+            flex: 1;
+            width: auto !important;
+        }
+        #ha-message {
+            display: none;
+            color: #888;
+            font-style: italic;
+        }
+    </style>
+    <div class="form-row">
+        <label for="node-input-name"><i class="icon-bookmark"></i> Name</label>
+        <input type="text" id="node-input-name">
+    </div>
+    <div class="form-row">
+        <label for="node-input-ccuConfig"><i class="icon-global"></i> CCU</label>
+        <input type="text" id="node-input-ccuConfig">
+    </div>
+    <div class="form-row">
+        <label for="node-input-mqttNode"><i class="fa fa-exchange"></i> MQTT node</label>
+        <select id="node-input-mqttNode" style="width: 70%"></select>
+    </div>
+    <div class="form-row">
+        <label for="node-input-prefix"><i class="fa fa-home"></i> Prefix</label>
+        <input type="text" id="node-input-prefix" placeholder="homeassistant">
+    </div>
+    <div class="form-row">
+        <label for="node-input-generic"></label>
+        <div style="width: 70%; display: inline-block; vertical-align: text-top;">
+            <label class="ccu-checkbox">
+                <input type="checkbox" id="node-input-generic">
+                <span>Also create (disabled) entities for all other datapoints</span>
+            </label>
+        </div>
+    </div>
+
+    <div class="form-row">
+        <b>Devices published to Home Assistant</b>
+    </div>
+    <div class="form-row">
+        <div id="ha-toolbar">
+            <input type="text" id="ha-filter" placeholder="filter by name, address, type">
+            <button type="button" class="red-ui-button red-ui-button-small" id="ha-enable-all">check all</button>
+            <button type="button" class="red-ui-button red-ui-button-small" id="ha-disable-all">uncheck all</button>
+            <img id="ha-spinner" src="red/images/spin.svg" style="display: none; height: 16px;">
+        </div>
+        <div id="ha-message"></div>
+        <div style="max-height: 320px; overflow-y: auto;">
+            <table id="ha-devices"></table>
+        </div>
+    </div>
+</script>
+
+<script type="text/x-red" data-help-name="ccu-homeassistant" lang="de-DE">
+    <p>Veröffentlicht Home-Assistant-MQTT-Discovery-Konfigurationen für ausgewählte Geräte.</p>
+    <p>Der Node ist ein Begleiter zum <b>ccu-mqtt</b>-Node: er übernimmt dessen Topic-Vorlagen und
+    Payload-Format, so dass die Discovery-Konfigurationen auf die Topics zeigen, die ccu-mqtt bereits
+    veröffentlicht bzw. entgegennimmt. Status und Befehle laufen weiterhin über ccu-mqtt.</p>
+    <h3>Verkabelung</h3>
+    <p>Den Ausgang mit demselben <b>mqtt out</b>-Node verbinden wie den ccu-mqtt-Node. Der Node sendet
+    <code>msg.topic</code>, <code>msg.payload</code> und <code>msg.retain</code>.</p>
+    <h3>Geräteauswahl</h3>
+    <p>Nur angehakte Geräte werden an Home Assistant gemeldet (ein HA-Gerät pro Homematic-Gerät).
+    Wird ein zuvor angehaktes Gerät abgehakt, sendet der Node beim nächsten Deploy eine leere
+    Konfiguration, die das Gerät in Home Assistant entfernt.</p>
+    <h3>Entitäten</h3>
+    <p>Schalter, Dimmer (light), Rollladen/Jalousie (cover), Thermostate (climate), Kontakte/Bewegung/
+    Rauch/Wasser (binary_sensor), Tasten (event), KeyMatic (lock), Energie/Wetter (sensor). Mit der
+    Option <i>weitere Datenpunkte</i> werden alle übrigen Datenpunkte als standardmäßig deaktivierte
+    Entitäten mitgeliefert.</p>
+    <h3>Eingang</h3>
+    <p>Jede eingehende Nachricht veröffentlicht die Discovery-Konfigurationen erneut.</p>
+    <h3>Voraussetzungen</h3>
+    <p>Home Assistant ≥ 2024.11 (gerätebasierte Discovery). Die Verfügbarkeit der Geräte wird aus dem
+    UNREACH-Datenpunkt des Wartungskanals abgeleitet.</p>
+</script>
+
+<script type="text/x-red" data-help-name="ccu-homeassistant" lang="en-US">
+    <p>Publishes Home Assistant MQTT discovery configurations for selected devices.</p>
+    <p>The node is a companion to the <b>ccu-mqtt</b> node: it reuses that node's topic templates and
+    payload format, so the discovery configs point at the topics ccu-mqtt already publishes and
+    consumes. State and commands keep flowing through ccu-mqtt.</p>
+    <h3>Wiring</h3>
+    <p>Connect the output to the same <b>mqtt out</b> node as the ccu-mqtt node. The node sends
+    <code>msg.topic</code>, <code>msg.payload</code> and <code>msg.retain</code>.</p>
+    <h3>Device selection</h3>
+    <p>Only checked devices are announced to Home Assistant (one HA device per Homematic device).
+    Unchecking a previously checked device publishes an empty config on the next deploy, which
+    removes the device from Home Assistant.</p>
+    <h3>Entities</h3>
+    <p>Switches, dimmers (light), blinds/shutters (cover), thermostats (climate), contacts/motion/
+    smoke/water (binary_sensor), keys (event), KeyMatic (lock), energy/weather (sensor). With the
+    <i>other datapoints</i> option every remaining datapoint is included as an entity that is
+    disabled by default.</p>
+    <h3>Input</h3>
+    <p>Any incoming message republishes the discovery configs.</p>
+    <h3>Requirements</h3>
+    <p>Home Assistant ≥ 2024.11 (device-based discovery). Device availability is derived from the
+    UNREACH datapoint of the maintenance channel.</p>
+</script>

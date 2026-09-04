@@ -208,6 +208,39 @@ module.exports = function (RED) {
                     break;
                 }
 
+                case 'devices': {
+                    // ccu-homeassistant editor: every device (not channel) of every, or the
+                    // given, interface with its channels
+                    const all = (config.metadata && config.metadata.devices) || {};
+                    const ifaces = request.query.iface ? [request.query.iface] : Object.keys(all);
+                    ifaces.forEach((iface) => {
+                        const devices = all[iface] || {};
+                        Object.keys(devices).forEach((addr) => {
+                            const device = devices[addr];
+                            if (!device || device.PARENT) {
+                                return;
+                            }
+
+                            object[addr] = {
+                                name: config.channelNames[addr],
+                                type: device.TYPE,
+                                iface,
+                                firmware: device.FIRMWARE,
+                                channels: (device.CHILDREN || [])
+                                    .filter((ch) => devices[ch])
+                                    .map((ch) => ({
+                                        address: ch,
+                                        name: config.channelNames[ch],
+                                        type: devices[ch].TYPE,
+                                    })),
+                            };
+                        });
+                    });
+
+                    res.status(200).send(JSON.stringify(object));
+                    break;
+                }
+
                 case 'rooms':
                     res.status(200).send(
                         JSON.stringify({
@@ -688,8 +721,10 @@ module.exports = function (RED) {
          * @returns {*}
          */
         deregister(node, done) {
-            delete node.users[node.id];
-            return done();
+            delete this.users[node.id];
+            if (typeof done === 'function') {
+                done();
+            }
         }
 
         /**

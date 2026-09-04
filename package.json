@@ -1,6 +1,6 @@
 {
   "name": "node-red-contrib-ccu",
-  "version": "4.1.0",
+  "version": "4.2.0",
   "license": "MIT",
   "main": "none",
   "keywords": [
@@ -99,6 +99,7 @@
       "ccu-get-value": "nodes/ccu-get-value.js",
       "ccu-switch": "nodes/ccu-switch.js",
       "ccu-hm2mqtt": "nodes/ccu-mqtt.js",
+      "ccu-homeassistant": "nodes/ccu-homeassistant.js",
       "ccu-alexa": "nodes/ccu-alexa.js"
     }
   },
