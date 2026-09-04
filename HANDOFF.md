@@ -44,17 +44,20 @@ Lab addresses and credentials are intentionally **not** in this file
    RPC callbacks only reach the Node-RED test box (firewall) — a live
    node-red-contrib-ccu connection against it must run there, never from
    WSL or a lab CCU. Procedure: docs/paramsets.md §3.
-2. **B-14 hardware check** (with the user's OK — it physically moves a
-   blind): on the Node-RED test box, write a slat value to the paired
-   HmIP-FBL's virtual-receiver channel (`:4`) via a ccu-value node with
-   datapoint LEVEL_2; the debug log should show `setValue LEVEL_2 <v> ->
-COMBINED_PARAMETER L2=<pct>` and the slats should move. Deploy
-   procedure below.
-3. **Release 4.1.0**: CHANGELOG heading `## Unreleased (4.1.0)` →
-   `## 4.1.0 (<date>)`, `npm pkg set version=4.1.0`, commit
-   (`4.1.0: <short title>`), push, wait for CI green, `git tag v4.1.0 &&
-git push origin v4.1.0` — release.yml publishes via OIDC and creates
-   the GitHub release from the CHANGELOG.
+2. ~~B-14 hardware check~~ **skipped by user decision 2026-09-04** — no
+   test on the production blind for now; the CHANGELOG says so and the
+   reporters of #136/#154/#175 are asked for confirmation. The recipe
+   (ccu-value node writing LEVEL_2 to the HmIP-FBL's `:4` channel on
+   the Node-RED test box, log shows the COMBINED_PARAMETER remap) stays
+   valid if it is ever wanted.
+3. **Release 4.1.0** — in progress 2026-09-04: CHANGELOG heading dated,
+   `npm pkg set version=4.1.0`, commit, push, CI green, `git tag v4.1.0
+&& git push origin v4.1.0` — release.yml publishes via OIDC and
+   creates the GitHub release from the CHANGELOG.
+4. **Release 4.2.0 = B-16** right after: user does the editor smoke test
+   on a lab CCU (the branch build is installed on both), then rebase the
+   branch onto master, push for CI, merge, date the CHANGELOG section,
+   version 4.2.0, tag. B-2 moves to 4.3.0.
 
 ## Infrastructure (this does not travel via git; addresses live outside the repo)
 
@@ -100,5 +103,6 @@ application/json"`.
    the Node-RED test box afterwards.
 2. Remaining Phase 3: split rpc/rega/queue out of ccu-connection.js,
    async/await as touched, i18n/help consolidation (#58).
-3. 4.2.0 headline: B-2 dynamic config via msg (7 issues; #133 has the
-   confirmed setValues config-mutation bug as the sharpest target).
+3. 4.3.0 headline (moved from 4.2.0, which is B-16): B-2 dynamic config
+   via msg (7 issues; #133 has the confirmed setValues config-mutation
+   bug as the sharpest target).

@@ -181,7 +181,11 @@ parallel** — B-1 is data work (firmware image + live CCU) and does not
 depend on the refactor. Ship **B-1 as 4.1.0** (~8 device issues), then
 **B-2 as 4.2.0** on the refactored base (7 issues; needs Phase 3's
 extracted value/set-value logic). Phase 3 itself closes #39, #51, #58,
-#81. B-3/B-5 ride along when ready; B-12/B-13 later. The four
+#81. **Re-sequenced 2026-09-04 (user decision):** 4.1.0 ships with the
+lab + production paramsets regen and B-14 _without_ a hardware check on
+the production blind (optimistic; reporters confirm); **4.2.0 = B-16**
+(Home Assistant discovery node, lab-verified) right after; **B-2 moves
+to 4.3.0**. B-3/B-5 ride along when ready; B-12/B-13 later. The four
 needs-info issues (#111, #145, #146, #151) are closed as
 unreproducible if the reporters have not responded by ~2026-12.
 

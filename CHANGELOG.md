@@ -5,7 +5,7 @@ Notable changes to node-red-contrib-ccu. Format follows
 user-visible symptom and the cause, not the commit list (the release notes
 append commits automatically).
 
-## Unreleased (4.1.0)
+## 4.1.0 (2026-09-04)
 
 ### Fixed
 
@@ -14,7 +14,9 @@ append commits automatically).
   the actuators accept but ignore a lone LEVEL_2 write, so writes to
   LEVEL_2 are transparently remapped to the COMBINED_PARAMETER
   datapoint (`L2=<percent>`), which is what the CCU itself sends.
-  (#136, #154, #175)
+  Verified against the CCU's own commands and in unit tests, not yet on
+  a physical actuator — feedback in the issues is welcome. (#136, #154,
+  #175)
 
 ### Changed
 
