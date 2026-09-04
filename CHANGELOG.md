@@ -5,7 +5,36 @@ Notable changes to node-red-contrib-ccu. Format follows
 user-visible symptom and the cause, not the commit list (the release notes
 append commits automatically).
 
-## 4.1.0 (2026-09-04)
+## Unreleased (4.2.0)
+
+### Added
+
+- New node **ccu-homeassistant**: publishes Home Assistant MQTT
+  auto-discovery configurations (device-based, HA >= 2024.11) for a
+  checkbox-selected set of devices. It is a companion to the ccu-mqtt
+  node and reuses its topic templates and payload format, so the
+  discovery configs point at the topics ccu-mqtt already publishes and
+  consumes; wire its output to the same mqtt-out node. Entities: switch,
+  light (dimmers), cover (blinds/shutters incl. tilt), climate (HM and
+  HmIP thermostats), binary_sensor (contact, rotary handle, motion,
+  presence, smoke, water), event (keys), lock (KeyMatic), sensor (energy,
+  weather, maintenance) plus, optionally, disabled-by-default entities for
+  every other datapoint. Unchecking a device removes it from Home
+  Assistant on the next deploy. (Roadmap B-16)
+- ccu-mqtt: the setValue topic accepts Home Assistant's command words —
+  `OPEN`, `CLOSE`, `STOP`, `ON`, `OFF` on LEVEL and `AUTO-MODE`,
+  `MANU-MODE`, `BOOST-MODE`, `COMFORT-MODE`, `LOWERING-MODE` on the
+  read-only CONTROL_MODE of HM thermostats (translated to the `*_MODE`
+  actions).
+
+### Fixed
+
+- ccu-mqtt: channels without a ReGa name produced topics with an empty
+  segment (`hm/status//STATE`); the channel address is used instead.
+- Closing a ccu-mqtt or ccu-rpc-event node threw inside the connection's
+  deregister, so the node was never reported as closed on deploy.
+
+## Unreleased (4.1.0)
 
 ### Fixed
 

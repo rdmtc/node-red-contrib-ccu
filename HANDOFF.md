@@ -59,6 +59,28 @@ Lab addresses and credentials are intentionally **not** in this file
    branch onto master, push for CI, merge, date the CHANGELOG section,
    version 4.2.0, tag. B-2 moves to 4.3.0.
 
+## B-16 branch `b-16-homeassistant` (2026-09-04, target 4.2.0)
+
+- Implemented and committed on the branch (not pushed): ccu-homeassistant
+  node + `lib/haroles.js` + `lib/hadiscovery.js` (ported from hm2mqtt.js,
+  channel TYPE as primary role key because the paramset cache has no
+  CONTROL hints), 24 unit tests, ccu-mqtt HA command words + empty-name
+  topic fix, ccu-connection `deregister` fix and `type=devices` admin
+  endpoint, README section, `examples/home-assistant.json`, CHANGELOG
+  "Unreleased (4.2.0)". Details in ROADMAP B-16.
+- Local `npm test`: lint + 70 pure tests green. The mocha integration
+  suite cannot run on this WSL machine (hm-simulator's port 8181 →
+  EADDRINUSE, identical on master) — push the branch and let CI run it.
+- Manual test plan (needs Home Assistant ≥ 2024.11 + a broker): deploy
+  the example flow on the Node-RED test box, tick 2–3 devices (HmIP
+  switch actuator, blind, thermostat, a key), check HA's MQTT integration
+  shows the devices with the expected entities and no "invalid config"
+  log lines; toggle a switch from HA (→ `hm/set/<addr>/STATE` → device),
+  press a key (event entity fires via `…/PRESS`), untick a device +
+  deploy → gone from HA.
+- Merge after 4.1.0 is released (rebase onto master; the CHANGELOG has
+  separate Unreleased sections, so this is trivial).
+
 ## Infrastructure (this does not travel via git; addresses live outside the repo)
 
 - **Node-RED test box** (Debian bookworm, Node 24, Node-RED 5.0.6, ssh as

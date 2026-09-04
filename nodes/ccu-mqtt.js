@@ -3,6 +3,18 @@ const mw = require('mqtt-wildcard');
 
 const statusHelper = require(path.join(__dirname, '/lib/status.js'));
 
+/** HM thermostats: CONTROL_MODE is read-only, the modes are set through actions */
+const HM_MODES = {
+    'AUTO-MODE': () => ['AUTO_MODE', true],
+    'MANU-MODE': (setpoint) => ['MANU_MODE', setpoint],
+    'BOOST-MODE': () => ['BOOST_MODE', true],
+    'COMFORT-MODE': () => ['COMFORT_MODE', true],
+    'LOWERING-MODE': () => ['LOWERING_MODE', true],
+};
+
+/** Words Home Assistant sends to LEVEL; 1.005 is the actuators' "old level" value */
+const LEVEL_WORDS = {OPEN: 1, CLOSE: 0, ON: 1.005, OFF: 0};
+
 module.exports = function (RED) {
     class CcuMqttNode {
         constructor(config) {
@@ -98,12 +110,15 @@ module.exports = function (RED) {
         }
 
         event(message) {
-            const topic = this.ccu.topicReplace(this.topicOutputEvent, message);
+            // channels without a ReGa name used to produce hm/status//STATE-style
+            // topics — fall back to the address (B-3)
+            const topicMessage = message.channelName ? message : {...message, channelName: message.channel};
+            const topic = this.ccu.topicReplace(this.topicOutputEvent, topicMessage);
             const retain = !(message.datapoint && message.datapoint.startsWith('PRESS_'));
             this.send({topic, payload: this.output(message), retain});
 
             if (['LEVEL', 'STATE'].includes(message.datapoint) && message.working === false) {
-                const messageNotWorking = RED.util.cloneMessage(message);
+                const messageNotWorking = RED.util.cloneMessage(topicMessage);
                 messageNotWorking.datapoint += '_NOTWORKING';
                 messageNotWorking.datapointName += '_NOTWORKING';
                 this.send({
@@ -231,7 +246,51 @@ module.exports = function (RED) {
                 return;
             }
 
-            this.ccu.setValue(iface, filter.channel, filter.datapoint, payload).catch(() => {});
+            const command = this.translateCommand(iface, filter.channel, filter.datapoint, payload);
+            this.ccu.setValue(iface, filter.channel, command.datapoint, command.payload).catch(() => {});
+        }
+
+        /**
+         * Words Home Assistant's single-topic conventions send (see the
+         * ccu-homeassistant node): LEVEL accepts OPEN, CLOSE, STOP, ON (restore the
+         * last level) and OFF; HM thermostats accept the CONTROL_MODE names
+         * (AUTO-MODE, MANU-MODE, BOOST-MODE, COMFORT-MODE, LOWERING-MODE), which
+         * are translated to the *_MODE actions because CONTROL_MODE itself is
+         * read-only there. Everything else passes through unchanged.
+         * @returns {{datapoint: string, payload: *}}
+         */
+        translateCommand(iface, channel, datapoint, payload) {
+            if (typeof payload !== 'string') {
+                return {datapoint, payload};
+            }
+
+            const word = payload.trim().toUpperCase();
+            const device = this.ccu.metadata.devices[iface] && this.ccu.metadata.devices[iface][channel];
+            const description = (device && this.ccu.getParamsetDescription(iface, device, 'VALUES')) || {};
+
+            if (datapoint === 'LEVEL') {
+                if (word === 'STOP' && description.STOP) {
+                    return {datapoint: 'STOP', payload: true};
+                }
+
+                if (word in LEVEL_WORDS) {
+                    return {datapoint, payload: LEVEL_WORDS[word]};
+                }
+            }
+
+            if (
+                datapoint === 'CONTROL_MODE' &&
+                HM_MODES[word] &&
+                description.CONTROL_MODE &&
+                !(description.CONTROL_MODE.OPERATIONS & 2)
+            ) {
+                const current = this.ccu.values[iface + '.' + channel + '.SET_TEMPERATURE'];
+                const setpoint = current && typeof current.value === 'number' ? current.value : 20;
+                const [dp, value] = HM_MODES[word](setpoint);
+                return {datapoint: dp, payload: value};
+            }
+
+            return {datapoint, payload};
         }
 
         sysvar(filter, payload) {

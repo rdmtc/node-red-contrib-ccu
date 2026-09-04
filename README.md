@@ -28,6 +28,19 @@ Some example flows can be found in the [RedMatic Wiki](https://github.com/rdmtc/
 
 **Starting with Version 3.x these Nodes need Node-RED >= 1.0 to work correctly**
 
+## Home Assistant
+
+The `ccu-homeassistant` node publishes
+[MQTT discovery](https://www.home-assistant.io/integrations/mqtt/#mqtt-discovery) configurations (device-based,
+Home Assistant >= 2024.11) for the devices you tick in its config dialog. It is a companion to the `ccu-mqtt` node:
+it reuses that node's topic templates and payload format, so state and commands keep flowing through `ccu-mqtt` and
+the discovery configs simply point Home Assistant at those topics. Wire both nodes to the same `mqtt out` node and
+feed the `hm/set/#` topics from an `mqtt in` node into `ccu-mqtt` — see
+[examples/home-assistant.json](examples/home-assistant.json). One Home Assistant device is created per Homematic
+device with switch, light, cover, climate, binary_sensor, event, lock and sensor entities; every other datapoint can
+optionally be included as a disabled-by-default entity. Unticking a device removes it from Home Assistant on the
+next deploy.
+
 ## Configuration Examples
 
 The communication with the Homematic CCU needs independent connections in two directions. Node-red-contrib-ccu connects to the CCU's interface listeners (e.g. 2001/TCP for BidCos-RF) while the CCU connects to node-red-contrib-ccu's BINRPC/XMLRPC listeners (2048/tcp and 2049/tcp in examples below).

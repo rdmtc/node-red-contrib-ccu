@@ -99,6 +99,7 @@
       "ccu-get-value": "nodes/ccu-get-value.js",
       "ccu-switch": "nodes/ccu-switch.js",
       "ccu-hm2mqtt": "nodes/ccu-mqtt.js",
+      "ccu-homeassistant": "nodes/ccu-homeassistant.js",
       "ccu-alexa": "nodes/ccu-alexa.js"
     }
   },
