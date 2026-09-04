@@ -56,13 +56,11 @@ Lab addresses and credentials are intentionally **not** in this file
    npm latest 4.1.0). Follow-up worth doing: comment on #136/#154/#175
    that 4.1.0 contains the LEVEL_2 fix and ask for confirmation on real
    hardware (needs the user's go — outward-facing).
-4. **Release 4.2.0 = B-16** next: user does the editor smoke test on a
-   lab CCU (the branch build is installed on both, the dialog code is
-   unchanged since), then merge the branch into master with `--no-ff`
-   (do **not** rebase with `-X theirs` — it silently keeps the branch
-   side of conflicting doc hunks, which bit twice today), date the
-   CHANGELOG section, `npm pkg set version=4.2.0`, commit, push, CI,
-   tag v4.2.0. B-2 moves to 4.3.0.
+4. **Release 4.2.0 = B-16** — editor smoke test done by the user
+   2026-09-04 (ok), released the same day: branch merged into master
+   with `--no-ff` (never rebase with `-X theirs` — it silently keeps the
+   branch side of conflicting doc hunks, which bit twice today), CHANGELOG
+   dated, version 4.2.0, tag v4.2.0. B-16 archived. B-2 is 4.3.0.
 
 ## B-16 branch `b-16-homeassistant` (2026-09-04, target 4.2.0)
 
