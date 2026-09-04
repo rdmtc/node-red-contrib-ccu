@@ -80,7 +80,9 @@ source only.
 ### 2b. Live CCU (recommended route)
 
 `ssh root@homematic-ccu3` works (fw **3.87.6**, idle, image is 3.89.8 —
-consider updating the CCU before the regeneration run).
+decision 2026-09-04: the production CCU stays on 3.87.6; the regen runs
+against it as-is. Two lab CCUs on 3.89.8 — x86_64 OpenCCU and an armv7l
+CCU3 — exist for tests but have few/no devices paired).
 `/etc/config/InterfacesList.xml`: BidCos-RF (ext. port 2001, internal 32001),
 VirtualDevices (9292/32992? → internal `http://127.0.0.1:39292/groups`),
 HmIP-RF (2010/32010), BidCos-Wired (2000/32000). No CUxD installed.
@@ -102,8 +104,10 @@ HmIP-BSL (fw 1.0.2), HMIP-eTRV/eTRV-2/-B/-B1/-B-2/-C/-C-2, MP3P, BROLL(?);
 
 **Status 2026-09-02: `tools/paramsets-fetch.js` and the modernized
 `tools/paramsets-join.js` are implemented and smoke-tested against the
-live CCU (3 keys fetched, joined, validated). Remaining: update the CCU
-to 3.89.x, run the full fetch, join, validate, commit.**
+live CCU (3 keys fetched, joined, validated). Remaining: run the full
+fetch against the production CCU (3.87.6, no update planned), join,
+validate, commit. Optionally join a second dump from the lab CCU3
+(3.89.8) — dedupe by key means it only adds what production lacks.**
 
 1. **New `tools/paramsets-fetch.js`** (Node, uses the existing
    `homematic-xmlrpc` dep; `binrpc` dep for CUxD/BidCos-RF if ever needed —
@@ -176,8 +180,8 @@ B-1's release note should be split accordingly.
 - `tools/paramsets-fetch.js` incl. test run against live CCU: **0.5–1 day**
   (reusing paramsetName logic; throttling; dedupe).
 - `paramsets-join.js` modernization + docs + lint inclusion: **~2 h**.
-- Regeneration run + validation + commit: **~1 h** (CCU firmware update to
-  3.89.x first, optional but recommended).
+- Regeneration run + validation + commit: **~1 h** (production CCU stays
+  on 3.87.6 — decided 2026-09-04).
 - Issue-specific code work (outside strict B-1 data scope): LEVEL_2 →
   COMBINED_PARAMETER mapping ~0.5–1 day incl. tests; ccu-signal
   OPTICAL_SIGNAL_RECEIVER ~0.5 day; ccu-display WRCD ~1 day; CuxD DIR entry
@@ -189,8 +193,10 @@ B-1's release note should be split accordingly.
 
 - No hard blockers: ext4 extraction works on macOS via p7zip; ssh + XML-RPC
   on the CCU verified read-only and light.
-- Live CCU runs 3.87.6 vs. image 3.89.8 — update before the regen run to
-  capture current descriptions.
+- Live CCU runs 3.87.6 vs. image 3.89.8 — the production CCU is **not**
+  updated (decided 2026-09-04); paired-device descriptions on 3.87.6 are
+  current (see #112 finding in §4). The lab CCUs on 3.89.8 can supply
+  group-type keys and act as a diff reference.
 - Six of the eight issue devices are not paired on the author's CCU
   (FCI6-new-fw, WRCD, BBL, DRBLI4, BSL-V2, CuxD) → their entries depend on
   reporter dumps; the runtime's self-healing means users are not blocked on

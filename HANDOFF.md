@@ -1,7 +1,9 @@
-# Session handoff — 2026-09-02
+# Session handoff — 2026-09-04
 
 Context for continuing on another machine. Delete this file once its
 content is consumed (state that outlives the day belongs in ROADMAP.md).
+Lab addresses and credentials are intentionally **not** in this file
+(nor in the wiki or issues).
 
 ## State
 
@@ -14,48 +16,68 @@ content is consumed (state that outlives the day belongs in ROADMAP.md).
   43 unit tests (`npm run test:pure`).
 - Issue tracker fully triaged; B-6/B-14 archived; roadmap is current.
 
-## Plan for tomorrow (blocks 4.1.0)
+## Decisions (2026-09-04)
 
-1. **User updates the CCU** (homematic-ccu3.lan.raff.rocks, currently
-   fw 3.87.6 → 3.89.x).
-2. **Full paramsets regeneration**:
+- **The production CCU3 stays on firmware 3.87.6.** No update for the
+  sake of the paramsets regeneration. The regen runs against it as-is;
+  what matters is the set of *paired* device types, and 3.87.6 already
+  reports the current descriptions for those (verified for the heating
+  group / eTRV in docs/paramsets.md §4).
+- **Two lab systems exist** (set up for the RedMatic 9.0.0 work, see
+  `../RedMatic/HANDOFF.md`): x86_64 OpenCCU 3.89.8 and an armv7l CCU3
+  on original firmware 3.89.8, both running a RedMatic dev install with
+  node-red-contrib-ccu 4.0.0. Use them for anything risky or
+  destructive (firmware-3.89 behavior, install/update paths, B-14
+  style hardware pokes if a suitable device gets paired there). They
+  have few/no devices paired, so they **cannot replace the production
+  dump** — at most they add the group-type (VirtualDevices) keys on
+  3.89.8 and serve as a diff reference.
+
+## Plan (blocks 4.1.0)
+
+1. **Full paramsets regeneration against the production CCU** (3.87.6):
    ```
-   node tools/paramsets-fetch.js --host homematic-ccu3.lan.raff.rocks --out /tmp/ccu_dump.json
+   node tools/paramsets-fetch.js --host <production-ccu> --out /tmp/ccu_dump.json
    node tools/paramsets-join.js /tmp/ccu_dump.json
    node -e "JSON.parse(require('fs').readFileSync('paramsets.json'))"
    npm test
    ```
-   Throttled ~200 ms/call, a few minutes; CCU gets overloaded easily —
+   Throttled ~200 ms/call, a few minutes; the CCU gets overloaded easily —
    don't run anything else against it. Procedure details:
-   docs/paramsets.md §3. Add a CHANGELOG entry ("device descriptions
-   refreshed from CCU firmware 3.89.x") and note which new keys arrived
-   (join prints added/changed counts).
-3. **B-14 hardware check** (with the user's OK — it physically moves a
-   blind): on node-red-dev, write a slat value to the paired HmIP-FBL's
-   virtual-receiver channel (`:4`) via a ccu-value node with datapoint
-   LEVEL_2; the debug log should show `setValue LEVEL_2 <v> ->
-COMBINED_PARAMETER L2=<pct>` and the slats should move. Deploy
+   docs/paramsets.md §3. Optionally run a second fetch against the lab
+   CCU3 (3.89.8) and join it too — the join tool dedupes by key, so this
+   only adds keys the production box doesn't have. Add a CHANGELOG entry
+   ("device descriptions refreshed from CCU firmware 3.87.6 / 3.89.8")
+   and note which new keys arrived (join prints added/changed counts).
+2. **B-14 hardware check** (with the user's OK — it physically moves a
+   blind): on the Node-RED test box, write a slat value to the paired
+   HmIP-FBL's virtual-receiver channel (`:4`) via a ccu-value node with
+   datapoint LEVEL_2; the debug log should show `setValue LEVEL_2 <v> ->
+   COMBINED_PARAMETER L2=<pct>` and the slats should move. Deploy
    procedure below.
-4. **Release 4.1.0**: CHANGELOG heading `## Unreleased (4.1.0)` →
+3. **Release 4.1.0**: CHANGELOG heading `## Unreleased (4.1.0)` →
    `## 4.1.0 (<date>)`, `npm pkg set version=4.1.0`, commit
    (`4.1.0: <short title>`), push, wait for CI green, `git tag v4.1.0 &&
-git push origin v4.1.0` — release.yml publishes via OIDC and creates
+   git push origin v4.1.0` — release.yml publishes via OIDC and creates
    the GitHub release from the CHANGELOG.
 
-## Infrastructure (this does not travel via git)
+## Infrastructure (this does not travel via git; addresses live outside the repo)
 
-- **Test box**: `ssh root@node-red-dev.lan.raff.rocks` (key auth).
-  Debian bookworm, Node 24, Node-RED 5.0.6 (`systemctl
-{restart,status} node-red`, `journalctl -u node-red`), user dir
-  `/root/.node-red`, nginx TLS in front (internal step-ca certs).
-  Deploy: `npm pack` → scp tarball → `cd /root/.node-red && npm install
-/tmp/<tarball> && systemctl restart node-red`. Verify:
-  `curl -s http://localhost:1880/nodes -H "Accept: application/json"`.
-- **CCU**: homematic-ccu3.lan.raff.rocks (172.16.24.145), read-only ssh
-  as root works. HmIP-only (no legacy BidCos devices paired). Gotcha
-  that cost hours: the CCU firewall must allow the CCU → Node-RED
-  callback port, otherwise inits hang for minutes and metadata never
-  arrives.
+- **Node-RED test box** (Debian bookworm, Node 24, Node-RED 5.0.6, ssh as
+  root with key auth): `systemctl {restart,status} node-red`,
+  `journalctl -u node-red`, user dir `/root/.node-red`, nginx TLS in
+  front with internal CA certs. Deploy: `npm pack` → scp tarball →
+  `cd /root/.node-red && npm install /tmp/<tarball> && systemctl restart
+  node-red`. Verify: `curl -s http://localhost:1880/nodes -H "Accept:
+  application/json"`.
+- **Production CCU3** (fw 3.87.6, stays there): read-only ssh as root
+  works. HmIP-only (no legacy BidCos devices paired). Gotcha that cost
+  hours: the CCU firewall must allow the CCU → Node-RED callback port,
+  otherwise inits hang for minutes and metadata never arrives.
+- **Lab CCUs**: see Decisions above and `../RedMatic/HANDOFF.md`
+  ("Building and testing locally") for the scripted-check recipes
+  (Node-RED token via `POST /addons/red/auth/token`, CCU session via the
+  JSON-API).
 - **Firmware image** `ccu3-3.89.8.tgz` lives in a temp dir on the old
   Mac only — if needed again, re-download from the official CCU3
   firmware page. Its analysis is preserved in docs/paramsets.md.
@@ -76,7 +98,7 @@ git push origin v4.1.0` — release.yml publishes via OIDC and creates
 
 1. Editor loader consolidation (Phase 3 §6.4 + §8.1 defect 3, shared
    `resources/` script for the 9 dialogs) — needs a user smoke test on
-   node-red-dev afterwards.
+   the Node-RED test box afterwards.
 2. Remaining Phase 3: split rpc/rega/queue out of ccu-connection.js,
    async/await as touched, i18n/help consolidation (#58).
 3. 4.2.0 headline: B-2 dynamic config via msg (7 issues; #133 has the
