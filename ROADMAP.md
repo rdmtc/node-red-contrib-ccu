@@ -29,7 +29,10 @@ Status 2026-09-04: **4.0.0 (2026-09-02) and 4.1.0 (2026-09-04) are
 released** (npm latest, OIDC provenance, GitHub releases); 4.1.0 carries
 the regenerated device descriptions and the LEVEL_2 fix; **4.2.0
 (2026-09-04) = B-16**, the Home Assistant discovery node, lab-verified and
-archived. B-2 moved to 4.3.0. Phases 1 and 2 are done and archived. Next:
+archived. B-2 moved to 4.3.0. The issue tracker was triaged a second time
+on 2026-09-04 (§12): 36 issues remain open, every one of them annotated
+with its roadmap item, and eight newly diagnosed defects were added to
+§8.3. Phases 1 and 2 are done and archived. Next:
 Phase 3 (refactor & tests) and the Phase 4 backlog; work continues on
 master with CI (Node 22/24 × Node-RED 4/5) as the gate. Research basis:
 the GitHub tracker/PRs/forks, homematic-forum.de, Node-RED release notes and
@@ -200,7 +203,7 @@ unreproducible if the reporters have not responded by ~2026-12.
 | B-4  | Fix/remove the dead `isLocal` detection (`/etc/lighttpd/conf.d/proxy.conf` grep, `ccu-connection.js:346` — file is a stub on firmware ≥ 3.87, so local installs silently go through the proxy)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      | hm2mqtt §15.4       |
 | B-5  | Configurable ping checks ([#44](https://github.com/rdmtc/node-red-contrib-ccu/issues/44)), sysvar node property/status improvements ([#54](https://github.com/rdmtc/node-red-contrib-ccu/issues/54), [#56](https://github.com/rdmtc/node-red-contrib-ccu/issues/56), [#52](https://github.com/rdmtc/node-red-contrib-ccu/issues/52) last-event status, [#124](https://github.com/rdmtc/node-red-contrib-ccu/issues/124) re-read descriptions on poll, [#166](https://github.com/rdmtc/node-red-contrib-ccu/issues/166) immediate sysvar echo, [#96](https://github.com/rdmtc/node-red-contrib-ccu/issues/96) uncertain-filter option)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               | tracker             |
 | B-6  | ✅ **done 2026-09-02** — delivered upstream as binrpc 4.1/4.2 (zero deps, frame reassembly); picked up here as `^4.2.0` in dev.4. Archived: [roadmap-archive/B-6.md](roadmap-archive/B-6.md)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        | deferred → upstream |
-| B-7  | Triage the remaining ~60 open issues (snapshot in §12) against phases; close what 4.0 fixes                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         | tracker             |
+| B-7  | ✅ **done 2026-09-04** — both passes complete (§12): 60 → 36 open, all annotated; 8 new defects recorded in §8.3                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
 | B-8  | Global object: expose CCU metadata/values via a global context object (old todo item)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               | old TODO            |
 | B-9  | Value node: datapoint autocomplete / multiselect (rpc and rpc-event already have it)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                | old TODO            |
 | B-10 | Submit/display node polish (old todo items): submit autocomplete, limit list to 10 cmds, fix display LED, display beep, payload via msg                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             | old TODO            |
@@ -268,6 +271,55 @@ caught (the devDep pin to `^1.1.2` is why it never was).
   and loose `!= undefined` — fix when taking the guard.
 - Editor HTML ships `console.log` debug leftovers.
 
+Found in the 2026-09-04 issue triage (all verified against 4.2.0):
+
+- **RSSI conversion is unguarded** (#183): `getRegaValues()` does
+  `dp.value -= 256` for `RSSI_DEVICE`/`RSSI_PEER` unconditionally, so a
+  value that is already signed (or `0` for "never received") becomes
+  `-318` / `-256`. hm2mqtt's `values.js` has the guard this one lacks:
+  only subtract when `typeof value === 'number' && value > 127`. The
+  XML-RPC event path needs no conversion — ReGa only.
+- **Immediate sysvar re-poll is dropped under concurrency** (#166):
+  `setVariable()` calls `regaPoll()` only `if (!this.regaPollPending)`,
+  and `regaPoll()` itself no-ops (`rega poll already pending`) while one
+  is in flight. Writing several variables at once therefore leaves all
+  but the first invisible until the next scheduled poll (30 s default).
+  Fix: trailing-edge debounce — set a flag and poll once more when the
+  running poll finishes. → B-5.
+- **`ccu-switch` rule values have no `bool` type** (#51): the typedInput
+  offers `msg/flow/global/str/num/jsonata/env/prev` only, so `true` is
+  stored as a string and `true == "true"` is false — users are pushed
+  into 0/1. `RED.util.evaluateNodeProperty` already handles `bool`, so
+  the fix is the editor list. → §6.4.
+- **Editor clears `${ENV}` placeholders** (#158): `autocompleteChannel()`
+  blanks Channel and Datapoint whenever the value is not a known channel
+  address, which wipes subflow-parameter placeholders on every dialog
+  open. Skip the clearing for `${...}` values. → §6.4.
+- **Stale device metadata is never re-read** (#181, related #146): the
+  connection answers the CCU's `listDevices` from its persisted cache
+  (`ccu_<host>.json`), so the daemon only sends `newDevices` for entries
+  the cache did not report. A channel that changes TYPE in place (HMW
+  I/O direction change) keeps its old datapoints forever. Workaround is
+  deleting the cache file; the fix is a "re-read device data" action on
+  the connection node. → B-5 or B-11.
+- **Internal system variables are invisible** (#184, upstream): the
+  `variables.rega` script in `homematic-rega` iterates
+  `dom.GetObject(ID_SYSTEM_VARIABLES).EnumUsedIDs()`, which skips every
+  variable with `Internal() == true` — including the HmIP device-bound
+  ones (`svHmIPRainCounterToday_*`). Measured on a CCU3 3.89.8:
+  `EnumUsedIDs()` → 2, `EnumIDs()` → 4, the two extra being IDs 40/41,
+  which the script hard-codes for exactly this reason. Fix belongs in
+  homematic-rega (`EnumIDs()`, drop the special case); open question
+  whether internal variables ship by default or behind an option.
+- **`ccu-mqtt` matches an `rpc` command it cannot execute** (#22): the
+  topic matcher includes `topicInputRpc`, but the class has no `rpc()`
+  method, so the match is silently dropped; `topicOutputRpc` is never
+  read. → B-3.
+- **ReGa metadata is read once** (#167): `getRegaData()` (channels,
+  rooms, functions, groups) runs only in the connection constructor; the
+  poll refreshes variables and programs only. Rooms/functions added in
+  the WebUI stay invisible until redeploy. → B-3.
+
 ## 9. What to take from forks and PRs
 
 - **PR [#162](https://github.com/rdmtc/node-red-contrib-ccu/pull/162)**
@@ -329,12 +381,22 @@ resolved/obsolete/wrong-repo), 4 got retest requests and stay open
 roadmap item below.** Wrong annotations found during triage were
 corrected in place (#178, #119, #148).
 
-- [#22](https://github.com/rdmtc/node-red-contrib-ccu/issues/22) MQTT Node: No GUI for node-input-topicInputRpc
+**Second pass 2026-09-04 (B-7 continued)**, covering the issues the
+first pass had left without a comment plus #180…#186, transferred here
+from rdmtc/RedMatic on 2026-09-04. 5 closed (#124 fixed in v3.2.1 and
+never closed; #186 fixed by the xmlrpc 2.0 bump; #182 fixed by B-14;
+#185 duplicate of #80; #158 answered — subflow parameters work via
+`${ENV}` substitution), the rest commented with their roadmap item.
+Eight defects were newly diagnosed against 4.2.0 in the process and are
+recorded in §8.3 (#183, #166, #51, #158, #181, #184, #22, #167); #133
+was confirmed rather than merely "to be retested".
+
+- [#22](https://github.com/rdmtc/node-red-contrib-ccu/issues/22) MQTT Node: No GUI for node-input-topicInputRpc → B-3 (handler missing, not just the GUI — §8.3)
 - [#27](https://github.com/rdmtc/node-red-contrib-ccu/issues/27) Anpassungen an CCU Firmware >= 3.41 → B-12 (Auth/TLS halves still open)
-- [#39](https://github.com/rdmtc/node-red-contrib-ccu/issues/39) topic handling vereinheitlichen
+- [#39](https://github.com/rdmtc/node-red-contrib-ccu/issues/39) topic handling vereinheitlichen → §6 (topic.js extracted; D-15 blocks changing the defaults)
 - [#44](https://github.com/rdmtc/node-red-contrib-ccu/issues/44) Configuration Option to deactivate Ping Checks → B-5
-- [#51](https://github.com/rdmtc/node-red-contrib-ccu/issues/51) switch node casts boolean payloads to numbers
-- [#52](https://github.com/rdmtc/node-red-contrib-ccu/issues/52) RPC Event: Zeitpunkt des letzten Events und ggf. letztes Topic
+- [#51](https://github.com/rdmtc/node-red-contrib-ccu/issues/51) switch node casts boolean payloads to numbers → §6.4 (no `bool` typedInput type — §8.3)
+- [#52](https://github.com/rdmtc/node-red-contrib-ccu/issues/52) RPC Event: Zeitpunkt des letzten Events und ggf. letztes Topic → B-5
 - [#54](https://github.com/rdmtc/node-red-contrib-ccu/issues/54) ccu-sysvar node: aktueller Status und ggf. Zeitpunkt von wann der Status stammt unter dem node → B-5
 - [#56](https://github.com/rdmtc/node-red-contrib-ccu/issues/56) make property for sysvar-node configurable → B-2/B-5
 - [#58](https://github.com/rdmtc/node-red-contrib-ccu/issues/58) Hilfe Texte → §6.5
@@ -342,7 +404,7 @@ corrected in place (#178, #119, #148).
 - [#80](https://github.com/rdmtc/node-red-contrib-ccu/issues/80) Signal Node: allow to overwrite settings via msg/context/env → B-2
 - [#81](https://github.com/rdmtc/node-red-contrib-ccu/issues/81) increase test coverage → §6.2
 - [#87](https://github.com/rdmtc/node-red-contrib-ccu/issues/87) Changelog → D-11 — ✅ closed 2026-09-02
-- [#96](https://github.com/rdmtc/node-red-contrib-ccu/issues/96) uncertain Flag das gesetzt wird wenn Rega Zeitstempel 1970-01-01 01:00:00 zurückgibt
+- [#96](https://github.com/rdmtc/node-red-contrib-ccu/issues/96) uncertain Flag das gesetzt wird wenn Rega Zeitstempel 1970-01-01 01:00:00 zurückgibt → B-5 (flag done, filter option open)
 - [#103](https://github.com/rdmtc/node-red-contrib-ccu/issues/103) switch node params via msg → B-2
 - [#105](https://github.com/rdmtc/node-red-contrib-ccu/issues/105) ccu-value Node: Weiterbenutzung des Input-msg-Objects, statt Neuinstaziierung — ✅ closed 2026-09-02
 - [#106](https://github.com/rdmtc/node-red-contrib-ccu/issues/106) Statusänderung eines Kanals wird nicht übermittelt — ✅ closed 2026-09-02
@@ -350,17 +412,17 @@ corrected in place (#178, #119, #148).
 - [#111](https://github.com/rdmtc/node-red-contrib-ccu/issues/111) ON_TIME wird nicht initial befüllt
 - [#112](https://github.com/rdmtc/node-red-contrib-ccu/issues/112) Nur drei Heizungsprofile verfügbar (# 4-6 stehen nicht zur Auswahl) → B-1 (stale MAX=3 in paramset)
 - [#114](https://github.com/rdmtc/node-red-contrib-ccu/issues/114) Possible to use "localfilesystem" for Context Store — ✅ closed 2026-09-02
-- [#115](https://github.com/rdmtc/node-red-contrib-ccu/issues/115) add get/update method to mqtt node
+- [#115](https://github.com/rdmtc/node-red-contrib-ccu/issues/115) add get/update method to mqtt node → B-3
 - [#116](https://github.com/rdmtc/node-red-contrib-ccu/issues/116) Google Home Anbindung: State von CCU wird nicht zurück an Google Home übermittelt — ✅ closed 2026-09-02
 - [#117](https://github.com/rdmtc/node-red-contrib-ccu/issues/117) Einbinden HmIP-FCI6 → B-1
 - [#119](https://github.com/rdmtc/node-red-contrib-ccu/issues/119) HmIP-BROLL wird nicht gefunden (resolved: port misconfiguration) — ✅ closed 2026-09-02
 - [#121](https://github.com/rdmtc/node-red-contrib-ccu/issues/121) rpc-event STICKY_UNREACH — ✅ closed 2026-09-02
-- [#124](https://github.com/rdmtc/node-red-contrib-ccu/issues/124) poll variable description
+- [#124](https://github.com/rdmtc/node-red-contrib-ccu/issues/124) poll variable description — ✅ closed 2026-09-04 (fixed 2020-08-03 in 453f2b2, v3.2.1; never closed)
 - [#126](https://github.com/rdmtc/node-red-contrib-ccu/issues/126) Context store property name dot replacement — ✅ closed 2026-09-02
 - [#128](https://github.com/rdmtc/node-red-contrib-ccu/issues/128) CCU Switch node - wrong resize in settings dialog (fix in v3.4.2?) — ✅ closed 2026-09-02
 - [#129](https://github.com/rdmtc/node-red-contrib-ccu/issues/129) ccu-get-value node: bei einer Werteliste wird nur der value zurückgegeben (fix in v3.4.2?) — ✅ closed 2026-09-02
 - [#132](https://github.com/rdmtc/node-red-contrib-ccu/issues/132) Ports — ✅ closed 2026-09-02
-- [#133](https://github.com/rdmtc/node-red-contrib-ccu/issues/133) ccu-set-value "remembers" previous events
+- [#133](https://github.com/rdmtc/node-red-contrib-ccu/issues/133) ccu-set-value "remembers" previous events → B-2 (confirmed on 4.2.0: `setValues()` mutates `this.config`, so only the first msg configures the node)
 - [#136](https://github.com/rdmtc/node-red-contrib-ccu/issues/136) HmIP-FBL → B-1
 - [#138](https://github.com/rdmtc/node-red-contrib-ccu/issues/138) Failed at the grpc@1.19.0 install script — ✅ closed 2026-09-02
 - [#139](https://github.com/rdmtc/node-red-contrib-ccu/issues/139) CCU Node error message in the log (IoBroker) — ✅ closed 2026-09-02
@@ -375,13 +437,13 @@ corrected in place (#178, #119, #148).
 - [#154](https://github.com/rdmtc/node-red-contrib-ccu/issues/154) HmIP-BBL datapoint LEVEL_2 cannot be set → B-1
 - [#155](https://github.com/rdmtc/node-red-contrib-ccu/issues/155) Error: Local address XXX not available. Using YYY instead. — ✅ closed 2026-09-02
 - [#156](https://github.com/rdmtc/node-red-contrib-ccu/issues/156) Set PARTY_TIME_START and PARTY_TIME_END not working → B-13
-- [#158](https://github.com/rdmtc/node-red-contrib-ccu/issues/158) using in SubFlows
+- [#158](https://github.com/rdmtc/node-red-contrib-ccu/issues/158) using in SubFlows — ✅ closed 2026-09-04 (works via `${ENV}`; editor clears the placeholder — §8.3)
 - [#159](https://github.com/rdmtc/node-red-contrib-ccu/issues/159) Fehlender CuxD datapoint "DIR" → B-1
 - [#160](https://github.com/rdmtc/node-red-contrib-ccu/issues/160) Node-RED Absturz bei Verbindungsverlust zur CCU → D-5 — ✅ closed 2026-09-02
 - [#161](https://github.com/rdmtc/node-red-contrib-ccu/issues/161) Feature Request: Node "Party Mode" → B-13
 - [#164](https://github.com/rdmtc/node-red-contrib-ccu/issues/164) Support CCU-Jack → D-14
-- [#166](https://github.com/rdmtc/node-red-contrib-ccu/issues/166) Mehrere Variablen sofort schreiben und triggern
-- [#167](https://github.com/rdmtc/node-red-contrib-ccu/issues/167) updated function values in ccu and functions in ccu-mqtt node
+- [#166](https://github.com/rdmtc/node-red-contrib-ccu/issues/166) Mehrere Variablen sofort schreiben und triggern → B-5 (regaPoll drops the re-poll while one is pending — §8.3)
+- [#167](https://github.com/rdmtc/node-red-contrib-ccu/issues/167) updated function values in ccu and functions in ccu-mqtt node → B-3 (getRegaData runs once, in the constructor — §8.3)
 - [#169](https://github.com/rdmtc/node-red-contrib-ccu/issues/169) "Error: XML-RPC fault: Generic error (UNREACH)" — ✅ closed 2026-09-02
 - [#170](https://github.com/rdmtc/node-red-contrib-ccu/issues/170) Auslesen System-Variable — ✅ closed 2026-09-02
 - [#172](https://github.com/rdmtc/node-red-contrib-ccu/issues/172) Configure CCU-Value through message → B-2
@@ -389,3 +451,14 @@ corrected in place (#178, #119, #148).
 - [#176](https://github.com/rdmtc/node-red-contrib-ccu/issues/176) Deprecated dependencies → D-4/D-6/D-7 — ✅ closed 2026-09-02
 - [#177](https://github.com/rdmtc/node-red-contrib-ccu/issues/177) HmIP-BSL 2.0.2 & Signal Node: Color Behaviour missing → B-1
 - [#178](https://github.com/rdmtc/node-red-contrib-ccu/issues/178) HmIP-SWDO visible in device list but HmIP-SWDO-PL-2 not (redmatic-homekit issue, wrong repo) — ✅ closed 2026-09-02
+
+Transferred here from rdmtc/RedMatic on 2026-09-04 (all predate the
+snapshot above):
+
+- [#180](https://github.com/rdmtc/node-red-contrib-ccu/issues/180) ccu-get-value Node liefert immer nur "value" — runtime honours the property on 4.2.0, retest requested
+- [#181](https://github.com/rdmtc/node-red-contrib-ccu/issues/181) Redmatic Datenpunkte HMW-IO-12-FM → stale `ccu_<host>.json` device cache (§8.3), workaround given, retest requested
+- [#182](https://github.com/rdmtc/node-red-contrib-ccu/issues/182) HmIPW-DRBL4 combatibility — ✅ closed 2026-09-04 (fixed by B-14 in 4.1.0)
+- [#183](https://github.com/rdmtc/node-red-contrib-ccu/issues/183) RSSI hat falschen Wert / TypeCast → fixed for the ReGa path in v3.4.2; conversion still unguarded (§8.3)
+- [#184](https://github.com/rdmtc/node-red-contrib-ccu/issues/184) Systemvariablen (versteckt) nicht auswählbar → upstream homematic-rega `EnumUsedIDs()` (§8.3)
+- [#185](https://github.com/rdmtc/node-red-contrib-ccu/issues/185) Parameter der Node Display für HMIP-BSL als Eingang — ✅ closed 2026-09-04 (duplicate of #80 → B-2)
+- [#186](https://github.com/rdmtc/node-red-contrib-ccu/issues/186) RedMatic startet nicht, wenn HM-LC-Sw2-FM Geräte vorhanden — ✅ closed 2026-09-04 (xmlbuilder `assertLegalChar` gone with homematic-xmlrpc 2.0, D-4)
