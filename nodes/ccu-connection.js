@@ -9,6 +9,7 @@ const {castValue, castSysvar} = require('./lib/cast.js');
 const {combinedParameterValue} = require('./lib/combined.js');
 const {createMessage} = require('./lib/message.js');
 const {topicReplace} = require('./lib/topic.js');
+const {isLocalCcu} = require('./lib/localccu.js');
 const {bestMatch} = require('./lib/similarity.js');
 const nextport = require('./lib/nextport.js');
 const hmDiscover = require('./lib/discover.js');
@@ -407,15 +408,13 @@ module.exports = function (RED) {
 
             this.checkDuplicateConfig(config);
 
-            this.isLocal = false;
-            if (config.host.startsWith('127.') || config.host === 'localhost') {
-                try {
-                    const rfdConf = fs.readFileSync('/etc/lighttpd/conf.d/proxy.conf').toString();
-                    if (rfdConf.match(/"port"\s+=>\s+32001/)) {
-                        this.logger.info('local connection on ccu >= v3.41 detected');
-                        this.isLocal = true;
-                    }
-                } catch {}
+            // B-4: this used to grep /etc/lighttpd/conf.d/proxy.conf for the
+            // direct port. That file is a bare include on current firmware, so
+            // the check never matched and every local install went through the
+            // proxy. Ask the kernel for a listener instead.
+            this.isLocal = isLocalCcu(config.host);
+            if (this.isLocal) {
+                this.logger.info('local connection on ccu >= v3.41 detected');
             }
 
             this.ifaceTypes = {
@@ -529,6 +528,10 @@ module.exports = function (RED) {
             this.rpcBinPort = Number.parseInt(config.rpcBinPort, 10);
             this.rpcXmlPort = Number.parseInt(config.rpcXmlPort, 10);
             this.rpcPingTimeout = Number.parseInt(config.rpcPingTimeout, 10) || 60;
+            // #44: opt out of the periodic ping/timeout supervision. Off means
+            // no pings and no timeout-triggered re-init for this connection -
+            // reconnecting after a CCU restart is then up to the CCU.
+            this.rpcPingEnabled = config.rpcPing === undefined ? true : Boolean(config.rpcPing);
             this.rpcPingTimer = {};
             this.ifaceStatus = {};
             this.serverError = {};
@@ -539,6 +542,10 @@ module.exports = function (RED) {
 
             this.regaEnabled = config.regaEnabled;
             this.regaPollEnabled = config.regaPoll;
+            // #167: minutes between re-reads of channel names, rooms and
+            // functions. 0 switches it off.
+            this.regaMetaInterval =
+                config.regaMetaInterval === undefined ? 15 : Number.parseInt(config.regaMetaInterval, 10) || 0;
             this.regaInterval = Number.parseInt(config.regaInterval, 10);
             this.hadTimeout = new Set();
 
@@ -632,6 +639,7 @@ module.exports = function (RED) {
             });
 
             if (config.regaEnabled) {
+                this.lastRegaDataRefresh = now();
                 this.getRegaData().then(() => {
                     this.regaPoll();
                     this.initIfaces(config);
@@ -1084,7 +1092,14 @@ module.exports = function (RED) {
                             const ts = dp.ts;
                             const [iface, channel, datapoint] = dp.name.split('.');
                             if (this.enabledIfaces.includes(iface) && datapoint) {
-                                if (['RSSI_DEVICE', 'RSSI_PEER'].includes(datapoint)) {
+                                if (
+                                    ['RSSI_DEVICE', 'RSSI_PEER'].includes(datapoint) &&
+                                    typeof dp.value === 'number' &&
+                                    dp.value > 127
+                                ) {
+                                    // the ReGa reports the unsigned byte; without
+                                    // the guard an already-signed value or the 0
+                                    // for "never received" became -318 / -256 (#183)
                                     dp.value -= 256;
                                 }
 
@@ -1320,7 +1335,12 @@ module.exports = function (RED) {
         regaPoll() {
             //this.logger.trace('regaPoll');
             if (this.regaPollPending) {
-                this.logger.warn('rega poll already pending');
+                // #166: writing several variables at once used to lose all but
+                // the first immediate re-poll, so their new values only showed
+                // up at the next scheduled one (30 s by default). Remember the
+                // request and run exactly one more poll afterwards.
+                this.logger.debug('rega poll already pending, will repeat');
+                this.regaPollAgain = true;
             } else {
                 this.regaPollPending = true;
                 clearTimeout(this.regaPollTimeout);
@@ -1342,6 +1362,14 @@ module.exports = function (RED) {
 
                         this.firstRegaPollDone = true;
                         this.regaPollPending = false;
+
+                        if (this.regaPollAgain && !this.cancelRegaPoll) {
+                            this.regaPollAgain = false;
+                            this.regaPoll();
+                        } else {
+                            this.regaPollAgain = false;
+                            this.refreshRegaDataIfDue();
+                        }
                     });
             }
         }
@@ -1481,6 +1509,35 @@ module.exports = function (RED) {
          * Poll ReGaHSS variables and call subscription callbacks
          * @returns {Promise}
          */
+        /**
+         * Re-read the ReGa metadata that only ever got fetched once, in the
+         * constructor: channel names, rooms and functions. A room or function
+         * added in the CCU WebUI was invisible until the flow was redeployed
+         * (#167). Cheap enough for a slow schedule - three small scripts.
+         * @returns {Promise<any>}
+         */
+        refreshRegaData() {
+            this.lastRegaDataRefresh = now();
+            this.logger.debug('refreshRegaData');
+            return this.getRegaChannels()
+                .then(() => this.getRegaRooms())
+                .then(() => this.getRegaFunctions())
+                .then(() => this.saveRegadata())
+                .catch((error) => this.logger.error('refreshRegaData', error));
+        }
+
+        /** Runs refreshRegaData() when the configured interval has elapsed. */
+        refreshRegaDataIfDue() {
+            if (!this.regaMetaInterval || this.cancelRegaPoll) {
+                return;
+            }
+
+            const elapsed = now() - (this.lastRegaDataRefresh || 0);
+            if (elapsed >= this.regaMetaInterval * 60000) {
+                this.refreshRegaData();
+            }
+        }
+
         getRegaVariables() {
             return new Promise((resolve, reject) => {
                 this.logger.debug('getRegaVariables');
@@ -1766,6 +1823,10 @@ module.exports = function (RED) {
          * @param iface
          */
         rpcCheckInit(iface) {
+            if (!this.rpcPingEnabled) {
+                return;
+            }
+
             if (!this.metadata.devices[iface] || !Object.keys(this.metadata.devices[iface]).length > 0) {
                 return;
             }

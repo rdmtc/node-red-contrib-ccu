@@ -16,7 +16,9 @@
 
             regaPoll: {value: true},
             regaInterval: {value: 30},
+            regaMetaInterval: {value: 15},
 
+            rpcPing: {value: true},
             rpcPingTimeout: {value: 60},
             rpcInitAddress: {value: ''},
             rpcServerHost: {value: '', required: true},
@@ -39,6 +41,18 @@
         },
 
         oneditprepare() {
+            // pre-4.3.0 config nodes have neither property - show the defaults
+            // the runtime uses rather than an unchecked box / empty field
+            if (typeof this.rpcPing === 'undefined') {
+                this.rpcPing = true;
+                $('#node-config-input-rpcPing').prop('checked', true);
+            }
+
+            if (typeof this.regaMetaInterval === 'undefined') {
+                this.regaMetaInterval = 15;
+                $('#node-config-input-regaMetaInterval').val(15);
+            }
+
             const $nodeConfigInputHost = $('#node-config-input-host');
             const $nodeConfigInputName = $('#node-config-input-name');
             const $nodeConfigInputRpcServerHost = $('#node-config-input-rpcServerHost');
@@ -179,6 +193,13 @@
         </div>
     </div>
     <div class="form-row">
+        <label for="node-config-input-rpcPing"><i class="icon-tag"></i> RPC ping</label>
+        <div style="width: 70%; display: inline-block; vertical-align: text-top;">
+            <label class="ccu-checkbox"><input type="checkbox" id="node-config-input-rpcPing"> Enabled</label><br>
+            <small>Off disables the periodic ping and the timeout-triggered re-init for this connection.</small>
+        </div>
+    </div>
+    <div class="form-row">
         <label for="node-config-input-rpcPingTimeout"><i class="icon-tag"></i> RPC ping timeout (s)</label>
         <input type="text" id="node-config-input-rpcPingTimeout">
     </div>
@@ -191,6 +212,11 @@
     <div class="form-row">
         <label for="node-config-input-regaInterval"><i class="icon-tag"></i> Rega poll interval (s)</label>
         <input type="text" id="node-config-input-regaInterval">
+    </div>
+    <div class="form-row">
+        <label for="node-config-input-regaMetaInterval"><i class="icon-tag"></i> Names/rooms refresh (min)</label>
+        <input type="text" id="node-config-input-regaMetaInterval">
+        <small>How often channel names, rooms and functions are re-read. 0 = never (the behaviour before 4.3.0).</small>
     </div>
     <div class="form-row">
         <label for="node-config-input-queueTimeout"><i class="icon-tag"></i> Queue timeout (ms)</label>

@@ -10,6 +10,7 @@
 
             topicOutputEvent: {value: 'hm/status/${channelName}/${datapoint}'},  
             topicInputSetValue: {value: 'hm/set/${channelNameOrAddress}/${datapoint}'},  
+            topicInputGet: {value: 'hm/get/${channelNameOrAddress}/${datapoint}'},  
 
             topicOutputSysvar: {value: 'hm/status/${name}'},  
             topicInputSysvar: {value: 'hm/set/${name}'},  
@@ -17,7 +18,7 @@
             topicInputPutParam: {value: 'hm/paramset/${channelNameOrAddress}/${paramset}/${param}'},  
             topicInputPutParamset: {value: 'hm/paramset/${channelNameOrAddress}/${paramset}'},  
 
-            topicInputRpc: {value: 'hm/rpc/${iface}/${method}/${command}/${callid}'},  
+            topicInputRpc: {value: 'hm/rpc/${iface}/${method}/${callid}'},  
             topicOutputRpc: {value: 'hm/response/${callid}'},  
 
             topicCounters: {value: 'hm/status/counter/${iface}/${rxtx}'},  
@@ -35,6 +36,20 @@
         },
         labelStyle() {
             return this.name ? 'node_label_italic' : '';
+        },
+        oneditprepare() {
+            // The RPC command was never implemented, so its topic template
+            // carried a meaningless ${command} segment. Nothing can have
+            // depended on it - migrate nodes that still hold the old default.
+            if (this.topicInputRpc === 'hm/rpc/${iface}/${method}/${command}/${callid}') {
+                this.topicInputRpc = 'hm/rpc/${iface}/${method}/${callid}';
+                $('#node-input-topicInputRpc').val(this.topicInputRpc);
+            }
+
+            if (typeof this.topicInputGet === 'undefined') {
+                this.topicInputGet = 'hm/get/${channelNameOrAddress}/${datapoint}';
+                $('#node-input-topicInputGet').val(this.topicInputGet);
+            }
         },
         oneditsave() {
         }
@@ -85,6 +100,10 @@
         <input type="text" id="node-input-topicInputSetValue">
     </div>
     <div class="form-row">
+        <label for="node-input-topicInputGet">get</label>
+        <input type="text" id="node-input-topicInputGet">
+    </div>
+    <div class="form-row">
         <label for="node-input-topicOutputSysvar">Sysvar/Program Change</label>
         <input type="text" id="node-input-topicOutputSysvar">
     </div>
@@ -100,16 +119,14 @@
         <label for="node-input-topicInputPutParamset">putParamset</label>
         <input type="text" id="node-input-topicInputPutParamset">
     </div>
-    <!--
     <div class="form-row">
         <label for="node-input-topicInputRpc">RPC</label>
         <input type="text" id="node-input-topicInputRpc">
     </div>
     <div class="form-row">
-        <label for="node-input-topicInputRpc">RPC Response</label>
+        <label for="node-input-topicOutputRpc">RPC Response</label>
         <input type="text" id="node-input-topicOutputRpc">
     </div>
-    -->
     <div class="form-row">
         <label for="node-input-topicCounters">Message Counters</label>
         <input type="text" id="node-input-topicCounters">

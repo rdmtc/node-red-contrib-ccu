@@ -2,6 +2,7 @@ const path = require('path');
 const mw = require('mqtt-wildcard');
 
 const statusHelper = require(path.join(__dirname, '/lib/status.js'));
+const {castValue} = require(path.join(__dirname, '/lib/cast.js'));
 
 /** HM thermostats: CONTROL_MODE is read-only, the modes are set through actions */
 const HM_MODES = {
@@ -35,7 +36,10 @@ module.exports = function (RED) {
             this.topicInputPutParam = config.topicInputPutParam;
             this.topicInputPutParamset = config.topicInputPutParamset;
 
+            this.topicInputGet = config.topicInputGet;
+
             this.topicInputRpc = config.topicInputRpc;
+            this.topicOutputRpc = config.topicOutputRpc;
 
             this.topicCounters = config.topicCounters;
             this.rxCounters = {};
@@ -179,6 +183,7 @@ module.exports = function (RED) {
             this.debug('input ' + topic + ' ' + JSON.stringify(payload).slice(0, 40));
 
             const topicList = {
+                get: this.topicInputGet,
                 setValue: this.topicInputSetValue,
                 sysvar: this.topicInputSysvar,
                 putParam: this.topicInputPutParam,
@@ -189,7 +194,8 @@ module.exports = function (RED) {
             let command;
             let filter;
             Object.keys(topicList).forEach((key) => {
-                if (!command) {
+                // a topic left empty in the editor disables that command
+                if (!command && topicList[key]) {
                     const parts = topicList[key].split('/');
                     const patternArray = [];
                     const placeholders = [];
@@ -220,29 +226,129 @@ module.exports = function (RED) {
             }
         }
 
-        setValue(filter, payload) {
+        /**
+         * Resolve `channelNameOrAddress` to a channel address and its
+         * interface, reporting the same errors the commands used to report
+         * inline.
+         * @param {object} filter parsed from the topic; `channel` is filled in
+         * @param {boolean} [exact] pass through to findChannel
+         * @returns {string|null} the interface, or null when unresolvable
+         */
+        resolveChannel(filter, exact) {
             if (filter.channelNameOrAddress) {
                 if (this.ccu.channelNames[filter.channelNameOrAddress]) {
                     filter.channel = filter.channelNameOrAddress;
                 } else {
-                    filter.channel = this.ccu.findChannel(filter.channelNameOrAddress, true);
+                    filter.channel = this.ccu.findChannel(filter.channelNameOrAddress, exact);
                 }
 
                 if (!filter.channel) {
                     this.error('channel ' + filter.channelNameOrAddress + ' not found');
-                    return;
+                    return null;
                 }
             }
 
             if (!filter.channel) {
                 this.error('channel undefined');
-                return;
+                return null;
             }
 
             const iface = this.ccu.findIface(filter.channel);
 
             if (!iface) {
                 this.error('no interface found for channel ' + filter.channel);
+                return null;
+            }
+
+            return iface;
+        }
+
+        /**
+         * Republish the last known value of a datapoint on its status topic,
+         * so a flow can ask for a refresh over MQTT instead of waiting for the
+         * next event (#115). An empty datapoint republishes the whole channel.
+         * @param {object} filter
+         */
+        get(filter) {
+            const iface = this.resolveChannel(filter, true);
+            if (!iface) {
+                return;
+            }
+
+            const prefix = iface + '.' + filter.channel + '.';
+            const names = filter.datapoint
+                ? [prefix + filter.datapoint]
+                : Object.keys(this.ccu.values).filter((name) => name.startsWith(prefix));
+
+            if (names.length === 0) {
+                this.error('unknown datapoint ' + prefix + (filter.datapoint || '#'));
+                return;
+            }
+
+            names.forEach((name) => {
+                const value = this.ccu.values[name];
+                if (value) {
+                    this.event({...value});
+                } else {
+                    this.error('unknown datapoint ' + name);
+                }
+            });
+        }
+
+        /**
+         * Call an arbitrary RPC method on an interface and publish the result
+         * (#22). The topic supplies interface, method and a caller-chosen id
+         * that the response topic echoes; the payload is the parameter array
+         * (a single value is accepted and wrapped).
+         * @param {object} filter
+         * @param {*} payload
+         */
+        rpc(filter, payload) {
+            if (!filter.iface) {
+                this.error('interface undefined');
+                return;
+            }
+
+            if (!filter.method) {
+                this.error('method undefined');
+                return;
+            }
+
+            let parameters = payload;
+            if (parameters === undefined || parameters === null || parameters === '') {
+                parameters = [];
+            } else if (!Array.isArray(parameters)) {
+                parameters = [parameters];
+            }
+
+            const respond = (result, error) => {
+                if (!this.topicOutputRpc) {
+                    return;
+                }
+
+                this.send({
+                    topic: this.ccu.topicReplace(this.topicOutputRpc, {
+                        iface: filter.iface,
+                        method: filter.method,
+                        callid: filter.callid,
+                    }),
+                    payload: error ? {error: error.message} : {result},
+                    retain: false,
+                });
+            };
+
+            this.ccu
+                .methodCall(filter.iface, filter.method, parameters)
+                .then((result) => respond(result))
+                .catch((error) => {
+                    this.error(error.message);
+                    respond(undefined, error);
+                });
+        }
+
+        setValue(filter, payload) {
+            const iface = this.resolveChannel(filter, true);
+            if (!iface) {
                 return;
             }
 
@@ -313,28 +419,8 @@ module.exports = function (RED) {
         }
 
         putParam(filter, payload) {
-            if (filter.channelNameOrAddress) {
-                if (this.ccu.channelNames[filter.channelNameOrAddress]) {
-                    filter.channel = filter.channelNameOrAddress;
-                } else {
-                    filter.channel = this.ccu.findChannel(filter.channelNameOrAddress);
-                }
-
-                if (!filter.channel) {
-                    this.error('channel ' + filter.channelNameOrAddress + ' not found');
-                    return;
-                }
-            }
-
-            if (!filter.channel) {
-                this.error('channel undefined');
-                return;
-            }
-
-            const iface = this.ccu.findIface(filter.channel);
-
+            const iface = this.resolveChannel(filter);
             if (!iface) {
-                this.error('no interface found for channel ' + filter.channel);
                 return;
             }
 
@@ -345,11 +431,14 @@ module.exports = function (RED) {
             );
             const paramsetDescription = this.ccu.paramsetDescriptions[psName];
             if (paramsetDescription && paramsetDescription[filter.param]) {
-                if (!paramsetDescription[filter.param].OPERATIONS && 2) {
+                // was `!(OPERATIONS) && 2`, which is always false - the check
+                // never fired and the write went out regardless (B-3)
+                if (!(paramsetDescription[filter.param].OPERATIONS & 2)) {
                     this.error('param ' + filter.param + ' not writeable');
+                    return;
                 }
 
-                payload = this.paramCast(payload, paramsetDescription[filter.param]);
+                payload = castValue(payload, paramsetDescription[filter.param], {clamp: true});
             } else {
                 this.warn('unknown paramset/param ' + filter.paramset + ' ' + filter.param);
             }
@@ -368,28 +457,8 @@ module.exports = function (RED) {
                 return;
             }
 
-            if (filter.channelNameOrAddress) {
-                if (this.ccu.channelNames[filter.channelNameOrAddress]) {
-                    filter.channel = filter.channelNameOrAddress;
-                } else {
-                    filter.channel = this.ccu.findChannel(filter.channelNameOrAddress);
-                }
-
-                if (!filter.channel) {
-                    this.error('channel ' + filter.channelNameOrAddress + ' not found');
-                    return;
-                }
-            }
-
-            if (!filter.channel) {
-                this.error('channel undefined');
-                return;
-            }
-
-            const iface = this.ccu.findIface(filter.channel);
-
+            const iface = this.resolveChannel(filter);
             if (!iface) {
-                this.error('no interface found for channel ' + filter.channel);
                 return;
             }
 
@@ -404,11 +473,17 @@ module.exports = function (RED) {
 
             Object.keys(payload).forEach((parameter) => {
                 if (paramsetDescription && paramsetDescription[parameter]) {
-                    if (!paramsetDescription[parameter].OPERATIONS && 2) {
+                    // was `!(OPERATIONS) && 2` (always false), and the cast
+                    // used paramsetDescription[filter.param], which is
+                    // undefined here - so every value went out uncast (B-3)
+                    if (!(paramsetDescription[parameter].OPERATIONS & 2)) {
                         this.error('param ' + parameter + ' not writeable');
+                        return;
                     }
 
-                    paramset[parameter] = this.paramCast(payload[parameter], paramsetDescription[filter.param]);
+                    paramset[parameter] = castValue(payload[parameter], paramsetDescription[parameter], {
+                        clamp: true,
+                    });
                 } else {
                     this.warn('unknown paramset/param ' + filter.paramset + ' ' + parameter);
                     paramset[parameter] = payload[parameter];
@@ -418,57 +493,6 @@ module.exports = function (RED) {
             this.ccu
                 .methodCall(iface, 'putParamset', [filter.channel, filter.paramset, paramset])
                 .catch((error) => this.error(error.message));
-        }
-
-        paramCast(value, paramset) {
-            switch (paramset && paramset.TYPE) {
-                case 'BOOL':
-                // Fallthrough by intention
-                case 'ACTION':
-                    // OMG this is so ugly...
-                    if (value === 'false') {
-                        value = false;
-                    } else if (!isNaN(value)) {
-                        // Make sure that the string "0" gets casted to boolean false
-                        value = Number(value);
-                    }
-
-                    value = Boolean(value);
-                    break;
-                case 'FLOAT':
-                    value = Number.parseFloat(value);
-                    if (value < paramset.MIN) {
-                        value = paramset.MIN;
-                    } else if (value > paramset.MAX) {
-                        value = paramset.MAX;
-                    }
-
-                    value = {explicitDouble: value};
-                    break;
-                case 'ENUM':
-                    if (typeof value === 'string') {
-                        if (paramset.ENUM && paramset.ENUM.includes(value)) {
-                            value = paramset.ENUM.indexOf(value);
-                        }
-                    }
-
-                // Fallthrough by intention
-                case 'INTEGER':
-                    value = Number.parseInt(value, 10);
-                    if (value < paramset.MIN) {
-                        value = paramset.MIN;
-                    } else if (value > paramset.MAX) {
-                        value = paramset.MAX;
-                    }
-
-                    break;
-                case 'STRING':
-                    value = String(value);
-                    break;
-                default:
-            }
-
-            return value;
         }
     }
 
