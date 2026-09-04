@@ -5,7 +5,7 @@ Notable changes to node-red-contrib-ccu. Format follows
 user-visible symptom and the cause, not the commit list (the release notes
 append commits automatically).
 
-## 4.3.0 (unreleased)
+## 4.3.0 (2026-09-04)
 
 ### Added
 
