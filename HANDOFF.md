@@ -87,11 +87,12 @@ Lab addresses and credentials are intentionally **not** in this file
   payloads, publishing to the CCU3 box's broker): HmIP-PDT light round
   trip with brightness verified, HmIP-WRC2 events discovered, no HA
   warnings.
-- A private she (Smart Home Engine) instance on the lab broker sees the
-  same 4 devices via its HA-discovery parser (no orphaned/duplicate
-  flags) — the quick check for future changes; details in the lab
-  hand-over note. Do not point lab publishers at the user's she-dev
-  instance: its broker is the production broker.
+- she (Smart Home Engine) as consumer: the user moved their she-dev
+  instance to the test broker, and both lab flows now publish there as
+  well (second mqtt-broker config in each flow), so she-dev's
+  HA-discovery view lists the 5 lab devices (no orphaned/duplicate
+  flags) — the quick check for future B-16 changes; a private she on the
+  lab broker exists too. Details and addresses in the lab hand-over note.
 - Still open: editor smoke test in a browser on a lab box (device table,
   ccu-mqtt select), a real key press (event entity), CI. Cover/climate
   payloads have no lab hardware — unit tests only.
