@@ -35,20 +35,15 @@ Lab addresses and credentials are intentionally **not** in this file
 
 ## Plan (blocks 4.1.0)
 
-1. **Full paramsets regeneration against the production CCU** (3.87.6):
-   ```
-   node tools/paramsets-fetch.js --host <production-ccu> --out /tmp/ccu_dump.json
-   node tools/paramsets-join.js /tmp/ccu_dump.json
-   node -e "JSON.parse(require('fs').readFileSync('paramsets.json'))"
-   npm test
-   ```
-   Throttled ~200 ms/call, a few minutes; the CCU gets overloaded easily —
-   don't run anything else against it. Procedure details:
-   docs/paramsets.md §3. Optionally run a second fetch against the lab
-   CCU3 (3.89.8) and join it too — the join tool dedupes by key, so this
-   only adds keys the production box doesn't have. Add a CHANGELOG entry
-   ("device descriptions refreshed from CCU firmware 3.87.6 / 3.89.8")
-   and note which new keys arrived (join prints added/changed counts).
+1. ~~Full paramsets regeneration~~ **done 2026-09-04** (4.1.0-dev.7):
+   lab CCUs (3.89.8) joined first (+58 keys), then the production CCU
+   (3.87.6, fetched read-only from WSL with `--delay 600`, ~25 min for
+   962 keys: +547 new, 32 refreshed — BidCos-RF, BidCos-Wired, HmIP and
+   the HmIP-HEATING 2.0.0 group). Rules for the production box, given by
+   the user: read-only, slow request rate (it overloads easily), and its
+   RPC callbacks only reach the Node-RED test box (firewall) — a live
+   node-red-contrib-ccu connection against it must run there, never from
+   WSL or a lab CCU. Procedure: docs/paramsets.md §3.
 2. **B-14 hardware check** (with the user's OK — it physically moves a
    blind): on the Node-RED test box, write a slat value to the paired
    HmIP-FBL's virtual-receiver channel (`:4`) via a ccu-value node with
@@ -70,10 +65,14 @@ git push origin v4.1.0` — release.yml publishes via OIDC and creates
   `cd /root/.node-red && npm install /tmp/<tarball> && systemctl restart
 node-red`. Verify: `curl -s http://localhost:1880/nodes -H "Accept:
 application/json"`.
-- **Production CCU3** (fw 3.87.6, stays there): read-only ssh as root
-  works. HmIP-only (no legacy BidCos devices paired). Gotcha that cost
-  hours: the CCU firewall must allow the CCU → Node-RED callback port,
-  otherwise inits hang for minutes and metadata never arrives.
+- **Production CCU3** (fw 3.87.6, stays there, other VLAN): read-only ssh
+  as root works; XML-RPC 2001/2010/9292 answer client calls from WSL.
+  Contrary to the earlier note it is _not_ HmIP-only: the 2026-09-04
+  dump lists ~35 BidCos-RF, 3 BidCos-Wired and ~30 HmIP device types
+  plus heating groups. Gotcha that cost hours: the CCU firewall must
+  allow the CCU → Node-RED callback port, otherwise inits hang for
+  minutes and metadata never arrives — only the Node-RED test box is
+  allowed through.
 - **Lab CCUs**: see Decisions above and `../RedMatic/HANDOFF.md`
   ("Building and testing locally") for the scripted-check recipes
   (Node-RED token via `POST /addons/red/auth/token`, CCU session via the

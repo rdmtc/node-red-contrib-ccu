@@ -35,6 +35,17 @@ append commits automatically).
   now include COMBINED_PARAMETER and the PRESS_* datapoints the current
   firmware reports). `paramsets.json` is now key-sorted, which makes this
   one diff large but future ones minimal.
+- Device descriptions regenerated from the maintainer's production CCU3
+  (firmware 3.87.6, ~70 device type/firmware combinations across
+  BidCos-RF, BidCos-Wired, HmIP and heating groups): 547 new entries and
+  32 refreshed ones. New, among others: HmIP-FBL 1.8.12, HmIP-BSL 1.0.2,
+  HmIP-BSM 1.18.14, HmIP-DRSI4, HmIP-MOD-OC8, HmIP-MP3P, HmIP-SRH 1.2.12,
+  HmIP-STHD / WTH-1 / WTH-2 2.8.10, HmIP-WRC6 2.2.14, HmIP-eTRV-2 2.2.8,
+  HmIP-eTRV-B-2 R4M, HmIP-eTRV-C / C-2 1.4.14, HMIP-PSM 2.22.8,
+  HMIP-SWDO 1.18.10, HMIP-WRC2 1.18.x and the HmIP-HEATING 2.0.0 group.
+  Devices of these types no longer need a live paramset fetch before
+  their channels show up in the node configuration dialogs, and the
+  refreshed entries carry the CONTROL hints the current firmware sends.
 
 ## 4.0.0 (2026-09-02)
 

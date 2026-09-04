@@ -79,7 +79,7 @@ source only.
 
 ### 2b. Live CCU (recommended route)
 
-`ssh root@homematic-ccu3` works (fw **3.87.6**, idle, image is 3.89.8 —
+`ssh root@<production-ccu>` works (fw **3.87.6**, idle, image is 3.89.8 —
 decision 2026-09-04: the production CCU stays on 3.87.6; the regen runs
 against it as-is. Two lab CCUs on 3.89.8 — x86_64 OpenCCU and an armv7l
 CCU3 — exist for tests but have few/no devices paired).
@@ -115,7 +115,7 @@ validate, commit. Optionally join a second dump from the lab CCU3
    installed here):
 
    ```
-   node tools/paramsets-fetch.js --host homematic-ccu3 \
+   node tools/paramsets-fetch.js --host <production-ccu> \
         [--ifaces BidCos-RF:2001,HmIP-RF:2010,VirtualDevices:9292/groups,BidCos-Wired:2000] \
         --out ccu_paramsets_dump.json
    ```
