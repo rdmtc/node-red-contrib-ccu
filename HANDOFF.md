@@ -58,7 +58,6 @@ Lab addresses and credentials are intentionally **not** in this file
    on a lab CCU (the branch build is installed on both), then rebase the
    branch onto master, push for CI, merge, date the CHANGELOG section,
    version 4.2.0, tag. B-2 moves to 4.3.0.
-<<<<<<< ours
 
 ## B-16 branch `b-16-homeassistant` (2026-09-04, target 4.2.0)
 
@@ -99,8 +98,6 @@ Lab addresses and credentials are intentionally **not** in this file
   payloads have no lab hardware — unit tests only.
 - Merge after 4.1.0 is released (rebase onto master; the CHANGELOG has
   separate Unreleased sections, so this is trivial).
-=======
->>>>>>> theirs
 
 ## Infrastructure (this does not travel via git; addresses live outside the repo)
 

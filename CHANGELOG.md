@@ -5,7 +5,6 @@ Notable changes to node-red-contrib-ccu. Format follows
 user-visible symptom and the cause, not the commit list (the release notes
 append commits automatically).
 
-<<<<<<< ours
 ## Unreleased (4.2.0)
 
 ### Added
@@ -35,10 +34,7 @@ append commits automatically).
 - Closing a ccu-mqtt or ccu-rpc-event node threw inside the connection's
   deregister, so the node was never reported as closed on deploy.
 
-## Unreleased (4.1.0)
-=======
 ## 4.1.0 (2026-09-04)
->>>>>>> theirs
 
 ### Fixed
 
