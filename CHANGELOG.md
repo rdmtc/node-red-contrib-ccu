@@ -28,6 +28,13 @@ append commits automatically).
   CCU, `tools/paramsets-join.js` merges dumps (including
   user-contributed `paramsets.json` files from issue reports). See
   docs/paramsets.md.
+- Device descriptions refreshed from two lab CCUs on firmware 3.89.8:
+  58 new entries (HmIPW-DRAP 3.0.36, HmIP-PDT 1.4.8, HmIP-WRC2 1.0.3,
+  HmIP-RFUSB, RPI-RF-MOD, the CCU's own HM-RCV-50 / HmIP-RCV-50
+  channels) and 9 refreshed ones (HmIPW-DRI16 1.2.2 and HmIPW-DRS8 1.2.4
+  now include COMBINED_PARAMETER and the PRESS_* datapoints the current
+  firmware reports). `paramsets.json` is now key-sorted, which makes this
+  one diff large but future ones minimal.
 
 ## 4.0.0 (2026-09-02)
 
