@@ -20,11 +20,31 @@ Lab addresses and credentials are intentionally **not** in this file
   `4.2.0-dev.1` build with the "B-16 Home Assistant" flow tabs; reporters
   of #136/#154/#175 were asked (2026-09-04) to confirm the LEVEL_2 fix
   on their hardware.
-- Issue tracker fully triaged (second pass 2026-09-04, B-7 done): 36
-  issues open, all annotated with their roadmap item; 5 closed that day;
-  8 newly diagnosed defects recorded in ROADMAP §8.3 — the two cheapest
-  are the unguarded RSSI conversion (#183) and the dropped sysvar
-  re-poll (#166). B-6/B-14/B-16 archived; roadmap is current.
+- **4.3.0 released 2026-09-04** (tag v4.3.0, npm latest = 4.3.0):
+  B-2 (dynamic configuration via `msg.config`), B-3 (ccu-mqtt fixes plus
+  the `get` and `rpc` commands and the VALUE_LIST enum names), B-4
+  (local-CCU detection via a /proc/net/tcp listener probe) and B-5
+  (ping toggle, value+age status lines, uncertain filter, trailing sysvar
+  re-poll, RSSI guard). All four archived. Branch `b-2-b-5` merged with
+  `--no-ff`; 145 pure tests, 23 integration specs green on all four CI
+  legs.
+- Issue tracker: 36 → **19 open**. The 17 issues 4.3.0 fixes were
+  commented and closed after the release (#172 #71 #103 #80 #56 #148
+  #133 #115 #22 #167 #44 #54 #52 #96 #166 #183 #51, plus comments on the
+  already-closed #185 and #158). B-6/B-7/B-14/B-16 archived; roadmap is
+  current.
+- **Not done for 4.3.0: the editor smoke test in a browser.** The inline
+  editor scripts are syntax-checked by a new unit test and the runtime
+  was verified on a lab CCU, but the dialogs themselves have not been
+  clicked through — and 4.3.0 adds fields to ccu-connection (RPC ping,
+  names/rooms refresh), ccu-sysvar (Value from), ccu-mqtt (get + the two
+  RPC topics) and ccu-value/ccu-rpc-event (discard uncertain values).
+- Lab CCU `ccu-charly` runs 4.3.0-dev.1 (identical to the release) with a
+  flow tab **"B-2..B-5 test"**: three inject nodes driving one
+  ccu-set-value through different `msg.config` filters, an rpc-event
+  debug, and an mqtt rig on the `hm2test/` prefix (mqtt in → ccu-mqtt →
+  mqtt out) used to verify the new `get` and `rpc` commands. The relays
+  were left switched off.
 
 ## Decisions (2026-09-04)
 
@@ -147,13 +167,21 @@ application/json"`.
   #112, #117 (retest comments posted).
 - Hardware confirmation for B-14 from reporters (#136/#154/#175).
 
-## After 4.1.0 (queue)
+## After 4.3.0 (queue)
 
-1. Editor loader consolidation (Phase 3 §6.4 + §8.1 defect 3, shared
+1. Browser smoke test of the config dialogs changed in 4.3.0 (see above).
+2. Editor loader consolidation (Phase 3 §6.4 + §8.1 defect 3, shared
    `resources/` script for the 9 dialogs) — needs a user smoke test on
    the Node-RED test box afterwards.
-2. Remaining Phase 3: split rpc/rega/queue out of ccu-connection.js,
-   async/await as touched, i18n/help consolidation (#58).
-3. 4.3.0 headline (moved from 4.2.0, which is B-16): B-2 dynamic config
-   via msg (7 issues; #133 has the confirmed setValues config-mutation
-   bug as the sharpest target).
+3. Remaining Phase 3: split rpc/rega/queue out of ccu-connection.js,
+   async/await as touched, i18n/help consolidation (#58). `lib/` grew
+   `dynconfig`, `channelfilter`, `valuestatus` and `localccu` in 4.3.0;
+   `ccu-connection.js` is still ~3100 lines.
+4. Remaining Phase 4: B-11 (re-init robustness — the `rpcCheckInit`
+   early return for device-less interfaces is still there, deliberately
+   left alone in 4.3.0 to keep its scope), B-12 (auth/TLS, #27), B-13
+   (party mode, #161/#156), B-15 (new HmIP channel types, #177/#144),
+   B-8/B-9/B-10.
+5. Still open from §8.3: the stale device-table cache (#181 — 4.3.0's
+   refresh covers names/rooms/functions only) and the internal system
+   variables (#184, needs a `homematic-rega` release).
