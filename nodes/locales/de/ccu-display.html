@@ -4,4 +4,21 @@
     als Nachricht übergeben werden diese
     anstelle der Konfiguration genutzt.</p>
     <p>Mit <code>msg.disbleX</code> kann explizit gesetzt werden, dass keine Daten für die Zeile übertragen werden.</p>
+
+    <h3>Dynamische Konfiguration</h3>
+    <p><code>msg.config</code> ist ein Objekt, dessen Eigenschaften die Konfiguration dieses Nodes für genau diese Nachricht überschreiben. Die gespeicherte Konfiguration bleibt unverändert.</p>
+    <ul>
+        <li><code>iface</code></li>
+        <li><code>channel</code></li>
+        <li><code>channelType</code></li>
+        <li><code>sound</code></li>
+        <li><code>repeat</code></li>
+        <li><code>pause</code></li>
+        <li><code>signal</code></li>
+        <li><code>line1 ... line6</code></li>
+        <li><code>color1 ... color6</code></li>
+        <li><code>icon1 ... icon6</code></li>
+        <li><code>disable1 ... disable6</code></li>
+    </ul>
+    <p><code>msg.line1</code> usw. funktionieren unverändert weiter.</p>
 </script>

@@ -29,6 +29,7 @@
             change: {value: false},
             working: {value: false},
             cache: {value: false},
+            certainOnly: {value: false},
             topic: {value: '${CCU}/${Interface}/${channelName}/${datapoint}'}  
         },
         inputs: 0,
@@ -595,6 +596,11 @@
             <label class="ccu-checkbox">
                 <input type="checkbox" id="node-input-cache">
                 <span data-i18n="ccu-rpc-event.cache"></span>
+            </label>
+
+            <label class="ccu-checkbox">
+                <input type="checkbox" id="node-input-certainOnly">
+                <span data-i18n="ccu-rpc-event.certainOnly"></span>
             </label>
         </div>
     </div>

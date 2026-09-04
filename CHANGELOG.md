@@ -5,6 +5,102 @@ Notable changes to node-red-contrib-ccu. Format follows
 user-visible symptom and the cause, not the commit list (the release notes
 append commits automatically).
 
+## 4.3.0 (2026-09-04)
+
+### Added
+
+- **Dynamic node configuration through `msg.config`** (roadmap B-2). Put
+  an object in `msg.config` and its properties override that node's own
+  configuration for that one message; the stored configuration is never
+  modified, so the next message starts from the dialog settings again.
+  Supported by the value, set-value, switch, sysvar, signal and display
+  nodes; each node's help panel lists the keys it accepts, and anything
+  else is ignored. `msg.ccu` could not be used for this because it
+  already carries the CCU host name. (#172, #71, #103, #80, #56, #148,
+  #185)
+- signal node: every command field is reachable that way, including
+  `soundList` and `dimmerList`, which now also accept a plain array of
+  values (`msg.config.soundList = [1, 2]`) instead of the editor's
+  list-of-objects shape. (#148, #80)
+- sysvar node: a typed input selects where the value to write comes from
+  (msg/flow/global/env). Computing a value and storing it in a variable
+  no longer needs a change node to move it into `msg.payload` first.
+  (#56)
+- sysvar and rpc-event nodes show the last value and how long ago it
+  arrived under the node — the sysvar node also when "emit value on
+  start" is off, since the connection knows the value either way. (#54,
+  #52)
+- value and rpc-event nodes: new option **discard uncertain values**,
+  which drops values the ReGa could not timestamp (`msg.uncertain`).
+  Off by default, so existing flows are unaffected. (#96)
+- ccu-mqtt: new **get** topic (`hm/get/<channel>/<datapoint>` by
+  default) republishes the last known value on its status topic, so a
+  refresh can be triggered over MQTT. An empty datapoint republishes the
+  whole channel. (#115)
+- ccu-mqtt: the **RPC** topics are implemented and visible in the editor.
+  The dispatcher recognised the RPC topic before but the node had no
+  handler for it, so such messages were silently dropped and the
+  response topic was never used — which is why both fields were
+  commented out. The result (or the error) is published on the response
+  topic. (#22)
+- switch node: rule values accept the **bool** type, as core Node-RED's
+  switch node does. Without it `true` had to be entered as a string, and
+  `true == "true"` is false in JavaScript, so boolean datapoints could
+  only be compared by writing 0/1. (#51)
+- connection node: **RPC ping** can be switched off, which disables the
+  periodic ping and the timeout-triggered re-init for that connection.
+  Setting the ping timeout to 0 never did this — it fell back to 60
+  seconds. (#44)
+- connection node: **names/rooms refresh** interval (default 15 minutes,
+  0 = off). Channel names, rooms and functions used to be read once when
+  the connection started, so anything added in the CCU WebUI stayed
+  invisible until the flow was redeployed. (#167)
+
+### Fixed
+
+- set-value node: only the _first_ message ever configured the node.
+  Message properties were written into the node's own configuration, so
+  every later message hit the "already configured" guard and was
+  ignored, and the node kept acting on the first message's rooms,
+  functions or channel. Each message is now evaluated on its own. (#133)
+- set-value node: the device-name filter tested whether the _channel_
+  had a ReGa name while comparing the _device_ name, so channels without
+  a name of their own were dropped even when their device matched.
+- Enum names never worked: the CCU sends them in `VALUE_LIST`, but the
+  code read `ENUM`, which no interface process sends. `msg.datapointEnum`
+  and `msg.valueEnum` were always `undefined`, and writing an enum
+  datapoint by name (`AUTO-MODE` rather than `0`) fell back to `0`.
+- ccu-mqtt: the "is this parameter writeable" check was
+  `!(desc.OPERATIONS) && 2`, which is always false — it never fired, and
+  read-only parameters were written anyway.
+- ccu-mqtt: `putParamset` cast every value against the description of a
+  parameter that does not exist in that call, so the whole paramset went
+  out uncast. Its private copy of the cast logic is gone; the shared one
+  gained the MIN/MAX clamping that copy did. Unparseable numbers become
+  0 instead of NaN, which XML-RPC cannot encode.
+- Running on the CCU itself was not detected any more, so local installs
+  (RedMatic) silently talked to the interface processes through the
+  CCU's lighttpd proxy instead of their direct ports. The check grepped
+  `/etc/lighttpd/conf.d/proxy.conf` for a port number; on current
+  firmware that file is a one-line include and the port markers live two
+  levels down. It now looks for a listener on the direct port instead.
+  (Roadmap B-4)
+- Writing several system variables at once left all but the first
+  invisible until the next scheduled ReGa poll (30 s by default): the
+  immediate re-poll each write triggers was dropped while another poll
+  was still running. It is remembered and run once afterwards. (#166)
+- RSSI values from the ReGa poll were converted from the unsigned byte
+  unconditionally, so a value that was already negative, or the 0 that
+  means "never received", became -318 or -256. (#183)
+- Editor: the Channel and Datapoint fields were cleared whenever their
+  content was not a known channel address, which also wiped
+  `${PARAMETER}` placeholders every time the dialog was opened — so a
+  node inside a subflow lost its subflow parameter. Placeholders are
+  left alone now. (#158)
+- The German help texts of the rpc-event node never loaded:
+  `locales/de/ccu-rpc-event.json` had a trailing comma and was not valid
+  JSON.
+
 ## 4.2.0 (2026-09-04)
 
 ### Added

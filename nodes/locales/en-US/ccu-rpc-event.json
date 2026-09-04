@@ -3,6 +3,7 @@
     "tip": "Tip: ",
     "change": "Emit only changed values",
     "cache": "Emit cached value on start",
-    "working": "Don't emit values while actuator is in WORKING state"
+    "working": "Don't emit values while actuator is in WORKING state",
+    "certainOnly": "Discard uncertain values"
   }
 }

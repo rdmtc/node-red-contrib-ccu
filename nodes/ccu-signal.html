@@ -268,7 +268,9 @@
 
                 $nodeInputChannel.autocomplete('option', 'source', arr);
 
-                if (!data[$nodeInputChannel.val().split(' ')[0]]) {
+                // ${ENV} placeholders are substituted by Node-RED before the node is
+                // constructed (subflow parameters, #158) - do not clear them
+                if (!/^\$\{[^}]+\}$/.test($nodeInputChannel.val()) && !data[$nodeInputChannel.val().split(' ')[0]]) {
                     $nodeInputChannel.val('');
                 }
             }
@@ -645,8 +647,60 @@
 
 <script type="text/x-red" data-help-name="ccu-signal" lang="de-DE">
     <p>Senden von LED- und Tonsignalen an Displaytaster und Funk-Gongs.</p>
+
+    <h3>Dynamische Konfiguration</h3>
+    <p><code>msg.config</code> ist ein Objekt, dessen Eigenschaften die Konfiguration dieses Nodes für genau diese Nachricht überschreiben. Die gespeicherte Konfiguration bleibt unverändert.</p>
+    <ul>
+        <li><code>iface</code></li>
+        <li><code>channel</code></li>
+        <li><code>channelType</code></li>
+        <li><code>chime</code></li>
+        <li><code>led</code></li>
+        <li><code>signal</code></li>
+        <li><code>volume</code></li>
+        <li><code>repeat</code></li>
+        <li><code>repetitions</code></li>
+        <li><code>durationUnit</code></li>
+        <li><code>durationValue</code></li>
+        <li><code>rampTimeUnit</code></li>
+        <li><code>rampTimeValue</code></li>
+        <li><code>acousticAlarmSelection</code></li>
+        <li><code>opticalAlarmSelection</code></li>
+        <li><code>dimmerLevel</code></li>
+        <li><code>dimmerColor</code></li>
+        <li><code>dimmerList</code></li>
+        <li><code>soundLevel</code></li>
+        <li><code>soundList</code></li>
+    </ul>
+    <p><code>soundList</code> und <code>dimmerList</code> akzeptieren auch ein einfaches Array von Werten, z.B. <code>msg.config.soundList = [1, 2]</code>.</p>
 </script>
 
 <script type="text/x-red" data-help-name="ccu-signal" lang="en-US">
     <p>Send LED- and Sound-Signals.</p>
+
+    <h3>Dynamic configuration</h3>
+    <p><code>msg.config</code> is an object whose properties override this node's configuration for that one message. The stored configuration is never modified.</p>
+    <ul>
+        <li><code>iface</code></li>
+        <li><code>channel</code></li>
+        <li><code>channelType</code></li>
+        <li><code>chime</code></li>
+        <li><code>led</code></li>
+        <li><code>signal</code></li>
+        <li><code>volume</code></li>
+        <li><code>repeat</code></li>
+        <li><code>repetitions</code></li>
+        <li><code>durationUnit</code></li>
+        <li><code>durationValue</code></li>
+        <li><code>rampTimeUnit</code></li>
+        <li><code>rampTimeValue</code></li>
+        <li><code>acousticAlarmSelection</code></li>
+        <li><code>opticalAlarmSelection</code></li>
+        <li><code>dimmerLevel</code></li>
+        <li><code>dimmerColor</code></li>
+        <li><code>dimmerList</code></li>
+        <li><code>soundLevel</code></li>
+        <li><code>soundList</code></li>
+    </ul>
+    <p><code>soundList</code> and <code>dimmerList</code> also accept a plain array of values, e.g. <code>msg.config.soundList = [1, 2]</code>.</p>
 </script>

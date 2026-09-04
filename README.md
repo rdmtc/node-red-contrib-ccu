@@ -41,6 +41,35 @@ device with switch, light, cover, climate, binary_sensor, event, lock and sensor
 optionally be included as a disabled-by-default entity. Unticking a device removes it from Home Assistant on the
 next deploy.
 
+## Dynamic configuration
+
+Most nodes can be reconfigured per message: put an object in `msg.config` and its
+properties override that node's own configuration **for that one message**. The stored
+configuration is never modified, so the next message starts from the dialog settings
+again — sending a different room, channel or brightness each time works as you would
+expect.
+
+```javascript
+// one signal node, a different colour and duration per message
+msg.config = {dimmerColor: 4, durationValue: 10};
+
+// one set-value node, a different room per message
+msg.config = {rooms: 'Kitchen'};
+return msg;
+```
+
+Which keys a node accepts is listed in its help panel in the editor. Anything not on
+that list is ignored, so an unrelated property in `msg.config` cannot reach node
+internals. `msg.ccu` is not used for this because it already carries the CCU host name.
+
+The `value`, `get value` and `set value` nodes additionally read plain top-level
+properties (`msg.channel`, `msg.datapoint`, `msg.rooms`, …) to fill in fields left empty
+in the dialog. That is the older mechanism and is unchanged; `msg.config` wins over it.
+
+Inside a **subflow**, Node-RED substitutes `${PARAMETER}` placeholders in a node's text
+fields before the node is created, so a subflow parameter can be typed straight into the
+Channel or Datapoint field and each instance reads its own device.
+
 ## Configuration Examples
 
 The communication with the Homematic CCU needs independent connections in two directions. Node-red-contrib-ccu connects to the CCU's interface listeners (e.g. 2001/TCP for BidCos-RF) while the CCU connects to node-red-contrib-ccu's BINRPC/XMLRPC listeners (2048/tcp and 2049/tcp in examples below).

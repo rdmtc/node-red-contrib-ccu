@@ -2,6 +2,7 @@
   "ccu-sysvar": {
     "tip": "Wird keine Variable ausgewählt kann der Variablen-Name über msg.topic übergeben werden.",
     "change": "Nur geänderte Werte ausgeben",
-    "cache": "Beim Start aktuellen Wert ausgeben"
+    "cache": "Beim Start aktuellen Wert ausgeben",
+    "property": "Wert aus"
   }
 }

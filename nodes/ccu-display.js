@@ -1,6 +1,19 @@
 const path = require('path');
 
 const statusHelper = require(path.join(__dirname, '/lib/status.js'));
+const {effectiveConfig} = require(path.join(__dirname, '/lib/dynconfig.js'));
+
+/** Everything a message may override through msg.config (B-2, #80 #185). */
+const DYNAMIC_KEYS = [
+    'iface',
+    'channel',
+    'channelType',
+    'sound',
+    'repeat',
+    'pause',
+    'signal',
+    ...[1, 2, 3, 4, 5, 6].flatMap((i) => ['line' + i, 'color' + i, 'icon' + i, 'disable' + i]),
+];
 
 module.exports = function (RED) {
     class CcuDisplay {
@@ -143,43 +156,46 @@ module.exports = function (RED) {
             }
 
             this.on('input', (message, send, done) => {
+                // msg.line1 & co. keep working as before; msg.config
+                // additionally reaches the channel and the EP-WM55 settings
+                const {config: effective} = effectiveConfig(config, message, DYNAMIC_KEYS);
                 let payload = '0x02';
 
                 let countLines = 6; // HM-Dis-WM55
-                if (config.channelType === 'HM-Dis-EP-WM55') {
+                if (effective.channelType === 'HM-Dis-EP-WM55') {
                     payload += ',0x0A';
                     countLines = 3;
                 }
 
                 for (let i = 1; i <= countLines; i++) {
-                    if (!message['disable' + i] && !config['disable' + i]) {
-                        payload += convertString(message['line' + i] || config['line' + i]);
-                        if (config.channelType === 'HM-Dis-WM55') {
-                            payload += convertColor(message['color' + i] || config['color' + i]);
+                    if (!message['disable' + i] && !effective['disable' + i]) {
+                        payload += convertString(message['line' + i] || effective['line' + i]);
+                        if (effective.channelType === 'HM-Dis-WM55') {
+                            payload += convertColor(message['color' + i] || effective['color' + i]);
                         }
 
-                        payload += convertIcon(message['icon' + i] || config['icon' + i]);
+                        payload += convertIcon(message['icon' + i] || effective['icon' + i]);
                     }
 
                     payload += ',0x0A';
                 }
 
-                if (config.channelType === 'HM-Dis-EP-WM55') {
-                    if (config.sound) {
-                        payload += ',0x14,' + config.sound + ',0x1C';
+                if (effective.channelType === 'HM-Dis-EP-WM55') {
+                    if (effective.sound) {
+                        payload += ',0x14,' + effective.sound + ',0x1C';
                     }
 
-                    payload += ',' + config.repeat + ',0x1D,' + config.pause + ',0x16';
+                    payload += ',' + effective.repeat + ',0x1D,' + effective.pause + ',0x16';
 
-                    if (config.signal) {
-                        payload += ',' + config.signal;
+                    if (effective.signal) {
+                        payload += ',' + effective.signal;
                     }
                 }
 
                 payload += ',0x03';
 
                 this.ccu
-                    .setValue(config.iface, config.channel, 'SUBMIT', payload)
+                    .setValue(effective.iface, effective.channel, 'SUBMIT', payload)
                     .then(() => {
                         done();
                     })

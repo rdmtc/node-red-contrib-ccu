@@ -7,7 +7,9 @@
             ccuConfig: {value: 'localhost', type: 'ccu-connection', required: true},
             topic: {value: 'ReGaHSS/${Name}'},  
             change: {value: true},
-            cache: {value: true}
+            cache: {value: true},
+            property: {value: 'payload'},
+            propertyType: {value: 'msg'}
         },
         inputs: 1,
         outputs: 1,
@@ -23,6 +25,24 @@
         },
         oneditprepare() {
             const cname = this.name;
+
+            // Where the value to write comes from (#56). Older nodes have no
+            // property/propertyType - default them to msg.payload, which is
+            // what the node always used.
+            if (!this.property) {
+                this.property = 'payload';
+                $('#node-input-property').val('payload');
+            }
+
+            if (!this.propertyType) {
+                this.propertyType = 'msg';
+            }
+
+            $('#node-input-property').typedInput({
+                default: this.propertyType,
+                types: ['msg', 'flow', 'global', 'str', 'num', 'bool', 'json', 'env'],
+                typeField: $('#node-input-propertyType')
+            });
 
             // Migration
             if (typeof this.change === 'undefined') {
@@ -98,6 +118,11 @@
         </select>
     </div>
     <div class="form-row">
+        <label for="node-input-property"><i class="fa fa-sign-in"></i> <span data-i18n="ccu-sysvar.property"></span></label>
+        <input type="text" id="node-input-property" placeholder="payload" style="width:70%;">
+        <input type="hidden" id="node-input-propertyType">
+    </div>
+    <div class="form-row">
         <label for="node-input-change"><i class="icon-bookmark"></i> </label>
         <div style="width: 70%; display: inline-block; vertical-align: text-top;">
              <label class="ccu-checkbox" for="node-input-change">
@@ -148,6 +173,13 @@
                </code></pre>
          </li>
      </ol>
+
+    <h3>Dynamische Konfiguration</h3>
+    <p><code>msg.config</code> ist ein Objekt, dessen Eigenschaften die Konfiguration dieses Nodes für genau diese Nachricht überschreiben. Die gespeicherte Konfiguration bleibt unverändert.</p>
+    <ul>
+        <li><code>name</code></li>
+    </ul>
+    <p>Woher der zu schreibende Wert kommt, stellt das Feld <em>Wert aus</em> ein (msg/flow/global/env) — er muss nicht mehr in <code>msg.payload</code> stehen.</p>
 </script>
 
 <script type="text/x-red" data-help-name="ccu-sysvar" lang="en-US">
@@ -161,4 +193,11 @@
             The value that should be assigned to the variable.
         </dd>
     </dl>
+
+    <h3>Dynamic configuration</h3>
+    <p><code>msg.config</code> is an object whose properties override this node's configuration for that one message. The stored configuration is never modified.</p>
+    <ul>
+        <li><code>name</code></li>
+    </ul>
+    <p>The <em>Value from</em> field selects where the value to write comes from (msg/flow/global/env); it no longer has to be <code>msg.payload</code>.</p>
 </script>

@@ -15,6 +15,7 @@
             start: {value: true},
             change: {value: true},
             cache: {value: false},
+            certainOnly: {value: false},
             queue: {value: false},
             on: {value: ''},
             onType: {value: 'undefined'},
@@ -176,7 +177,9 @@
                 arr.sort((a, b) => a.localeCompare(b));
                 $nodeInputChannel.autocomplete('option', 'source', arr);
 
-                if (!data[$nodeInputChannel.val().split(' ')[0]]) {
+                // ${ENV} placeholders are substituted by Node-RED before the node is
+                // constructed (subflow parameters, #158) - do not clear them
+                if (!/^\$\{[^}]+\}$/.test($nodeInputChannel.val()) && !data[$nodeInputChannel.val().split(' ')[0]]) {
                     $nodeInputChannel.val('');
                     $nodeInputDatapoint.val('');
                 }
@@ -480,6 +483,11 @@
                 <input type="checkbox" id="node-input-cache">
                 <span data-i18n="ccu-value.cache"></span>
             </label>
+
+            <label class="ccu-checkbox">
+                <input type="checkbox" id="node-input-certainOnly">
+                <span data-i18n="ccu-value.certainOnly"></span>
+            </label>
         </div>
     </div>
 
@@ -580,8 +588,26 @@
     <h3>Output</h3>
     <p>Der Value Node gibt nur Events aus, wenn Interface, Channel und Datapoint gesetzt sind.</p>
 
+
+    <h3>Dynamische Konfiguration</h3>
+    <p><code>msg.config</code> ist ein Objekt, dessen Eigenschaften die Konfiguration dieses Nodes für genau diese Nachricht überschreiben. Die gespeicherte Konfiguration bleibt unverändert.</p>
+    <ul>
+        <li><code>iface</code></li>
+        <li><code>channel</code></li>
+        <li><code>datapoint</code></li>
+    </ul>
+    <p>Eine Nachricht ohne <code>payload</code> schreibt nichts, richtet aber die Ausgabe-Seite des Nodes neu aus.</p>
 </script>
 
 <script type="text/x-red" data-help-name="ccu-value" lang="en-US">
     <p>Set and read channel datapoints.</p>
+
+    <h3>Dynamic configuration</h3>
+    <p><code>msg.config</code> is an object whose properties override this node's configuration for that one message. The stored configuration is never modified.</p>
+    <ul>
+        <li><code>iface</code></li>
+        <li><code>channel</code></li>
+        <li><code>datapoint</code></li>
+    </ul>
+    <p>A message without a <code>payload</code> writes nothing but retargets the node's output side.</p>
 </script>

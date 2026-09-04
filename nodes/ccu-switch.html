@@ -239,7 +239,9 @@
                     arr.sort((a, b) => a.localeCompare(b));
                     $nodeInputChannel.autocomplete('option', 'source', arr);
 
-                    if (!data[$nodeInputChannel.val().split(' ')[0]]) {
+                    // ${ENV} placeholders are substituted by Node-RED before the node is
+                    // constructed (subflow parameters, #158) - do not clear them
+                    if (!/^\$\{[^}]+\}$/.test($nodeInputChannel.val()) && !data[$nodeInputChannel.val().split(' ')[0]]) {
                         $nodeInputChannel.val('');
                         $nodeInputDatapoint.val('');
                     }
@@ -345,12 +347,12 @@
                                 selectField.append($('<option></option>').val(operators[d].v).text(node._(operators[d].t)));
                             }
                         }
-                        const valueField = $('<input/>', {class: 'node-input-rule-value', type: 'text', style: 'margin-left: 5px;'}).appendTo(row).typedInput({default: 'str', types: ['msg', 'flow', 'global', 'str', 'num', 'jsonata', 'env', previousValueType]});
+                        const valueField = $('<input/>', {class: 'node-input-rule-value', type: 'text', style: 'margin-left: 5px;'}).appendTo(row).typedInput({default: 'str', types: ['msg', 'flow', 'global', 'str', 'num', 'bool', 'jsonata', 'env', previousValueType]});
                         const numValueField = $('<input/>', {class: 'node-input-rule-num-value', type: 'text', style: 'margin-left: 5px;'}).appendTo(row).typedInput({default: 'num', types: ['flow', 'global', 'num', 'jsonata', 'env']});
                         const expValueField = $('<input/>', {class: 'node-input-rule-exp-value', type: 'text', style: 'margin-left: 5px;'}).appendTo(row).typedInput({default: 'jsonata', types: ['jsonata']});
-                        const btwnValueField = $('<input/>', {class: 'node-input-rule-btwn-value', type: 'text', style: 'margin-left: 5px;'}).appendTo(row).typedInput({default: 'num', types: ['msg', 'flow', 'global', 'str', 'num', 'jsonata', 'env', previousValueType]});
+                        const btwnValueField = $('<input/>', {class: 'node-input-rule-btwn-value', type: 'text', style: 'margin-left: 5px;'}).appendTo(row).typedInput({default: 'num', types: ['msg', 'flow', 'global', 'str', 'num', 'bool', 'jsonata', 'env', previousValueType]});
                         const btwnAndLabel = $('<span/>', {class: 'node-input-rule-btwn-label'}).text(' ' + andLabel + ' ').appendTo(row3);
-                        const btwnValue2Field = $('<input/>', {class: 'node-input-rule-btwn-value2', type: 'text', style: 'margin-left:2px;'}).appendTo(row3).typedInput({default: 'num', types: ['msg', 'flow', 'global', 'str', 'num', 'jsonata', 'env', previousValueType]});
+                        const btwnValue2Field = $('<input/>', {class: 'node-input-rule-btwn-value2', type: 'text', style: 'margin-left:2px;'}).appendTo(row3).typedInput({default: 'num', types: ['msg', 'flow', 'global', 'str', 'num', 'bool', 'jsonata', 'env', previousValueType]});
                         const typeValueField = $('<input/>', {class: 'node-input-rule-type-value', type: 'text', style: 'margin-left: 5px;'}).appendTo(row)
                             .typedInput({default: 'string', types: [
                                     {value: 'string', label: 'string', hasValue: false},
@@ -801,6 +803,17 @@
     <p>Der ccu switch Node verhält sich ähnlich wie der switch Node von Node-RED. Er leitet eine Nachricht abhängig von einem Zustand eines Aktors oder einer Systemvariablen weiter, wahlweise auch je nach Zustand an unterschiedliche Ausgänge.</p>
     <h4>Dokumentation</h4>
     <a target="_blank" href="https://github.com/rdmtc/RedMatic/wiki/CCU-Nodes#ccu-switch-node">ccu switch node im RedMatic Wiki</a>
+
+    <h3>Dynamische Konfiguration</h3>
+    <p><code>msg.config</code> ist ein Objekt, dessen Eigenschaften die Konfiguration dieses Nodes für genau diese Nachricht überschreiben. Die gespeicherte Konfiguration bleibt unverändert.</p>
+    <ul>
+        <li><code>iface</code></li>
+        <li><code>channel</code></li>
+        <li><code>datapoint</code></li>
+        <li><code>datapointProperty</code></li>
+        <li><code>sysvar</code></li>
+        <li><code>sysvarProperty</code></li>
+    </ul>
 </script>
 
 

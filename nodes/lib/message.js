@@ -18,6 +18,8 @@
  * @param {object} [additions] merged into the message (cache, working, uncertain, ts, lc, ...)
  * @returns {object} the message
  */
+const {enumList} = require('./cast.js');
+
 function createMessage(ccu, iface, channel, datapoint, payload, additions) {
     const datapointName = iface + '.' + channel + '.' + datapoint;
     if (!ccu.values[datapointName]) {
@@ -73,12 +75,14 @@ function createMessage(ccu, iface, channel, datapoint, payload, additions) {
         datapointType: description.TYPE,
         datapointMin: description.MIN,
         datapointMax: description.MAX,
-        datapointEnum: description.ENUM,
+        // the CCU sends the names in VALUE_LIST; reading description.ENUM
+        // meant both of these were always undefined (B-3, ROADMAP 8.2)
+        datapointEnum: enumList(description),
         datapointDefault: description.DEFAULT,
         datapointControl: description.CONTROL,
         value: payload,
         valuePrevious: ccu.values[datapointName].value,
-        valueEnum: description.ENUM ? description.ENUM[Number(payload)] : undefined,
+        valueEnum: enumList(description) ? enumList(description)[Number(payload)] : undefined,
         valueStable,
         rooms: ccu.channelRooms[channel] || [],
         room:

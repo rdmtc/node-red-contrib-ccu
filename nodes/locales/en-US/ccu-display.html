@@ -3,4 +3,21 @@
     <p>If <code>msg.lineX</code>, <code>msg.iconX</code> or <code>msg.colorX</code>
     are set in the message these are used instead of the configuration.</p>
     <p> With <code>msg.disbleX</code> you can explicitly set that no data is transferred for the line.</p>
+
+    <h3>Dynamic configuration</h3>
+    <p><code>msg.config</code> is an object whose properties override this node's configuration for that one message. The stored configuration is never modified.</p>
+    <ul>
+        <li><code>iface</code></li>
+        <li><code>channel</code></li>
+        <li><code>channelType</code></li>
+        <li><code>sound</code></li>
+        <li><code>repeat</code></li>
+        <li><code>pause</code></li>
+        <li><code>signal</code></li>
+        <li><code>line1 ... line6</code></li>
+        <li><code>color1 ... color6</code></li>
+        <li><code>icon1 ... icon6</code></li>
+        <li><code>disable1 ... disable6</code></li>
+    </ul>
+    <p><code>msg.line1</code> and friends keep working unchanged.</p>
 </script>
