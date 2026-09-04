@@ -78,7 +78,7 @@ module.exports = function (RED) {
         }
 
         setValues(message) {
-            const {config} = effectiveConfig(this.config, message, DYNAMIC_KEYS);
+            const {config} = effectiveConfig(this.config, message, DYNAMIC_KEYS, {flat: true});
             this.useFilter(config);
 
             let count = 0;

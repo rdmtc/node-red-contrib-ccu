@@ -14,6 +14,13 @@
  * limitations under the License.
  **/
 
+const path = require('path');
+
+const {effectiveConfig} = require(path.join(__dirname, '/lib/dynconfig.js'));
+
+/** Source selection a message may override through msg.config (B-2, #103). */
+const DYNAMIC_KEYS = ['iface', 'channel', 'datapoint', 'datapointProperty', 'sysvar', 'sysvarProperty'];
+
 module.exports = function (RED) {
     'use strict';
 
@@ -132,11 +139,28 @@ module.exports = function (RED) {
 
     function getProperty(node, msg) {
         return new Promise((resolve, reject) => {
-            if (node.iface === 'ReGaHSS') {
-                resolve(node.ccu.sysvar[node.sysvar] && node.ccu.sysvar[node.sysvar][node.sysvarProperty]);
+            // which datapoint or variable to look at can come from the
+            // message, so one switch node can serve a whole subflow (#103)
+            const {config} = effectiveConfig(
+                {
+                    iface: node.iface,
+                    channel: node.channel,
+                    datapoint: node.datapoint,
+                    datapointProperty: node.datapointProperty,
+                    sysvar: node.sysvar,
+                    sysvarProperty: node.sysvarProperty
+                },
+                msg,
+                DYNAMIC_KEYS
+            );
+
+            if (config.iface === 'ReGaHSS') {
+                const sysvar = node.ccu.sysvar[config.sysvar];
+                resolve(sysvar && sysvar[config.sysvarProperty || 'value']);
             } else {
-                const address = node.iface + '.' + String(node.channel).split(' ')[0] + '.' + node.datapoint;
-                resolve(node.ccu.values[address] && node.ccu.values[address][node.datapointProperty]);
+                const address = config.iface + '.' + String(config.channel).split(' ')[0] + '.' + config.datapoint;
+                const value = node.ccu.values[address];
+                resolve(value && value[config.datapointProperty || 'value']);
             }
         });
     }

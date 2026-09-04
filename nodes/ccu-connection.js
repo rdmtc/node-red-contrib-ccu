@@ -2509,6 +2509,7 @@ module.exports = function (RED) {
                 'change',
                 'cache',
                 'stable',
+                'uncertain',
                 'iface',
                 'device',
                 'deviceType',
@@ -2714,6 +2715,15 @@ module.exports = function (RED) {
             let matchChange;
             let matchStable;
 
+            // Checked before the attribute loop below: that loop may break
+            // early for a whitelisted datapoint, and this decision has to be
+            // made for every message regardless of key order. Only present in
+            // the filter when a node opted in, so existing subscriptions keep
+            // receiving values the ReGa could not timestamp (#96).
+            if (filter && filter.uncertain === false && message.uncertain) {
+                return false;
+            }
+
             if (filter) {
                 const arrayAttr = Object.keys(filter);
 
@@ -2750,6 +2760,11 @@ module.exports = function (RED) {
                         }
 
                         matchStable = true;
+                        continue;
+                    }
+
+                    if (attr === 'uncertain') {
+                        // already decided above, and not a value to compare
                         continue;
                     }
 

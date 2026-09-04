@@ -7,7 +7,9 @@
             ccuConfig: {value: 'localhost', type: 'ccu-connection', required: true},
             topic: {value: 'ReGaHSS/${Name}'},  
             change: {value: true},
-            cache: {value: true}
+            cache: {value: true},
+            property: {value: 'payload'},
+            propertyType: {value: 'msg'}
         },
         inputs: 1,
         outputs: 1,
@@ -23,6 +25,24 @@
         },
         oneditprepare() {
             const cname = this.name;
+
+            // Where the value to write comes from (#56). Older nodes have no
+            // property/propertyType - default them to msg.payload, which is
+            // what the node always used.
+            if (!this.property) {
+                this.property = 'payload';
+                $('#node-input-property').val('payload');
+            }
+
+            if (!this.propertyType) {
+                this.propertyType = 'msg';
+            }
+
+            $('#node-input-property').typedInput({
+                default: this.propertyType,
+                types: ['msg', 'flow', 'global', 'str', 'num', 'bool', 'json', 'env'],
+                typeField: $('#node-input-propertyType')
+            });
 
             // Migration
             if (typeof this.change === 'undefined') {
@@ -96,6 +116,11 @@
         <input type="text" id="node-input-name">
         <select id="select-input-name" style="display:none" class="ccu-dropdown">
         </select>
+    </div>
+    <div class="form-row">
+        <label for="node-input-property"><i class="fa fa-sign-in"></i> <span data-i18n="ccu-sysvar.property"></span></label>
+        <input type="text" id="node-input-property" placeholder="payload" style="width:70%;">
+        <input type="hidden" id="node-input-propertyType">
     </div>
     <div class="form-row">
         <label for="node-input-change"><i class="icon-bookmark"></i> </label>
