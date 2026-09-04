@@ -14,8 +14,12 @@ Lab addresses and credentials are intentionally **not** in this file
   (+605 keys from the production CCU and two lab CCUs). Phase 3:
   cast/topic/message/castSysvar extracted, 43 unit tests
   (`npm run test:pure`, 71 on the B-16 branch).
-- Branch `b-16-homeassistant` (4.2.0) is pushed and **CI green** on all
-  legs including the mocha integration suite.
+- **4.2.0 released 2026-09-04** (tag v4.2.0, npm latest = 4.2.0): the
+  ccu-homeassistant node (B-16, archived). Branch `b-16-homeassistant`
+  merged with `--no-ff` and deleted. The lab CCUs run the equivalent
+  `4.2.0-dev.1` build with the "B-16 Home Assistant" flow tabs; reporters
+  of #136/#154/#175 were asked (2026-09-04) to confirm the LEVEL_2 fix
+  on their hardware.
 - Issue tracker fully triaged; B-6/B-14 archived; roadmap is current.
 
 ## Decisions (2026-09-04)
