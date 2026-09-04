@@ -239,7 +239,9 @@
                     arr.sort((a, b) => a.localeCompare(b));
                     $nodeInputChannel.autocomplete('option', 'source', arr);
 
-                    if (!data[$nodeInputChannel.val().split(' ')[0]]) {
+                    // ${ENV} placeholders are substituted by Node-RED before the node is
+                    // constructed (subflow parameters, #158) - do not clear them
+                    if (!/^\$\{[^}]+\}$/.test($nodeInputChannel.val()) && !data[$nodeInputChannel.val().split(' ')[0]]) {
                         $nodeInputChannel.val('');
                         $nodeInputDatapoint.val('');
                     }
@@ -801,6 +803,17 @@
     <p>Der ccu switch Node verhält sich ähnlich wie der switch Node von Node-RED. Er leitet eine Nachricht abhängig von einem Zustand eines Aktors oder einer Systemvariablen weiter, wahlweise auch je nach Zustand an unterschiedliche Ausgänge.</p>
     <h4>Dokumentation</h4>
     <a target="_blank" href="https://github.com/rdmtc/RedMatic/wiki/CCU-Nodes#ccu-switch-node">ccu switch node im RedMatic Wiki</a>
+
+    <h3>Dynamische Konfiguration</h3>
+    <p><code>msg.config</code> ist ein Objekt, dessen Eigenschaften die Konfiguration dieses Nodes für genau diese Nachricht überschreiben. Die gespeicherte Konfiguration bleibt unverändert.</p>
+    <ul>
+        <li><code>iface</code></li>
+        <li><code>channel</code></li>
+        <li><code>datapoint</code></li>
+        <li><code>datapointProperty</code></li>
+        <li><code>sysvar</code></li>
+        <li><code>sysvarProperty</code></li>
+    </ul>
 </script>
 
 

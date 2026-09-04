@@ -624,8 +624,46 @@
 
     <h3>Input</h3>
 
+
+    <h3>Dynamische Konfiguration</h3>
+    <p><code>msg.config</code> ist ein Objekt, dessen Eigenschaften die Konfiguration dieses Nodes für genau diese Nachricht überschreiben. Die gespeicherte Konfiguration bleibt unverändert.</p>
+    <ul>
+        <li><code>iface</code></li>
+        <li><code>rooms</code></li>
+        <li><code>functions</code></li>
+        <li><code>device</code></li>
+        <li><code>deviceType</code></li>
+        <li><code>deviceName</code></li>
+        <li><code>channel</code></li>
+        <li><code>channelType</code></li>
+        <li><code>channelIndex</code></li>
+        <li><code>channelName</code></li>
+        <li><code>datapoint</code></li>
+        <li><code>force</code></li>
+        <li><code>sowie die zugehörigen <code>...Rx</code>-Selektoren</code></li>
+    </ul>
+    <p>Zusätzlich füllen gleichnamige Eigenschaften der Nachricht selbst (<code>msg.rooms</code> usw.) leer gelassene Felder — so war es schon immer.</p>
 </script>
 
 <script type="text/x-red" data-help-name="ccu-set-value" lang="en-US">
     <p>Control multiple devices at once.</p>
+
+    <h3>Dynamic configuration</h3>
+    <p><code>msg.config</code> is an object whose properties override this node's configuration for that one message. The stored configuration is never modified.</p>
+    <ul>
+        <li><code>iface</code></li>
+        <li><code>rooms</code></li>
+        <li><code>functions</code></li>
+        <li><code>device</code></li>
+        <li><code>deviceType</code></li>
+        <li><code>deviceName</code></li>
+        <li><code>channel</code></li>
+        <li><code>channelType</code></li>
+        <li><code>channelIndex</code></li>
+        <li><code>channelName</code></li>
+        <li><code>datapoint</code></li>
+        <li><code>force</code></li>
+        <li><code>and the matching <code>...Rx</code> selectors</code></li>
+    </ul>
+    <p>Properties of the message itself (<code>msg.rooms</code> and so on) also fill in fields left empty in the dialog, as they always did.</p>
 </script>

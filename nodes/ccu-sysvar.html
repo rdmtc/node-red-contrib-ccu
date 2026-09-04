@@ -173,6 +173,13 @@
                </code></pre>
          </li>
      </ol>
+
+    <h3>Dynamische Konfiguration</h3>
+    <p><code>msg.config</code> ist ein Objekt, dessen Eigenschaften die Konfiguration dieses Nodes für genau diese Nachricht überschreiben. Die gespeicherte Konfiguration bleibt unverändert.</p>
+    <ul>
+        <li><code>name</code></li>
+    </ul>
+    <p>Woher der zu schreibende Wert kommt, stellt das Feld <em>Wert aus</em> ein (msg/flow/global/env) — er muss nicht mehr in <code>msg.payload</code> stehen.</p>
 </script>
 
 <script type="text/x-red" data-help-name="ccu-sysvar" lang="en-US">
@@ -186,4 +193,11 @@
             The value that should be assigned to the variable.
         </dd>
     </dl>
+
+    <h3>Dynamic configuration</h3>
+    <p><code>msg.config</code> is an object whose properties override this node's configuration for that one message. The stored configuration is never modified.</p>
+    <ul>
+        <li><code>name</code></li>
+    </ul>
+    <p>The <em>Value from</em> field selects where the value to write comes from (msg/flow/global/env); it no longer has to be <code>msg.payload</code>.</p>
 </script>

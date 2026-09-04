@@ -195,7 +195,9 @@
                     arr.sort((a, b) => a.localeCompare(b));
                     $nodeInputChannel.autocomplete('option', 'source', arr);
 
-                    if (!data[$nodeInputChannel.val().split(' ')[0]]) {
+                    // ${ENV} placeholders are substituted by Node-RED before the node is
+                    // constructed (subflow parameters, #158) - do not clear them
+                    if (!/^\$\{[^}]+\}$/.test($nodeInputChannel.val()) && !data[$nodeInputChannel.val().split(' ')[0]]) {
                         $nodeInputChannel.val('');
                         $nodeInputDatapoint.val('');
                     }
