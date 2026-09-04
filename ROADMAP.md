@@ -25,9 +25,13 @@ Decisions (D-n) stay here as the record of why things are the way they
 are; answered open questions are rewritten in place
 (`**answered <date>** — …`).
 
-Status 2026-09-02: **4.0.0 is released** (npm latest, OIDC provenance,
-GitHub release). Phases 1 and 2 are done and archived. Next: Phase 3
-(refactor & tests) and the Phase 4 backlog (B-1…B-16); work continues on
+Status 2026-09-04: **4.0.0 (2026-09-02) and 4.1.0 (2026-09-04) are
+released** (npm latest, OIDC provenance, GitHub releases); 4.1.0 carries
+the regenerated device descriptions and the LEVEL_2 fix. **4.2.0 = B-16**
+(Home Assistant discovery node) is lab-verified on branch
+`b-16-homeassistant`, CI green, waiting for the editor smoke test before
+merge; B-2 moved to 4.3.0. Phases 1 and 2 are done and archived. Next:
+Phase 3 (refactor & tests) and the Phase 4 backlog; work continues on
 master with CI (Node 22/24 × Node-RED 4/5) as the gate. Research basis:
 the GitHub tracker/PRs/forks, homematic-forum.de, Node-RED release notes and
 scorecard criteria, and the hm2mqtt.js 3.0 rewrite (same author), which

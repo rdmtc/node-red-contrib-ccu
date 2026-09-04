@@ -7,13 +7,15 @@ Lab addresses and credentials are intentionally **not** in this file
 
 ## State
 
-- **4.0.0 released 2026-09-02** (npm latest, OIDC provenance, GitHub
-  release). Master is at `4.1.0-dev.5`+, **CI fully green** (lint + Node
-  22/24 × Node-RED 4/5).
-- In the Unreleased (4.1.0) changelog: binrpc 4.2.0, B-14
-  (LEVEL_2 → COMBINED_PARAMETER, unverified on hardware), paramsets
-  fetch/join tooling. Phase 3: cast/topic/message/castSysvar extracted,
-  43 unit tests (`npm run test:pure`).
+- **4.0.0 released 2026-09-02, 4.1.0 released 2026-09-04** (npm latest
+  = 4.1.0, OIDC provenance, GitHub releases). 4.1.0 = binrpc 4.2.0, B-14
+  (LEVEL_2 → COMBINED_PARAMETER, unverified on hardware by decision),
+  paramsets fetch/join tooling and the regenerated `paramsets.json`
+  (+605 keys from the production CCU and two lab CCUs). Phase 3:
+  cast/topic/message/castSysvar extracted, 43 unit tests
+  (`npm run test:pure`, 71 on the B-16 branch).
+- Branch `b-16-homeassistant` (4.2.0) is pushed and **CI green** on all
+  legs including the mocha integration suite.
 - Issue tracker fully triaged; B-6/B-14 archived; roadmap is current.
 
 ## Decisions (2026-09-04)
@@ -50,14 +52,17 @@ Lab addresses and credentials are intentionally **not** in this file
    (ccu-value node writing LEVEL_2 to the HmIP-FBL's `:4` channel on
    the Node-RED test box, log shows the COMBINED_PARAMETER remap) stays
    valid if it is ever wanted.
-3. **Release 4.1.0** — in progress 2026-09-04: CHANGELOG heading dated,
-   `npm pkg set version=4.1.0`, commit, push, CI green, `git tag v4.1.0
-&& git push origin v4.1.0` — release.yml publishes via OIDC and
-   creates the GitHub release from the CHANGELOG.
-4. **Release 4.2.0 = B-16** right after: user does the editor smoke test
-   on a lab CCU (the branch build is installed on both), then rebase the
-   branch onto master, push for CI, merge, date the CHANGELOG section,
-   version 4.2.0, tag. B-2 moves to 4.3.0.
+3. ~~Release 4.1.0~~ **done 2026-09-04** (tag v4.1.0, release.yml green,
+   npm latest 4.1.0). Follow-up worth doing: comment on #136/#154/#175
+   that 4.1.0 contains the LEVEL_2 fix and ask for confirmation on real
+   hardware (needs the user's go — outward-facing).
+4. **Release 4.2.0 = B-16** next: user does the editor smoke test on a
+   lab CCU (the branch build is installed on both, the dialog code is
+   unchanged since), then merge the branch into master with `--no-ff`
+   (do **not** rebase with `-X theirs` — it silently keeps the branch
+   side of conflicting doc hunks, which bit twice today), date the
+   CHANGELOG section, `npm pkg set version=4.2.0`, commit, push, CI,
+   tag v4.2.0. B-2 moves to 4.3.0.
 
 ## B-16 branch `b-16-homeassistant` (2026-09-04, target 4.2.0)
 
