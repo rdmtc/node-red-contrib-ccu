@@ -82,9 +82,14 @@ Lab addresses and credentials are intentionally **not** in this file
   (install, deploy, HA onboarding, status via comms websocket) are in
   this session's scratchpad; the lab hand-over note lists the HA
   container and login.
-- Still open: editor smoke test in a browser on the lab box (device
-  table, ccu-mqtt select), light/cover/climate payloads (use the
-  HmIP-PDT on the OpenCCU box), a real key press, CI.
+- Second round on the OpenCCU lab box (branch build installed there too,
+  flow tab "B-16 Home Assistant" with topic prefix `hm2/` and plain
+  payloads, publishing to the CCU3 box's broker): HmIP-PDT light round
+  trip with brightness verified, HmIP-WRC2 events discovered, no HA
+  warnings.
+- Still open: editor smoke test in a browser on a lab box (device table,
+  ccu-mqtt select), a real key press (event entity), CI. Cover/climate
+  payloads have no lab hardware — unit tests only.
 - Merge after 4.1.0 is released (rebase onto master; the CHANGELOG has
   separate Unreleased sections, so this is trivial).
 
