@@ -28,6 +28,48 @@ Some example flows can be found in the [RedMatic Wiki](https://github.com/rdmtc/
 
 **Starting with Version 3.x these Nodes need Node-RED >= 1.0 to work correctly**
 
+## openccu-lite
+
+[openccu-lite](https://github.com/hobbyquaker/openccu-lite) is a Homematic CCU firmware **without ReGaHSS**. The
+interface processes (`rfd`, `hs485d`, `hmipserver`) are the same, so everything these nodes do over BINRPC/XMLRPC works
+unchanged — but there is no logic layer: nothing listens on 8181/8183, HM-Script is never interpreted, and there are no
+ReGa ids. Device, channel, room and function names come from the box's metadata API instead.
+
+Nothing has to be configured for this. When the connection node starts (and on every reconnect of its name sync) it
+asks the box `GET /api/meta/v1/version`; a CCU3, RaspberryMatic or OpenCCU answers 404 and the ReGaHSS path runs exactly
+as before, an openccu-lite answers with its API version and the node takes names, rooms and functions from there —
+loaded once as a snapshot and then kept current from the box's event stream, so a rename in the box's UI shows up in
+your flows within a second, without a redeploy. `msg.channelName`, `msg.rooms`, `msg.functions` and the room/function
+filters keep exactly the shape they have on a CCU. The same connection node configuration works on both, which is what
+makes moving a backup between the two harmless.
+
+**Credential.** Every metadata endpoint except the version probe needs a token:
+
+- Node-RED **on the box** (RedMatic): nothing to do — the box's own read-only token is read from
+  `/usr/local/etc/occulite/local-token`.
+- Node-RED **elsewhere** (a PC, a container): create a token on the box's _Users_ page and paste it into the
+  **openccu-lite token** field of the connection node. The **openccu-lite port** field next to it is only needed when
+  the box's web server is not on port 80 (443 with TLS).
+
+Without a token the nodes still work, with addresses instead of names: the connection logs the rejected credential once
+and picks the names up on the next retry, as soon as a valid token is there.
+
+**What has no replacement on openccu-lite** (from openccu-lite's own porting guide):
+
+- **System variables** and **programs**: there is no ReGa DOM. The `ccu-sysvar`, `ccu-program` and `ccu-poll` nodes stay
+  in the palette and in your flows — they are accepted, they never break the connection, and every message they get is
+  answered with a clear error instead.
+- **`exec()` of HM-Script** — `dom.GetObject`, `system.GetSessionVarStr` and everything else the `ccu-script` node
+  sends: gone, same handling as above.
+- **ReGa ids** (`dom.GetObject(1234)`): there are none. The metadata API identifies objects by
+  `<interface>.<address>`; these nodes have always keyed on the address, so nothing changes for flows.
+- **Service messages / alarms** (system variables 40 and 41): interface-level state only.
+- **The CCU WebUI's JSON-RPC API** (`/api/homematic.cgi`, `Session.login`, `Device.listAll`): not present.
+
+Rooms and functions are a **tree** on openccu-lite (`room/eg/wohnzimmer`), not a flat list. They are flattened to the
+arrays these nodes have always published, most specific first: a channel in _Wohnzimmer_ below _Erdgeschoss_ gets
+`msg.rooms = ["Wohnzimmer", "Erdgeschoss"]` and `msg.room = "Wohnzimmer"`, so a room filter on either name matches.
+
 ## Home Assistant
 
 The `ccu-homeassistant` node publishes

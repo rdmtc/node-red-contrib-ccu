@@ -14,6 +14,7 @@ const {bestMatch} = require('./lib/similarity.js');
 const nextport = require('./lib/nextport.js');
 const hmDiscover = require('./lib/discover.js');
 const {Rega} = require('homematic-rega'); // ES module - require(esm) needs Node >= 20.19 / >= 22.12
+const metaProvider = require('./lib/metaprovider.js');
 const xmlrpc = require('homematic-xmlrpc');
 const binrpc = require('binrpc');
 
@@ -542,6 +543,15 @@ module.exports = function (RED) {
 
             this.regaEnabled = config.regaEnabled;
             this.regaPollEnabled = config.regaPoll;
+            // B-17 openccu-lite: the metadata api sits behind the box's
+            // lighttpd, i.e. on the plain http(s) port. The field exists for
+            // reverse proxies and tests, it is empty in every normal install.
+            this.tlsEnabled = Boolean(config.tls);
+            this.inSecure = Boolean(config.inSecure);
+            this.metaPort = Number.parseInt(config.metaPort, 10) || (config.tls ? 443 : 80);
+            this.metaToken = config.metaToken || metaProvider.readLocalToken();
+            this.metaMode = false;
+            this.meta = null;
             // #167: minutes between re-reads of channel names, rooms and
             // functions. 0 switches it off.
             this.regaMetaInterval =
@@ -640,10 +650,26 @@ module.exports = function (RED) {
 
             if (config.regaEnabled) {
                 this.lastRegaDataRefresh = now();
-                this.getRegaData().then(() => {
-                    this.regaPoll();
-                    this.initIfaces(config);
-                });
+                // B-17: ask the box once whether it speaks the openccu-lite
+                // metadata api. It does not on a CCU/RaspberryMatic/OpenCCU,
+                // where everything below runs exactly as before.
+                this.lastMetaProbe = now();
+                this.detectMeta()
+                    .then((info) => {
+                        if (info) {
+                            return this.startMeta(info);
+                        }
+
+                        return this.getRegaData().then(() => {
+                            this.regaPoll();
+                        });
+                    })
+                    .catch((error) => {
+                        this.logger.error('name sync ' + error.message);
+                    })
+                    .then(() => {
+                        this.initIfaces(config);
+                    });
             } else {
                 this.initIfaces(config);
             }
@@ -822,6 +848,8 @@ module.exports = function (RED) {
                         regaChannels: this.regaChannels,
                         channelRooms: this.channelRooms,
                         channelFunctions: this.channelFunctions,
+                        rooms: this.rooms,
+                        functions: this.functions,
                         groups: this.groups,
                         sysvar: this.sysvar,
                         program: this.program,
@@ -885,6 +913,16 @@ module.exports = function (RED) {
                     this.channelRooms = regadata.channelRooms;
                     this.channelFunctions = regadata.channelFunctions;
                     this.groups = regadata.groups;
+                    // written since 4.4.0 - the editor's room/function pickers
+                    // were empty until the first successful sync before that
+                    if (Array.isArray(regadata.rooms)) {
+                        this.rooms = regadata.rooms;
+                    }
+
+                    if (Array.isArray(regadata.functions)) {
+                        this.functions = regadata.functions;
+                    }
+
                     /*
                     this.sysvar = regadata.sysvar;
                     Object.keys(this.sysvar).forEach(s => {
@@ -994,6 +1032,12 @@ module.exports = function (RED) {
             this.cancelRegaPoll = true;
             clearTimeout(this.regaPollTimeout);
 
+            if (this.meta) {
+                this.logger.debug('stop metadata event stream');
+                this.meta.stop();
+                this.meta = null;
+            }
+
             Object.keys(this.rpcPingTimer).forEach((iface) => {
                 this.logger.debug('clear rpcPingTimer', iface);
                 clearTimeout(this.rpcPingTimer[iface]);
@@ -1073,7 +1117,165 @@ module.exports = function (RED) {
                 .then(() => this.getRegaFunctions())
                 .then(() => this.getRegaValues())
                 .then(() => this.getGroupsData())
-                .catch(this.logger.error);
+                .catch((error) => {
+                    this.logger.error(error);
+                    this.recheckMeta();
+                });
+        }
+
+        /**
+         * B-17: is this box an openccu-lite? `GET /api/meta/v1/version` needs
+         * no credential and answers only there - a CCU replies 404 or HTML.
+         * Never rejects; an unreachable box is simply "no".
+         * @returns {Promise<object|null>}
+         */
+        detectMeta() {
+            return metaProvider.detect({
+                host: this.host,
+                port: this.metaPort,
+                tls: Boolean(this.tlsEnabled),
+                insecure: Boolean(this.inSecure),
+                logger: this.logger,
+            });
+        }
+
+        /**
+         * Take names, rooms and functions from the openccu-lite metadata api
+         * instead of from the ReGaHSS. Resolves as soon as the first snapshot
+         * has been applied (or after 5 s, so a missing credential does not hold
+         * up the interfaces).
+         * @param {object} info the /version document
+         * @returns {Promise<any>}
+         */
+        startMeta(info) {
+            this.metaMode = true;
+            this.lastMetaProbe = now();
+            clearTimeout(this.regaPollTimeout);
+            this.logger.info(
+                'openccu-lite detected (' +
+                    (info.implementation || 'meta api') +
+                    ', api version ' +
+                    info.version +
+                    ') - names, rooms and functions come from its metadata api',
+            );
+            this.logger.info(
+                'this box has no ReGaHSS: system variables, programs and HM-Script are not available (sysvar, program, poll and script nodes stay idle)',
+            );
+
+            if (info.version > 1) {
+                this.logger.warn(
+                    'the box speaks metadata api version ' +
+                        info.version +
+                        ', this version of node-red-contrib-ccu implements version 1',
+                );
+            }
+
+            if (!this.metaToken) {
+                this.logger.warn(
+                    'no metadata api token: create one on the box (Users page) and enter it in the connection node, or run on the box where ' +
+                        metaProvider.LOCAL_TOKEN_FILE +
+                        ' is readable. Without it the nodes work with addresses only.',
+                );
+            }
+
+            return new Promise((resolve) => {
+                const done = setTimeout(resolve, 5000);
+                this.meta = new metaProvider.MetaProvider({
+                    host: this.host,
+                    port: this.metaPort,
+                    tls: Boolean(this.tlsEnabled),
+                    insecure: Boolean(this.inSecure),
+                    token: this.metaToken,
+                    logger: this.logger,
+                    onNames: (names) => {
+                        this.applyMetaNames(names);
+                        clearTimeout(done);
+                        resolve();
+                    },
+                    onStatus: (connected) => {
+                        this.setIfaceStatus('ReGaHSS', connected);
+                    },
+                    onGone: () => {
+                        this.metaMode = false;
+                        this.meta = null;
+                        this.lastMetaProbe = 0;
+                        this.logger.warn('this box no longer answers as openccu-lite - detecting again');
+                        this.detectMeta().then((again) => {
+                            if (again) {
+                                return this.startMeta(again);
+                            }
+
+                            return this.getRegaData().then(() => this.regaPoll());
+                        });
+                    },
+                });
+                this.meta.start();
+            });
+        }
+
+        /**
+         * The metadata api's answer, in the shape the rest of the code expects
+         * from the ReGa: names by address, rooms and functions as arrays of
+         * names. Called for the snapshot and again for every change event.
+         * @param {object} names
+         */
+        applyMetaNames(names) {
+            this.channelNames = names.channelNames;
+            this.channelRooms = names.channelRooms;
+            this.channelFunctions = names.channelFunctions;
+            this.rooms = names.rooms;
+            this.functions = names.functions;
+            this.logger.debug(
+                'meta revision ' +
+                    names.revision +
+                    ': ' +
+                    Object.keys(names.channelNames).length +
+                    ' names, ' +
+                    names.rooms.length +
+                    ' rooms, ' +
+                    names.functions.length +
+                    ' functions',
+            );
+            this.saveRegadata();
+        }
+
+        /**
+         * The ReGa did not answer. Maybe this box became an openccu-lite (a
+         * restored backup, a firmware swap) - probe again, at most every five
+         * minutes, so a box that changes underneath a running Node-RED is
+         * picked up without a redeploy.
+         */
+        recheckMeta() {
+            if (this.metaMode || this.cancelRegaPoll || this.metaRecheckPending) {
+                return;
+            }
+
+            if (now() - (this.lastMetaProbe || 0) < 300000) {
+                return;
+            }
+
+            this.lastMetaProbe = now();
+            this.metaRecheckPending = true;
+            this.detectMeta()
+                .then((info) => {
+                    this.metaRecheckPending = false;
+                    if (info && !this.metaMode) {
+                        return this.startMeta(info);
+                    }
+                })
+                .catch(() => {
+                    this.metaRecheckPending = false;
+                });
+        }
+
+        /**
+         * The error a ReGa-only feature answers with on openccu-lite. The
+         * nodes stay in the palette and in the flow, every message gets this.
+         * @param {string} feature
+         * @returns {Error}
+         */
+        regaMissingError(feature) {
+            return new Error(feature + ' are not available on this box (openccu-lite has no ReGaHSS)');
         }
 
         /**
@@ -1233,6 +1435,11 @@ module.exports = function (RED) {
          */
         programActive(name, active) {
             return new Promise((resolve, reject) => {
+                if (this.metaMode) {
+                    reject(this.regaMissingError('programs'));
+                    return;
+                }
+
                 const program = this.program[name];
                 if (program) {
                     const script = `dom.GetObject(${program.id}).Active(${active});`;
@@ -1260,6 +1467,11 @@ module.exports = function (RED) {
          */
         programExecute(name) {
             return new Promise((resolve, reject) => {
+                if (this.metaMode) {
+                    reject(this.regaMissingError('programs'));
+                    return;
+                }
+
                 const program = this.program[name];
                 if (program) {
                     const d = new Date();
@@ -1294,6 +1506,11 @@ module.exports = function (RED) {
          */
         setVariable(name, value) {
             return new Promise((resolve, reject) => {
+                if (this.metaMode) {
+                    reject(this.regaMissingError('system variables'));
+                    return;
+                }
+
                 if (!this.hasRegaVariables) {
                     this.logger.debug('variables not yet known. defer setVariable ' + name);
                     clearTimeout(this.setVariableQueueTimeout[name]);
@@ -1334,6 +1551,12 @@ module.exports = function (RED) {
          */
         regaPoll() {
             //this.logger.trace('regaPoll');
+            if (this.metaMode) {
+                // nothing to poll: no variables, no programs, and names arrive
+                // over the metadata api's event stream
+                return;
+            }
+
             if (this.regaPollPending) {
                 // #166: writing several variables at once used to lose all but
                 // the first immediate re-poll, so their new values only showed
@@ -1523,7 +1746,10 @@ module.exports = function (RED) {
                 .then(() => this.getRegaRooms())
                 .then(() => this.getRegaFunctions())
                 .then(() => this.saveRegadata())
-                .catch((error) => this.logger.error('refreshRegaData', error));
+                .catch((error) => {
+                    this.logger.error('refreshRegaData', error);
+                    this.recheckMeta();
+                });
         }
 
         /** Runs refreshRegaData() when the configured interval has elapsed. */
@@ -3134,6 +3360,11 @@ module.exports = function (RED) {
          */
         script(script) {
             return new Promise((resolve, reject) => {
+                if (this.metaMode) {
+                    reject(this.regaMissingError('HM-Script and ReGaHSS scripts'));
+                    return;
+                }
+
                 execToCallback(this.rega.exec(script), (err, payload, objects) => {
                     if (err) {
                         reject(err);

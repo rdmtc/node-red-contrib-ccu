@@ -31,6 +31,9 @@
             username: {value: ''},
             password: {value: ''},
 
+            metaToken: {value: ''},
+            metaPort: {value: ''},
+
             queueTimeout: {value: 5000, required: true},
             queuePause: {value: 250, required: true},
 
@@ -248,6 +251,16 @@
         <label for="node-config-input-password"><i class="icon-tag"></i> Password</label>
         <input type="password" id="node-config-input-password">
     </div>
+    <div class="form-row">
+        <label for="node-config-input-metaToken"><i class="icon-tag"></i> openccu-lite token</label>
+        <input type="password" id="node-config-input-metaToken" placeholder="olt_...">
+        <small>Only for openccu-lite (a CCU ignores this). Leave empty when Node-RED runs on the box.</small>
+    </div>
+    <div class="form-row">
+        <label for="node-config-input-metaPort"><i class="icon-tag"></i> openccu-lite port</label>
+        <input type="text" id="node-config-input-metaPort" placeholder="80 / 443">
+        <small>Only needed when the box's web server is not on the default port.</small>
+    </div>
 </script>
 
 
@@ -306,6 +319,18 @@
                 <li><b>Context-Store</b>: Hier wird der Node-RED Context-Store festgelegt in dem RedMatic die Zustände aller Geräte/Variablen vorhält.
 
 Weiteres unter <a target="_blank" href="https://nodered.org/docs/user-guide/context">Working</a> with context in der Node-RED Dokumentation.</li>
+            </ul>
+            <ul>
+                <li><b>openccu-lite Token</b>: Nur für <a href="https://github.com/hobbyquaker/openccu-lite" target="_blank">openccu-lite</a>,
+                eine CCU-Firmware ohne ReGaHSS. Namen, Räume und Gewerke kommen dort aus der Metadaten-API der Box;
+                dafür wird ein Token benötigt, das auf der Box unter <i>Benutzer</i> erzeugt wird. Läuft Node-RED
+                auf der Box selbst (RedMatic), bleibt das Feld leer – das lokale Token wird dann automatisch gelesen.
+                Eine CCU/RaspberryMatic/OpenCCU ignoriert das Feld vollständig. Systemvariablen, Programme und
+                HM-Scripte gibt es auf openccu-lite nicht; die entsprechenden Nodes bleiben im Flow, melden aber pro
+                Nachricht einen Fehler.</li>
+            </ul>
+            <ul>
+                <li><b>openccu-lite Port</b>: Nur nötig, wenn der Webserver der Box nicht auf Port 80 bzw. 443 (TLS) läuft.</li>
             </ul>
             <ul>
                 <li><b>Authentication</b>: Hier kann angegeben werden wie mit der CCU Kommuniziert werden soll.</li>

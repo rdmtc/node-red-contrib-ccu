@@ -17,6 +17,12 @@ module.exports = function (RED) {
             this.ccu.register(this);
 
             this.on('input', (message, send, done) => {
+                if (this.ccu.metaMode) {
+                    // openccu-lite has no ReGaHSS - nothing to poll (B-17)
+                    done(this.ccu.regaMissingError('system variables and programs'));
+                    return;
+                }
+
                 this.ccu.regaPoll(); // TODO catch errors
                 done();
             });

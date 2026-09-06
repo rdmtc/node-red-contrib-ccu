@@ -7,3 +7,6 @@ nodes/locales
 nodes/ccu-switch.js
 test/simulator-data
 docs
+
+# verbatim copy of openccu-lite's conformance corpus (fixtures/store) - do not reformat
+test/fixtures/openccu-lite
