@@ -28,6 +28,20 @@ Lab addresses and credentials are intentionally **not** in this file
   re-poll, RSSI guard). All four archived. Branch `b-2-b-5` merged with
   `--no-ff`; 145 pure tests, 23 integration specs green on all four CI
   legs.
+- **4.4.0 released 2026-09-06** (tag v4.4.0, npm latest = 4.4.0):
+  B-17, the openccu-lite port. `nodes/lib/metaprovider.js` takes names,
+  rooms and functions from the box's metadata API (`/api/meta/v1`
+  snapshot + SSE) when `GET /api/meta/v1/version` answers; a CCU
+  answers 404 and the ReGa path is byte-for-byte what it was. Two
+  optional connection fields (openccu-lite token, port); on the box the
+  token comes from `/usr/local/etc/occulite/local-token`. sysvar,
+  program, script and poll stay in the palette and error per message.
+  16 unit tests plus a verification against a real `occulited` built
+  from ../openccu-lite (see roadmap-archive/B-17.md). Branch
+  `b-17-openccu-lite` merged with `--no-ff` and deleted. **Open: no test
+  on real openccu-lite hardware, and the connection dialog with the two
+  new fields has not been opened in a browser.** RedMatic's own port
+  needs `node-red-contrib-ccu@^4.4.0`.
 - Issue tracker: 36 → **19 open**. The 17 issues 4.3.0 fixes were
   commented and closed after the release (#172 #71 #103 #80 #56 #148
   #133 #115 #22 #167 #44 #54 #52 #96 #166 #183 #51, plus comments on the
