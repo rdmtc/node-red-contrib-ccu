@@ -18,6 +18,9 @@ the roadmap's contents index (marked ✅ there, linking here).
 
 **Backlog items**
 
+- [B-17.md](B-17.md) — the openccu-lite port: names, rooms and
+  functions from the box's metadata API when it has no ReGaHSS ✅
+  2026-09-06 (4.4.0).
 - [B-5.md](B-5.md) — ping toggle, value/age status lines, uncertain
   filter, trailing sysvar re-poll, RSSI guard ✅ 2026-09-04 (4.3.0;
   #44/#54/#52/#96/#166/#183/#124).
