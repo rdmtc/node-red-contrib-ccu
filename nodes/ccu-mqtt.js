@@ -405,13 +405,22 @@ module.exports = function (RED) {
                 return;
             }
 
+            // #601: these promises used to float - a rejection (e.g. ReGaHSS
+            // closing the connection) became an unhandled rejection and took
+            // the whole Node-RED process down.
             if (this.ccu.sysvar[filter.name]) {
-                this.ccu.setVariable(filter.name, payload);
+                this.ccu
+                    .setVariable(filter.name, payload)
+                    .catch((error) => this.error('setVariable ' + filter.name + ': ' + error.message));
             } else if (this.ccu.program[filter.name]) {
                 if (typeof payload === 'boolean') {
-                    this.ccu.programActive(filter.name, payload);
+                    this.ccu
+                        .programActive(filter.name, payload)
+                        .catch((error) => this.error('programActive ' + filter.name + ': ' + error.message));
                 } else {
-                    this.ccu.programExecute(filter.name);
+                    this.ccu
+                        .programExecute(filter.name)
+                        .catch((error) => this.error('programExecute ' + filter.name + ': ' + error.message));
                 }
             } else {
                 this.error('no sysvar or program with name ' + filter.name + ' found');

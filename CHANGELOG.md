@@ -5,6 +5,34 @@ Notable changes to node-red-contrib-ccu. Format follows
 user-visible symptom and the cause, not the commit list (the release notes
 append commits automatically).
 
+## 4.4.1 (2026-09-07)
+
+### Fixed
+
+- **Node-RED could be killed by a failed ReGaHSS write, seconds after
+  start** ([RedMatic #601](https://github.com/rdmtc/RedMatic/issues/601)).
+  A write to a system variable that arrives before the variable list is
+  known is deferred into a queue and flushed once the first
+  `getRegaVariables` completes. That flush dropped the resulting promise,
+  so a rejected write — ReGaHSS closing the connection, `Error: socket
+hang up` — became an **unhandled rejection**, which Node >= 15 turns
+  into an uncaught exception: the whole Node-RED process exited with
+  status 1 and its supervisor restarted it into the same crash. The
+  rejection is now caught and logged.
+
+  This became reachable in 4.3.0: the rewritten local-CCU detection made
+  `isLocal` true again on RedMatic boxes (it had silently stopped
+  matching on current firmware), which moves ReGa traffic from lighttpd
+  on 8181 to ReGaHSS directly on 8183. lighttpd absorbed a busy ReGaHSS;
+  the direct port simply closes the connection.
+
+- The same floating-promise pattern in `ccu-mqtt`: `setVariable`,
+  `programActive` and `programExecute` triggered over MQTT dropped their
+  promises too, and now report through the node's error output instead of
+  taking the process down.
+- `regaPoll`'s `finally` chain is caught as well, so a throw in the
+  follow-up scheduling cannot escape as an unhandled rejection.
+
 ## 4.4.0 (2026-09-06)
 
 ### Added

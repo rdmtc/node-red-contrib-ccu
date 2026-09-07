@@ -1593,7 +1593,10 @@ module.exports = function (RED) {
                             this.regaPollAgain = false;
                             this.refreshRegaDataIfDue();
                         }
-                    });
+                    })
+                    // a throw inside the finally above would otherwise be an
+                    // unhandled rejection, see #601
+                    .catch((error) => this.logger.error('regaPoll', error));
             }
         }
 
@@ -1784,10 +1787,17 @@ module.exports = function (RED) {
                             Object.keys(this.setVariableQueueTimeout).forEach((name) =>
                                 clearTimeout(this.setVariableQueueTimeout[name]),
                             );
-                            Object.keys(this.setVariableQueue).reduce(
-                                (p, name) => p.then((_) => this.setVariable(name, this.setVariableQueue[name])),
-                                Promise.resolve(),
-                            );
+                            // #601: a rejected write here used to be an
+                            // unhandled rejection, which Node >= 15 turns into
+                            // an uncaught exception - it killed the whole
+                            // process seconds after start whenever ReGaHSS
+                            // dropped the connection (RedMatic #601).
+                            Object.keys(this.setVariableQueue)
+                                .reduce(
+                                    (p, name) => p.then((_) => this.setVariable(name, this.setVariableQueue[name])),
+                                    Promise.resolve(),
+                                )
+                                .catch((error) => this.logger.error('deferred setVariable', error));
                         }
 
                         resolve();

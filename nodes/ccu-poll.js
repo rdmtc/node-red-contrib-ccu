@@ -23,7 +23,8 @@ module.exports = function (RED) {
                     return;
                 }
 
-                this.ccu.regaPoll(); // TODO catch errors
+                // regaPoll() returns nothing and handles its own errors (#601)
+                this.ccu.regaPoll();
                 done();
             });
         }
