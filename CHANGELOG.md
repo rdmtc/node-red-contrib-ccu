@@ -5,6 +5,27 @@ Notable changes to node-red-contrib-ccu. Format follows
 user-visible symptom and the cause, not the commit list (the release notes
 append commits automatically).
 
+## 4.4.2 (2026-09-09)
+
+### Fixed
+
+- **`getRegaVariables Error: socket hang up` every few minutes on a CCU**
+  (B-18, [RedMatic #601](https://github.com/rdmtc/RedMatic/issues/601)
+  follow-up). Since 4.3.0 a local install talks to ReGaHSS itself on port 8183. ReGaHSS answers HTTP/1.1 without `Connection: close` — and then
+  closes the connection 0.4–7 ms after every response (measured on a
+  CCU3 3.89.8, median 0.55 ms). `homematic-rega` 2.0 (since 4.0.0) sent
+  its requests through Node's `http.globalAgent`, which pools connections
+  (`keepAlive: true` since Node 19), so the next request on such a socket —
+  `regaPoll` right after a `setVariable`, or `getRegaPrograms` right after
+  `getRegaVariables` — could land in that window and die with
+  `ECONNRESET` / `socket hang up`; the sysvar nodes then showed
+  "disconnected" until the next poll. lighttpd on 8181 (the remote path,
+  and the local path before 4.3.0) keeps connections alive properly, which
+  is why nobody saw it before. In the lab (CCU3 3.89.8, Node 24.18.1, ReGaHSS kept busy by a script loop) a poll every 10 s preceded by a write, timed as the addon does it, lost 20 of 810 requests in 45 minutes with the pooled socket (27 per hour; the reporter's log shows about 6), 7 of 807 with a few milliseconds of client-side jitter, and 0 of 807 without keep-alive. Fixed in
+  `homematic-rega` 2.0.1, which uses an agent without keep-alive (the 1.x
+  behaviour) and takes an `agent` option; this release requires it. No
+  change to the addon's own code paths.
+
 ## 4.4.1 (2026-09-07)
 
 ### Fixed
