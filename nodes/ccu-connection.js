@@ -1151,6 +1151,13 @@ module.exports = function (RED) {
             this.metaMode = true;
             this.lastMetaProbe = now();
             clearTimeout(this.regaPollTimeout);
+            if (this.clients.ReGaHSS) {
+                // the box became an openccu-lite while Node-RED was running
+                // (recheckMeta): no ReGaHSS to talk to any more (B-27)
+                this.logger.info('rpc client ReGaHSS closed: openccu-lite has no ReGaHSS');
+                this.closeClient('ReGaHSS');
+            }
+
             this.logger.info(
                 'openccu-lite detected (' +
                     (info.implementation || 'meta api') +
@@ -1203,6 +1210,10 @@ module.exports = function (RED) {
                         this.detectMeta().then((again) => {
                             if (again) {
                                 return this.startMeta(again);
+                            }
+
+                            if (this.ifaceTypes.ReGaHSS.enabled && !this.clients.ReGaHSS) {
+                                this.createClient('ReGaHSS').then(() => this.setIfaceStatus('ReGaHSS', true));
                             }
 
                             return this.getRegaData().then(() => this.regaPoll());
@@ -1868,6 +1879,16 @@ module.exports = function (RED) {
             Object.keys(this.ifaceTypes).forEach((iface) => {
                 const enabled = config[this.ifaceTypes[iface].conf + 'Enabled'];
                 this.ifaceTypes[iface].enabled = enabled;
+                if (enabled && iface === 'ReGaHSS' && this.metaMode) {
+                    // B-27: openccu-lite has no ReGaHSS, nothing listens on 31999.
+                    // A client would only reconnect forever (with binrpc < 4.3.0
+                    // exponentially, at 100 % CPU). The metadata api reports the
+                    // interface status instead; the client is created if the box
+                    // stops being an openccu-lite (onGone).
+                    this.logger.info('rpc client ReGaHSS not created: openccu-lite has no ReGaHSS');
+                    return;
+                }
+
                 if (enabled) {
                     this.createClient(iface)
                         .then(() => {
@@ -1896,6 +1917,28 @@ module.exports = function (RED) {
          * @param iface
          * @returns {Promise<any>}
          */
+        /**
+         * Drop an rpc client and stop its reconnect timer (binrpc >= 4.3.0 has
+         * close(); the xmlrpc client holds no timer). Without this a replaced
+         * client kept reconnecting in the background for the life of the process.
+         * @param iface
+         */
+        closeClient(iface) {
+            const client = this.clients[iface];
+            if (!client) {
+                return;
+            }
+
+            delete this.clients[iface];
+            if (typeof client.close === 'function') {
+                try {
+                    client.close();
+                } catch (error) {
+                    this.logger.debug('close rpc client ' + iface + ': ' + error.message);
+                }
+            }
+        }
+
         createClient(iface) {
             return new Promise((resolve) => {
                 const {rpc, port, path, protocol, auth, user, pass, tls, inSecure} = this.ifaceTypes[iface];
@@ -2164,6 +2207,15 @@ module.exports = function (RED) {
                         resolve();
                     }
                 });
+            });
+
+            // last: the clients themselves, so their reconnect timers die with the
+            // node (a redeploy used to leave every binrpc client reconnecting)
+            calls.push(() => {
+                Object.keys(this.clients).forEach((iface) => {
+                    this.closeClient(iface);
+                });
+                return Promise.resolve();
             });
 
             this.logger.debug('shutdown tasks: ' + calls.length);
@@ -3159,7 +3211,7 @@ module.exports = function (RED) {
                     this.clients[iface].methodCall(method, parameters, (err, res) => {
                         if (err) {
                             this.logger.error('    <', iface, method, err);
-                            delete this.clients[iface];
+                            this.closeClient(iface);
                             this.createClient(iface);
                             reject(err);
                         } else if (res && res.faultCode) {

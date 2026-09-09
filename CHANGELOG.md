@@ -5,6 +5,29 @@ Notable changes to node-red-contrib-ccu. Format follows
 user-visible symptom and the cause, not the commit list (the release notes
 append commits automatically).
 
+## 4.4.3 (2026-09-09)
+
+### Fixed
+
+- **Node-RED at 100 % CPU and unresponsive on openccu-lite** (B-27, found on
+  the maintainer's Pi 4 with RedMatic 9.4.2). openccu-lite has no ReGaHSS, so
+  nothing listens on port 31999 — but the connection node still created the
+  ReGaHSS binrpc client in metadata mode, and binrpc up to 4.2.0 armed a new
+  reconnect timer for both the `error` and the `close` event of every refused
+  connect, so the number of attempts doubled every 2.5 s without bound: about
+  7,000 refused connects per second, 30,000 pending timers and 68 million
+  connects in under three hours. The same explosion hit a CCU whenever its
+  ReGaHSS was down for a while (restart, backup restore); it just ended when
+  the port came back. Two changes: the ReGaHSS client is not created at all
+  while the box is an openccu-lite (and is closed when a box becomes one, or
+  created when it stops being one), and this release requires
+  [binrpc 4.3.0](https://github.com/hobbyquaker/binrpc/blob/master/CHANGELOG.md),
+  which keeps a single reconnect timer per client with exponential backoff
+  (2.5 s doubling to 30 s) and has `close()`. The connection node now closes
+  its rpc clients when it is removed or redeployed, and when it replaces a
+  client after a failed call — a replaced binrpc client used to keep
+  reconnecting in the background for the life of the process.
+
 ## 4.4.2 (2026-09-09)
 
 ### Fixed
