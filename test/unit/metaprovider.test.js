@@ -345,7 +345,7 @@ test('a node event, an import and a revision gap re-read the snapshot', async (t
     // an import: the whole store was replaced
     box.document = structuredClone(EMPTY);
     box.document.revision = 20;
-    box.send({revision: 20, kind: 'import', objects: 0, enums: 3});
+    box.send({revision: 20, kind: 'import', objects: 0, enums: 2});
     await waitFor(() => Object.keys(names.at(-1).channelNames).length === 0);
     assert.equal(box.snapshots, 3);
 
