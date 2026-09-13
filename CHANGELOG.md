@@ -9,19 +9,14 @@ append commits automatically).
 
 ### Fixed
 
-- **Node-RED at 100 % CPU and unresponsive on openccu-lite** (B-27, found on
-  the maintainer's Pi 4 with RedMatic 9.4.2). openccu-lite has no ReGaHSS, so
-  nothing listens on port 31999 — but the connection node still created the
-  ReGaHSS binrpc client in metadata mode, and binrpc up to 4.2.0 armed a new
-  reconnect timer for both the `error` and the `close` event of every refused
-  connect, so the number of attempts doubled every 2.5 s without bound: about
-  7,000 refused connects per second, 30,000 pending timers and 68 million
-  connects in under three hours. The same explosion hit a CCU whenever its
-  ReGaHSS was down for a while (restart, backup restore); it just ended when
-  the port came back. Two changes: the ReGaHSS client is not created at all
-  while the box is an openccu-lite (and is closed when a box becomes one, or
-  created when it stops being one), and this release requires
-  [binrpc 4.3.0](https://github.com/hobbyquaker/binrpc/blob/master/CHANGELOG.md),
+- **Node-RED at 100 % CPU and unresponsive while ReGaHSS is unreachable**
+  (B-27). binrpc up to 4.2.0 armed a new reconnect timer for both the `error`
+  and the `close` event of every refused connect, so the number of attempts to
+  the ReGaHSS port 31999 doubled every 2.5 s without bound: about 7,000 refused
+  connects per second, 30,000 pending timers and 68 million connects in under
+  three hours. On a CCU this hit whenever ReGaHSS was down for a while
+  (restart, backup restore) and ended when the port came back. This release
+  requires [binrpc 4.3.0](https://github.com/hobbyquaker/binrpc/blob/master/CHANGELOG.md),
   which keeps a single reconnect timer per client with exponential backoff
   (2.5 s doubling to 30 s) and has `close()`. The connection node now closes
   its rpc clients when it is removed or redeployed, and when it replaces a
@@ -81,45 +76,10 @@ hang up` — became an **unhandled rejection**, which Node >= 15 turns
 
 ### Added
 
-- **openccu-lite support** (roadmap B-17). [openccu-lite](https://github.com/hobbyquaker/openccu-lite)
-  is a Homematic CCU firmware without ReGaHSS: the interface processes
-  are unchanged, but nothing listens on 8181/8183, HM-Script is never
-  interpreted and there are no ReGa ids. The connection node now asks
-  the box `GET /api/meta/v1/version` when it starts and on every
-  reconnect of its name sync; a CCU3/RaspberryMatic/OpenCCU answers 404
-  and everything runs exactly as before, an openccu-lite answers with
-  its API version and device, channel, room and function names come
-  from its metadata API instead — a snapshot at start, then the box's
-  Server-Sent-Events change stream, so a rename in the box's UI reaches
-  running flows within a second without a redeploy. `msg.channelName`,
-  `msg.rooms`, `msg.functions` and the room/function filters keep the
-  shape they have on a CCU (rooms and functions are a tree there and
-  are flattened to the usual arrays of names, most specific first).
-  Nothing has to be configured: the same connection node works on both
-  kinds of box, which is what makes moving a backup between them
-  harmless.
-- connection node: **openccu-lite token** and **openccu-lite port**
-  fields. The token is only needed when Node-RED does _not_ run on the
-  box — on the box the read-only token in
-  `/usr/local/etc/occulite/local-token` is picked up automatically, off
-  the box the administrator creates one on the box's _Users_ page. A
-  rejected or missing token is not fatal: the nodes work with addresses
-  instead of names, the connection logs it once and takes the names as
-  soon as a valid token is there. The port field is only for boxes
-  whose web server is not on 80/443. Both are ignored on a CCU.
 - connection node: the cached `ccu_rega_<host>.json` now also holds the
   room and function name lists, so the editor's room and function
   pickers are filled right after a restart instead of only after the
   first successful sync.
-
-### Changed
-
-- `ccu-sysvar`, `ccu-program`, `ccu-script` and `ccu-poll` stay in the
-  palette and in flows on openccu-lite, and stay accepted in the
-  editor. There is no ReGa DOM on such a box, so instead of failing the
-  connection they log one line when the connection starts and answer
-  every message with a clear error (`… are not available on this box
-(openccu-lite has no ReGaHSS)`). On a CCU nothing about them changes.
 
 ## 4.3.0 (2026-09-04)
 
