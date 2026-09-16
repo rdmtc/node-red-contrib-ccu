@@ -15,6 +15,7 @@ const nextport = require('./lib/nextport.js');
 const hmDiscover = require('./lib/discover.js');
 const {Rega} = require('homematic-rega'); // ES module - require(esm) needs Node >= 20.19 / >= 22.12
 const metaProvider = require('./lib/metaprovider.js');
+const {InitRetry} = require('./lib/initretry.js');
 const xmlrpc = require('homematic-xmlrpc');
 const binrpc = require('binrpc');
 
@@ -100,6 +101,7 @@ module.exports = function (RED) {
                         object[iface] = {
                             enabled: Boolean(config.ifaceTypes[iface].enabled),
                             connected: Boolean(config.ifaceStatus[iface]),
+                            waiting: Boolean(config.ifaceWaiting && config.ifaceWaiting[iface]),
                         };
                     });
                     res.status(200).send(JSON.stringify(object));
@@ -535,6 +537,11 @@ module.exports = function (RED) {
             this.rpcPingEnabled = config.rpcPing === undefined ? true : Boolean(config.rpcPing);
             this.rpcPingTimer = {};
             this.ifaceStatus = {};
+            // task 11: interfaces whose init failed and is retried (InitRetry per iface),
+            // and which of them are waiting for an unreachable process
+            this.initRetry = {};
+            this.ifaceWaiting = {};
+            this.closing = false;
             this.serverError = {};
             this.queueTimeout = Number.parseInt(config.queueTimeout, 10) || 5000;
             this.queuePause = Number.parseInt(config.queuePause, 10) || 0;
@@ -799,27 +806,102 @@ module.exports = function (RED) {
          * @param iface
          * @param connected
          */
-        setIfaceStatus(iface, connected) {
-            if (this.ifaceStatus[iface] !== connected) {
-                if (iface === 'ReGaHSS') {
-                    this.logger.info('Interface', iface, connected ? 'connected' : 'disconnected');
-                } else {
-                    this.logger.info(
-                        'Interface',
-                        iface,
-                        connected
-                            ? this.ifaceTypes[iface].protocol + ' port ' + this.ifaceTypes[iface].port + ' connected'
-                            : 'disconnected',
-                    );
+        setIfaceStatus(iface, connected, waiting = false) {
+            waiting = Boolean(waiting) && !connected;
+            const waitingChanged = Boolean(this.ifaceWaiting[iface]) !== waiting;
+            if (this.ifaceStatus[iface] !== connected || waitingChanged) {
+                if (this.ifaceStatus[iface] !== connected) {
+                    if (iface === 'ReGaHSS') {
+                        this.logger.info('Interface', iface, connected ? 'connected' : 'disconnected');
+                    } else if (waiting) {
+                        // task 11: the retry logs the one warn line, this stays quiet
+                        this.logger.debug('Interface', iface, 'waiting');
+                    } else {
+                        this.logger.info(
+                            'Interface',
+                            iface,
+                            connected
+                                ? this.ifaceTypes[iface].protocol +
+                                      ' port ' +
+                                      this.ifaceTypes[iface].port +
+                                      ' connected'
+                                : 'disconnected',
+                        );
+                    }
                 }
 
                 this.ifaceStatus[iface] = !this.serverError[iface] && connected;
+                if (waiting) {
+                    this.ifaceWaiting[iface] = true;
+                } else {
+                    delete this.ifaceWaiting[iface];
+                }
+
                 Object.keys(this.users).forEach((id) => {
                     if (typeof this.users[id].setStatus === 'function') {
-                        this.users[id].setStatus({ifaceStatus: this.ifaceStatus});
+                        this.users[id].setStatus({ifaceStatus: this.ifaceStatus, ifaceWaiting: this.ifaceWaiting});
                     }
                 });
             }
+        }
+
+        /**
+         * task 11: the init retry of an interface, created on its first failure.
+         * @param iface
+         * @returns {InitRetry}
+         */
+        getInitRetry(iface) {
+            if (!this.initRetry[iface]) {
+                this.initRetry[iface] = new InitRetry({
+                    iface,
+                    logger: this.logger,
+                    attempt: () => this.rpcInit(iface, {retry: true}),
+                    onState: (state) => {
+                        if (state === 'connected') {
+                            this.setIfaceStatus(iface, true);
+                        } else {
+                            this.hadTimeout.add(iface);
+                            this.setIfaceStatus(iface, false, state === 'waiting');
+                        }
+                    },
+                });
+            }
+
+            return this.initRetry[iface];
+        }
+
+        /**
+         * An init succeeded (the first one, a retry, or a re-init after a ping timeout).
+         * @param iface
+         */
+        rpcInitSucceeded(iface) {
+            if (this.initRetry[iface]) {
+                this.initRetry[iface].succeeded();
+            } else {
+                this.setIfaceStatus(iface, true);
+            }
+        }
+
+        /**
+         * An init failed: retry it with backoff, whether or not the interface has
+         * cached devices or a ping (task 11).
+         * @param iface
+         * @param error
+         */
+        rpcInitFailed(iface, error) {
+            if (this.closing || !this.ifaceTypes[iface] || !this.ifaceTypes[iface].enabled) {
+                return;
+            }
+
+            this.getInitRetry(iface).failed(error);
+        }
+
+        /** stop every scheduled init retry (close, redeploy) */
+        stopInitRetries() {
+            Object.keys(this.initRetry).forEach((iface) => {
+                this.initRetry[iface].stop();
+            });
+            this.initRetry = {};
         }
 
         /**
@@ -1026,6 +1108,8 @@ module.exports = function (RED) {
          */
         destructor(done) {
             this.logger.debug('ccu-connection destructor');
+            this.closing = true;
+            this.stopInitRetries();
             this.stats(false);
 
             this.logger.debug('clear regaPollTimeout');
@@ -1895,12 +1979,10 @@ module.exports = function (RED) {
                             if (this.ifaceTypes[iface].init) {
                                 return this.rpcInit(iface)
                                     .then(() => {
-                                        this.setIfaceStatus(iface, true);
+                                        this.rpcInitSucceeded(iface);
                                     })
                                     .catch((error) => {
-                                        this.logger.error('init', iface, error);
-                                        this.hadTimeout.add(iface);
-                                        this.setIfaceStatus(iface, false);
+                                        this.rpcInitFailed(iface, error);
                                     });
                             }
 
@@ -1939,7 +2021,7 @@ module.exports = function (RED) {
             }
         }
 
-        createClient(iface) {
+        createClient(iface, {quiet = false} = {}) {
             return new Promise((resolve) => {
                 const {rpc, port, path, protocol, auth, user, pass, tls, inSecure} = this.ifaceTypes[iface];
                 const clientOptions = {};
@@ -1962,7 +2044,7 @@ module.exports = function (RED) {
                     this.clients[iface] = rpc.createClient(clientOptions);
                 }
 
-                this.logger.info(
+                this.logger[quiet ? 'debug' : 'info'](
                     'rpc client ' +
                         iface +
                         ' ' +
@@ -1989,7 +2071,7 @@ module.exports = function (RED) {
          * @param iface
          * @returns {Promise<any>}
          */
-        rpcInit(iface) {
+        rpcInit(iface, {retry = false} = {}) {
             return new Promise((resolve, reject) => {
                 const initUrl = this.rpcServer(iface);
                 const hash = base62(crypto.createHash('sha1').update(initUrl).digest()).slice(0, 6);
@@ -1997,7 +2079,8 @@ module.exports = function (RED) {
                 this.lastEvent[iface] = now();
 
                 const {protocol, port} = this.ifaceTypes[iface];
-                this.logger.info(
+                // task 11: a retry logs its attempt at debug level
+                this.logger[retry ? 'debug' : 'info'](
                     'init ' +
                         iface +
                         ' (' +
@@ -2011,8 +2094,22 @@ module.exports = function (RED) {
                         ' ' +
                         initId,
                 );
-                this.methodCall(iface, 'init', [initUrl, initId])
+                if (retry) {
+                    // a fresh client: the one created after the failure (binrpc) may
+                    // still wait for its own reconnect timer and fail the write at once
+                    this.closeClient(iface);
+                    this.createClient(iface, {quiet: true});
+                }
+
+                // a failed init is logged by the retry (InitRetry), not here
+                this.methodCall(iface, 'init', [initUrl, initId], {quiet: true})
                     .then(() => {
+                        // the ping/re-init liveness starts after a successful init only;
+                        // a failed one is retried by rpcInitFailed (task 11)
+                        if (this.ifaceTypes[iface].ping && !this.closing) {
+                            this.rpcCheckInit(iface);
+                        }
+
                         if (iface === 'CUxD') {
                             this.getDevices(iface)
                                 .then(() => resolve(iface))
@@ -2028,12 +2125,7 @@ module.exports = function (RED) {
                             resolve(iface);
                         }
                     })
-                    .catch((error) => reject(error))
-                    .finally(() => {
-                        if (this.ifaceTypes[iface].ping) {
-                            this.rpcCheckInit(iface);
-                        }
-                    });
+                    .catch((error) => reject(error));
             });
         }
 
@@ -2118,7 +2210,9 @@ module.exports = function (RED) {
                 this.hadTimeout.add(iface);
                 this.setIfaceStatus(iface, false);
                 this.logger.warn('ping timeout', iface, elapsed);
-                this.rpcInit(iface).catch((error) => this.logger.error(error.message));
+                this.rpcInit(iface)
+                    .then(() => this.rpcInitSucceeded(iface))
+                    .catch((error) => this.rpcInitFailed(iface, error));
                 return;
             }
 
@@ -2142,7 +2236,8 @@ module.exports = function (RED) {
             this.logger.debug('rpcClose');
             const calls = [];
             Object.keys(this.clients).forEach((iface) => {
-                if (this.ifaceTypes[iface].init) {
+                // an interface still waiting for its process never took our init
+                if (this.ifaceTypes[iface].init && !this.ifaceWaiting[iface]) {
                     this.logger.debug('queue de-init ' + iface + ' ' + this.initUrl(iface));
                     calls.push(() => {
                         return new Promise((resolve) => {
@@ -3204,19 +3299,26 @@ module.exports = function (RED) {
          * @param params
          * @returns {Promise<any>}
          */
-        methodCall(iface, method, parameters) {
+        methodCall(iface, method, parameters, {quiet = false} = {}) {
             return new Promise((resolve, reject) => {
                 if (this.clients[iface]) {
                     this.logger.debug('rpc >', iface, method, JSON.stringify(parameters));
                     this.clients[iface].methodCall(method, parameters, (err, res) => {
                         if (err) {
-                            this.logger.error('    <', iface, method, err);
+                            this.logger[quiet ? 'debug' : 'error']('    <', iface, method, err);
                             this.closeClient(iface);
-                            this.createClient(iface);
+                            // a closed node creates no new client (it would reconnect forever)
+                            if (!this.closing) {
+                                this.createClient(iface, {quiet});
+                            }
+
                             reject(err);
                         } else if (res && res.faultCode) {
-                            this.logger.error('    <', iface, method, JSON.stringify(res));
-                            reject(new Error(res.faultString));
+                            this.logger[quiet ? 'debug' : 'error']('    <', iface, method, JSON.stringify(res));
+                            const fault = new Error(res.faultString);
+                            fault.faultCode = res.faultCode;
+                            fault.faultString = res.faultString;
+                            reject(fault);
                         } else {
                             this.logger.debug('    <', iface, method, JSON.stringify(res));
                             resolve(res);

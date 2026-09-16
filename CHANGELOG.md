@@ -5,6 +5,25 @@ Notable changes to node-red-contrib-ccu. Format follows
 user-visible symptom and the cause, not the commit list (the release notes
 append commits automatically).
 
+## Unreleased (4.4.4)
+
+### Fixed
+
+- **An interface stayed without events for minutes, or for good, when its
+  process did not answer the first `init`** (task 11). A failed `init` at
+  start (connection refused, timeout) was only retried by the ping
+  supervision, which does nothing without cached devices and waits the ping
+  timeout otherwise: 60 s, and 600 s for HmIP-RF. A Node-RED that starts
+  before the interface processes (a box still booting, a daemon restart) now
+  retries the `init` on its own after 2 s, 4 s, 8 s, 16 s and then every 30 s,
+  for every interface, until it succeeds or the node is closed or redeployed.
+  While it waits, the log has one warning (_"HmIP-RF not reachable yet
+  (connect ECONNREFUSED), retrying"_) instead of an error line, the success
+  after retries is logged (_"HmIP-RF connected after 3 attempts"_), and the
+  nodes show **waiting** (yellow ring) instead of disconnected. A fault answer
+  of a running process stays an error. After a successful `init` the ping and
+  re-`init` supervision works as before.
+
 ## 4.4.3 (2026-09-09)
 
 ### Fixed
