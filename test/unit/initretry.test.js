@@ -1,7 +1,7 @@
 const {test, describe, beforeEach, afterEach, mock} = require('node:test');
 const assert = require('node:assert/strict');
 
-const {InitRetry, retryDelay, isFault, describeError} = require('../../nodes/lib/initretry.js');
+const {InitRetry, retryDelay, isFault, isRefused, describeError} = require('../../nodes/lib/initretry.js');
 const statusHelper = require('../../nodes/lib/status.js');
 
 /* task 11: a failed init is retried with backoff 2, 4, 8, 16 s, then every 30 s,
@@ -39,10 +39,10 @@ async function settle() {
 }
 
 describe('retryDelay', () => {
-    test('2, 4, 8, 16 s, then every 30 s', () => {
+    test('1, 2, 4, 8 s, then every 15 s (task 12)', () => {
         assert.deepEqual(
             [1, 2, 3, 4, 5, 6, 20].map((n) => retryDelay(n)),
-            [2000, 4000, 8000, 16000, 30000, 30000, 30000],
+            [1000, 2000, 4000, 8000, 15000, 15000, 15000],
         );
     });
 });
@@ -56,6 +56,14 @@ describe('isFault and describeError', () => {
     test('a fault answer is a fault', () => {
         assert.equal(isFault(fault(-1, 'Failure')), true);
         assert.equal(describeError(fault(-1, 'Failure')), 'fault -1 Failure');
+    });
+
+    test('isRefused: ECONNREFUSED by code or message only', () => {
+        assert.equal(isRefused(refused()), true);
+        assert.equal(isRefused(new Error('connect ECONNREFUSED 127.0.0.1:2010')), true);
+        assert.equal(isRefused(Object.assign(new Error('x'), {code: 'ECONNRESET'})), false);
+        assert.equal(isRefused(fault(-1, 'Failure')), false);
+        assert.equal(isRefused(undefined), false);
     });
 
     test('an error without code names its message', () => {
@@ -113,55 +121,69 @@ describe('InitRetry', () => {
         await settle();
     }
 
-    test('attempts at 2, 4, 8, 16, 30, 30 s against a refusing server', async () => {
+    test('attempts at 1, 2, 4, 8, 15, 15 s against a refusing server', async () => {
         retry.failed(refused());
-        for (const step of [2000, 4000, 8000, 16000, 30000, 30000]) {
+        for (const step of [1000, 2000, 4000, 8000, 15000, 15000]) {
             await tick(step - 1);
             const before = attempts.length;
             await tick(1);
             assert.equal(attempts.length, before + 1, 'attempt after ' + step + ' ms');
         }
 
-        assert.deepEqual(attempts, [2000, 6000, 14000, 30000, 60000, 90000]);
+        assert.deepEqual(attempts, [1000, 3000, 7000, 15000, 30000, 45000]);
     });
 
     test('succeeds within one backoff step after the server appears', async () => {
         retry.failed(refused());
+        await tick(1000);
         await tick(2000);
-        await tick(4000);
         available = true;
         assert.equal(retry.pending, true);
-        await tick(8000);
+        await tick(4000);
         assert.equal(retry.pending, false);
         assert.deepEqual(states, ['waiting', 'waiting', 'waiting', 'connected']);
         assert.equal(retry.failures, 0);
     });
 
-    test('the log: one warn line, then debug, info on success, no error', async () => {
+    test('the log at the start: one info line while nothing listens, then debug, info on success', async () => {
         retry.failed(refused());
+        await tick(1000);
         await tick(2000);
-        await tick(4000);
         available = true;
-        await tick(8000);
+        await tick(4000);
         const levels = log.lines.map((l) => l.level);
-        assert.deepEqual(levels, ['warn', 'debug', 'debug', 'info']);
-        assert.equal(log.lines[0].message, 'HmIP-RF not reachable yet (connect ECONNREFUSED), retrying');
+        assert.deepEqual(levels, ['info', 'debug', 'debug', 'info']);
+        assert.equal(
+            log.lines[0].message,
+            'HmIP-RF not listening yet (connect ECONNREFUSED), waiting for it - retrying in 1 s',
+        );
         assert.equal(log.lines[3].message, 'HmIP-RF connected after 4 attempts');
     });
 
-    test('the backoff resets after a success', async () => {
+    test('another transport error at the start is a warning', async () => {
+        const reset = Object.assign(new Error('socket hang up'), {code: 'ECONNRESET'});
+        retry.failed(reset);
+        assert.deepEqual(
+            log.lines.map((l) => l.level),
+            ['warn'],
+        );
+        assert.equal(log.lines[0].message, 'HmIP-RF not reachable yet (connect ECONNRESET), retrying');
+    });
+
+    test('the backoff resets after a success, and a refusal after it is a warning', async () => {
         retry.failed(refused());
+        await tick(1000);
         await tick(2000);
-        await tick(4000);
         available = true;
-        await tick(8000);
+        await tick(4000);
         attempts.length = 0;
         available = false;
         retry.failed(refused());
-        await tick(2000);
-        assert.deepEqual(attempts, [16000]);
-        // and it warns again, once
-        assert.equal(log.lines.filter((l) => l.level === 'warn').length, 2);
+        await tick(1000);
+        assert.deepEqual(attempts, [8000]);
+        // the process went away after it was connected: that is worth a warning, once
+        assert.equal(log.lines.filter((l) => l.level === 'warn').length, 1);
+        assert.equal(log.lines.filter((l) => l.level === 'info' && l.message.includes('not listening yet')).length, 1);
     });
 
     test('stop() cancels the timer, and a late answer changes nothing', async () => {
@@ -180,11 +202,11 @@ describe('InitRetry', () => {
     test('a fault answer is an error, once per fault, and the state is failed', async () => {
         answer = fault(-1, 'Failure');
         retry.failed(answer);
+        await tick(1000);
         await tick(2000);
-        await tick(4000);
         const errors = log.lines.filter((l) => l.level === 'error');
         assert.equal(errors.length, 1);
-        assert.equal(errors[0].message, 'init HmIP-RF failed: fault -1 Failure, retrying in 2 s');
+        assert.equal(errors[0].message, 'init HmIP-RF failed: fault -1 Failure, retrying in 1 s');
         assert.deepEqual(states, ['failed', 'failed', 'failed']);
         assert.equal(attempts.length, 2);
     });

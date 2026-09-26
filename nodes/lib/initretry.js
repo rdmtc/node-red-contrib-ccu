@@ -5,16 +5,20 @@
  * addon started before the interfaces, a daemon restart) used to leave the
  * interface without events: rpcCheckInit only runs with cached devices and
  * then waits pingTimeout (600 s for HmIP-RF). Now a failed init schedules its
- * own retry, 2 s, 4 s, 8 s, 16 s and then every 30 s, until it succeeds or the
- * node is closed.
+ * own retry, 1 s, 2 s, 4 s, 8 s and then every 15 s (task 12), until it
+ * succeeds or the node is closed.
  *
- * While the process is unreachable the interface is "waiting": one warn line,
- * then debug. A fault answer (the process is up and refuses the init) stays an
- * error, logged once per distinct fault.
+ * While the process is unreachable the interface is "waiting": one line, then
+ * debug. Before the interface was ever connected, a refused connection is
+ * info - the process is still starting (openccu-lite's early start starts
+ * Node-RED before rfd and hmipserver) - and every other transport error, or a
+ * refusal after it had been connected, is a warning. A fault answer (the
+ * process is up and refuses the init) stays an error, logged once per
+ * distinct fault.
  */
 
-const RETRY_DELAYS = [2000, 4000, 8000, 16000];
-const RETRY_MAX_DELAY = 30000;
+const RETRY_DELAYS = [1000, 2000, 4000, 8000];
+const RETRY_MAX_DELAY = 15000;
 
 /**
  * The delay before the next attempt.
@@ -37,6 +41,15 @@ function retryDelay(failures) {
  */
 function isFault(error) {
     return Boolean(error) && typeof error === 'object' && error.faultCode !== undefined;
+}
+
+/**
+ * Whether nothing listens on the port (yet): the process is not started.
+ * @param {*} error
+ * @returns {boolean}
+ */
+function isRefused(error) {
+    return Boolean(error) && (error.code === 'ECONNREFUSED' || /ECONNREFUSED/.test(String(error.message || '')));
 }
 
 /**
@@ -77,6 +90,7 @@ class InitRetry {
         this.timers = timers || {setTimeout, clearTimeout};
         this.timer = null;
         this.stopped = false;
+        this.everConnected = false;
         this.reset();
     }
 
@@ -122,7 +136,18 @@ class InitRetry {
                 );
             } else {
                 this.warned = true;
-                this.logger.warn(this.iface + ' not reachable yet (' + reason + '), retrying');
+                if (!this.everConnected && isRefused(error)) {
+                    this.logger.info(
+                        this.iface +
+                            ' not listening yet (' +
+                            reason +
+                            '), waiting for it - retrying in ' +
+                            seconds +
+                            ' s',
+                    );
+                } else {
+                    this.logger.warn(this.iface + ' not reachable yet (' + reason + '), retrying');
+                }
             }
 
             this.onState('waiting');
@@ -160,6 +185,7 @@ class InitRetry {
             this.logger.info(this.iface + ' connected after ' + (this.failures + 1) + ' attempts');
         }
 
+        this.everConnected = true;
         this.reset();
         this.onState('connected');
     }
@@ -178,4 +204,4 @@ class InitRetry {
     }
 }
 
-module.exports = {InitRetry, retryDelay, isFault, describeError, RETRY_DELAYS, RETRY_MAX_DELAY};
+module.exports = {InitRetry, retryDelay, isFault, isRefused, describeError, RETRY_DELAYS, RETRY_MAX_DELAY};

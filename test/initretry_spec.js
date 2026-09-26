@@ -168,14 +168,18 @@ describe('init retry (task 11)', function () {
 
         const log = levels('nc');
         log.errors.should.deepEqual([]);
-        log.warns.filter((m) => m.includes('not reachable yet')).length.should.equal(3);
-        log.warns.should.containEql('HmIP-RF not reachable yet (connect ECONNREFUSED), retrying');
+        // nothing listened yet: a start before the processes, info only (openccu-lite's early start)
+        log.warns.filter((m) => m.includes('not reachable yet')).length.should.equal(0);
+        log.infos.filter((m) => m.includes('not listening yet')).length.should.equal(3);
+        log.infos.should.containEql(
+            'HmIP-RF not listening yet (connect ECONNREFUSED), waiting for it - retrying in 1 s',
+        );
         log.infos.should.containEql('HmIP-RF connected after 2 attempts');
         log.infos.should.containEql('VirtualDevices connected after 2 attempts');
         servers.forEach((s) => s.inits().should.equal(1));
     });
 
-    it('retries with cached devices after 2 s, not after the ping timeout', async () => {
+    it('retries with cached devices after 1 s, not after the ping timeout', async () => {
         fs.writeFileSync(
             CACHE_FILES[0],
             JSON.stringify({
@@ -218,7 +222,7 @@ describe('init retry (task 11)', function () {
         const nip = helper.getNode('nip');
         (await until(() => servers[0].calls.length >= 2, 3500)).should.be.true();
         const log = levels('nc');
-        log.errors.should.deepEqual(['init HmIP-RF failed: fault -1 Failure, retrying in 2 s']);
+        log.errors.should.deepEqual(['init HmIP-RF failed: fault -1 Failure, retrying in 1 s']);
         should(nc.ifaceWaiting['HmIP-RF']).be.undefined();
         nip.currentStatus.should.equal('red');
     });

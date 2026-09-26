@@ -5,6 +5,31 @@ Notable changes to node-red-contrib-ccu. Format follows
 user-visible symptom and the cause, not the commit list (the release notes
 append commits automatically).
 
+## 4.4.5 (2026-09-26)
+
+### Fixed
+
+- **A Node-RED started before rfd went through the CCU's proxy for good.**
+  The connection decides at start whether it runs on the CCU itself, and
+  looked only for a listener on rfd's direct port. On openccu-lite, where
+  RedMatic starts at boot before the interface processes (the early start),
+  that port is not open yet, so every interface went through lighttpd's
+  proxy ports (XML-RPC instead of BIN-RPC for BidCos) until the next restart.
+  A loopback host on a system that has the CCU's interface list
+  (`/etc/config/InterfacesList.xml`) is now taken as local as well.
+- **Waiting for an interface process that is still starting is no warning**
+  (task 12). Before the interface was ever connected, a refused connection
+  is one info line (_"HmIP-RF not listening yet (connect ECONNREFUSED),
+  waiting for it - retrying in 1 s"_); another transport error, or a refused
+  connection after the interface had been connected, is still a warning, and
+  a fault answer an error.
+
+### Changed
+
+- **A failed `init` is retried after 1 s, 2 s, 4 s and 8 s, then every 15 s**
+  (task 12; was 2, 4, 8, 16 s, then every 30 s), the schedule of hm2mqtt.js and
+  the Homematic Manager.
+
 ## 4.4.4 (2026-09-17)
 
 ### Fixed

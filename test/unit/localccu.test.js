@@ -73,3 +73,14 @@ test('an empty host is not local', () => {
     assert.equal(isLocalCcu('', {files: [tempFile(CCU_TCP)]}), false);
     assert.equal(isLocalCcu(undefined, {files: [tempFile(CCU_TCP)]}), false);
 });
+
+test('a loopback host before the interface processes listen: the CCU interface list says it is local (early start)', () => {
+    const list = tempFile('<interfaces v="1.0"></interfaces>\n');
+    assert.equal(isLocalCcu('127.0.0.1', {files: [tempFile(REMOTE_TCP)], interfacesList: list}), true);
+    assert.equal(
+        isLocalCcu('127.0.0.1', {files: [tempFile(REMOTE_TCP)], interfacesList: '/definitely/not/here'}),
+        false,
+    );
+    // never for a remote host, whatever the file says
+    assert.equal(isLocalCcu('192.168.1.10', {files: [tempFile(REMOTE_TCP)], interfacesList: list}), false);
+});

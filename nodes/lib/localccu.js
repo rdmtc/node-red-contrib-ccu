@@ -17,7 +17,15 @@
    Rather than chasing lighttpd's include chain, ask the kernel: a
    listener on the direct port is exactly the condition that makes using
    it correct. /proc/net/tcp is a plain file, so this stays synchronous -
-   the interface table is built in the connection node's constructor. */
+   the interface table is built in the connection node's constructor.
+
+   A listener alone misses a start before rfd: openccu-lite starts an addon
+   that copes with it before the interface processes (its early start), so
+   the ports are not open yet and the connection went through the proxy for
+   good. The CCU's own interface list, /etc/config/InterfacesList.xml, is
+   there from the first second on every CCU firmware (CCU3, OpenCCU,
+   openccu-lite), so a loopback host with that file is the CCU we run on as
+   well. */
 
 const fs = require('fs');
 
@@ -25,6 +33,9 @@ const fs = require('fs');
 const LOCAL_PROBE_PORTS = [32001, 31999];
 
 const PROC_NET_TCP = ['/proc/net/tcp', '/proc/net/tcp6'];
+
+/** The CCU firmware's list of its interface processes. */
+const INTERFACES_LIST = '/etc/config/InterfacesList.xml';
 
 /** /proc/net/tcp connection state 0A = TCP_LISTEN. */
 const TCP_LISTEN = '0A';
@@ -67,6 +78,7 @@ function listeningPorts(files) {
  * @param {string} host the configured CCU host
  * @param {object} [options]
  * @param {string[]} [options.files] /proc files to read, for tests
+ * @param {string} [options.interfacesList] the CCU's interface list, for tests
  * @returns {boolean}
  */
 function isLocalCcu(host, options) {
@@ -75,7 +87,13 @@ function isLocalCcu(host, options) {
     }
 
     const ports = listeningPorts(options && options.files);
-    return LOCAL_PROBE_PORTS.some((port) => ports.has(port));
+    if (LOCAL_PROBE_PORTS.some((port) => ports.has(port))) {
+        return true;
+    }
+
+    // the interface processes are not up yet (a start before them): the
+    // firmware's interface list still says this is the CCU
+    return fs.existsSync((options && options.interfacesList) || INTERFACES_LIST);
 }
 
-module.exports = {isLocalCcu, listeningPorts, LOCAL_PROBE_PORTS};
+module.exports = {isLocalCcu, listeningPorts, LOCAL_PROBE_PORTS, INTERFACES_LIST};
