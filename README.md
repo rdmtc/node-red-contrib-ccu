@@ -28,6 +28,19 @@ Some example flows can be found in the [RedMatic Wiki](https://github.com/rdmtc/
 
 **Starting with Version 3.x these Nodes need Node-RED >= 1.0 to work correctly**
 
+## openccu-lite
+
+[openccu-lite](https://github.com/hobbyquaker/openccu-lite) is a Homematic CCU firmware based on OpenCCU **without
+ReGaHSS**. The interface processes (`rfd`, `hs485d`, `hmipserver`) are the same, so everything these nodes do over
+BINRPC/XMLRPC works unchanged. Device, channel, room and function names come from the system's metadata API instead of
+ReGaHSS; the connection node detects this at start (`GET /api/meta/v1/version`), nothing has to be configured, and
+`msg.channelName`, `msg.rooms`, `msg.functions` and the room/function filters keep their shape.
+
+- Node-RED **on the system** (RedMatic from its addon catalogue): the system's own read-only token is used, nothing to do.
+- Node-RED **elsewhere**: an API token of the system goes into the connection node's **openccu-lite token** field.
+- **System variables, programs and HM-Script do not exist there.** The `ccu-sysvar`, `ccu-program`, `ccu-script` and
+  `ccu-poll` nodes stay in the flows and answer every message with an error.
+
 ## Home Assistant
 
 The `ccu-homeassistant` node publishes
