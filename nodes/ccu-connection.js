@@ -471,6 +471,10 @@ module.exports = function (RED) {
                     init: true,
                     ping: true, // Todo https://github.com/eq-3/occu/issues/42 - should be fixed, but isn't
                     pingTimeout: 600, // Overwrites ccu-connection config
+                    // B-29: hmipserver forgets its clients when it restarts and does not tell them;
+                    // a ping every 30 s without an event, and init again when no PONG comes within 10 s
+                    pingInterval: 30,
+                    pongTimeout: 10,
                 },
                 VirtualDevices: {
                     conf: 'virt',
@@ -539,6 +543,9 @@ module.exports = function (RED) {
             // reconnecting after a CCU restart is then up to the CCU.
             this.rpcPingEnabled = config.rpcPing === undefined ? true : Boolean(config.rpcPing);
             this.rpcPingTimer = {};
+            // B-29: the liveness ping per interface, and when an event (PONG included) last arrived
+            this.liveness = {};
+            this.lastRealEvent = {};
             this.ifaceStatus = {};
             // task 11: interfaces whose init failed and is retried (InitRetry per iface),
             // and which of them are waiting for an unreachable process
@@ -1139,6 +1146,7 @@ module.exports = function (RED) {
                 this.logger.debug('clear rpcPingTimer', iface);
                 clearTimeout(this.rpcPingTimer[iface]);
             });
+            Object.keys(this.liveness).forEach((iface) => this.stopLiveness(iface));
 
             this.saveRegadata();
             this.saveValues();
@@ -2216,6 +2224,7 @@ module.exports = function (RED) {
                         // a failed one is retried by rpcInitFailed (task 11)
                         if (this.ifaceTypes[iface].ping && !this.closing) {
                             this.rpcCheckInit(iface);
+                            this.startLiveness(iface);
                         }
 
                         if (iface === 'CUxD') {
@@ -2295,6 +2304,174 @@ module.exports = function (RED) {
                     })
                     .catch(reject);
             });
+        }
+
+        /**
+         * B-29: the liveness ping of an interface with a `pingInterval` (HmIP-RF).
+         * hmipserver forgets its clients when it restarts and does not tell them:
+         * `init` had succeeded, so nothing failed, and the events simply stopped
+         * until the 600 s silence timeout of rpcCheckInit(). After `pingInterval`
+         * seconds without an event a `ping` goes out; when no event (the PONG)
+         * arrives within `pongTimeout` seconds the subscription is lost and `init`
+         * is called again at once - task 11's retry then covers the time the
+         * process is down. Only an event counts as proof; a device callback
+         * (newDevices after a restart) triggers the ping instead. An interface
+         * that never delivered an event since its init is not re-subscribed by
+         * this (a callback address the CCU cannot reach would cost an init, and
+         * hmipserver's full newDevices re-send, every 40 s).
+         * @param iface
+         */
+        startLiveness(iface) {
+            const {pingInterval} = this.ifaceTypes[iface] || {};
+            if (!pingInterval || !this.rpcPingEnabled || this.closing) {
+                return;
+            }
+
+            this.stopLiveness(iface);
+            this.liveness[iface] = {initAt: now(), pingAt: 0, timer: null, pongTimer: null, quietLogged: false};
+            this.scheduleLiveness(iface, pingInterval * 1000);
+        }
+
+        /** @param iface */
+        stopLiveness(iface) {
+            const state = this.liveness[iface];
+            if (state) {
+                clearTimeout(state.timer);
+                clearTimeout(state.pongTimer);
+                delete this.liveness[iface];
+            }
+        }
+
+        /**
+         * @param iface
+         * @param {number} delay ms until the next check
+         */
+        scheduleLiveness(iface, delay) {
+            const state = this.liveness[iface];
+            if (!state) {
+                return;
+            }
+
+            clearTimeout(state.timer);
+            state.timer = setTimeout(() => this.livenessCheck(iface), Math.max(delay, 100));
+        }
+
+        /** @param iface */
+        livenessCheck(iface) {
+            const state = this.liveness[iface];
+            if (!state || this.closing) {
+                return;
+            }
+
+            const {pingInterval} = this.ifaceTypes[iface];
+            const sinceEvent = now() - (this.lastRealEvent[iface] || 0);
+            if (sinceEvent < pingInterval * 1000) {
+                // events arrive: the subscription is alive, no ping needed
+                this.scheduleLiveness(iface, pingInterval * 1000 - sinceEvent);
+                return;
+            }
+
+            this.livenessPing(iface);
+        }
+
+        /** @param iface */
+        livenessPing(iface) {
+            const state = this.liveness[iface];
+            if (!state || state.pongTimer || this.closing) {
+                return;
+            }
+
+            const {pongTimeout} = this.ifaceTypes[iface];
+            clearTimeout(state.timer);
+            state.pingAt = now();
+            this.logger.debug('liveness ping', iface);
+            state.pongTimer = setTimeout(() => this.livenessPongMissing(iface), pongTimeout * 1000);
+            this.methodCall(iface, 'ping', ['nr'], {quiet: true}).catch((error) => {
+                // the process itself does not answer: no need to wait for the PONG
+                const current = this.liveness[iface];
+                if (current && current.pongTimer) {
+                    clearTimeout(current.pongTimer);
+                    current.pongTimer = null;
+                    this.livenessLost(iface, 'ping failed: ' + (error && error.message ? error.message : error));
+                }
+            });
+        }
+
+        /** the PONG did not arrive in time @param iface */
+        livenessPongMissing(iface) {
+            const state = this.liveness[iface];
+            if (!state) {
+                return;
+            }
+
+            state.pongTimer = null;
+            const {pingInterval, pongTimeout} = this.ifaceTypes[iface];
+            if (!this.lastRealEvent[iface] || this.lastRealEvent[iface] < state.initAt) {
+                // never an event since the init: do not re-subscribe on that alone
+                if (!state.quietLogged) {
+                    state.quietLogged = true;
+                    this.logger.debug(
+                        'liveness',
+                        iface,
+                        'no PONG within ' + pongTimeout + ' s and no event since init - not subscribing again',
+                    );
+                }
+
+                this.scheduleLiveness(iface, pingInterval * 1000);
+                return;
+            }
+
+            this.livenessLost(iface, 'no answer to a ping within ' + pongTimeout + ' s');
+        }
+
+        /**
+         * The subscription is lost: init again at once.
+         * @param iface
+         * @param {string} reason
+         */
+        livenessLost(iface, reason) {
+            if (!this.liveness[iface] || this.closing) {
+                return;
+            }
+
+            this.stopLiveness(iface);
+            this.logger.warn(iface + ': ' + reason + ' - subscribing again');
+            this.hadTimeout.add(iface);
+            this.setIfaceStatus(iface, false, true);
+            this.rpcInit(iface)
+                .then(() => {
+                    this.logger.info(iface + ' subscribed again');
+                    this.rpcInitSucceeded(iface);
+                })
+                .catch((error) => this.rpcInitFailed(iface, error));
+        }
+
+        /**
+         * An event arrived (PONG included): the subscription delivers.
+         * @param iface
+         */
+        livenessEvent(iface) {
+            this.lastRealEvent[iface] = now();
+            const state = this.liveness[iface];
+            if (state && state.pongTimer) {
+                clearTimeout(state.pongTimer);
+                state.pongTimer = null;
+                this.scheduleLiveness(iface, this.ifaceTypes[iface].pingInterval * 1000);
+            }
+        }
+
+        /**
+         * A device callback (newDevices, deleteDevices, ...) arrived. After a
+         * restart hmipserver sends newDevices to the read-back handler about
+         * 16 s in, before any event: ask for the PONG at once instead of
+         * waiting for the interval.
+         * @param iface
+         */
+        deviceCallback(iface) {
+            const state = this.liveness[iface];
+            if (state && !state.pongTimer && !this.closing) {
+                this.livenessPing(iface);
+            }
         }
 
         /**
@@ -2891,16 +3068,25 @@ module.exports = function (RED) {
                     const iface = this.rpcIface('updateDevice', parameters);
                     this.logger.debug('    >', iface, 'updateDevice ""');
                     callback(null, '');
+                    if (iface) {
+                        this.deviceCallback(iface);
+                    }
                 },
                 replaceDevice: (_, parameters, callback) => {
                     const iface = this.rpcIface('replaceDevice', parameters);
                     this.logger.debug('    >', iface, 'replaceDevice ""');
                     callback(null, '');
+                    if (iface) {
+                        this.deviceCallback(iface);
+                    }
                 },
                 readdedDevice: (_, parameters, callback) => {
                     const iface = this.rpcIface('readdedDevice', parameters);
                     this.logger.debug('    >', iface, 'readdedDevice ""');
                     callback(null, '');
+                    if (iface) {
+                        this.deviceCallback(iface);
+                    }
                 },
                 newDevices: (_, parameters, callback) => {
                     const [, devices] = parameters;
@@ -2929,6 +3115,10 @@ module.exports = function (RED) {
                     if (changed) {
                         this.saveMetadata();
                     }
+
+                    if (iface) {
+                        this.deviceCallback(iface);
+                    }
                 },
                 deleteDevices: (_, parameters, callback) => {
                     const [, devices] = parameters;
@@ -2949,6 +3139,10 @@ module.exports = function (RED) {
 
                     if (changed) {
                         this.saveMetadata();
+                    }
+
+                    if (iface) {
+                        this.deviceCallback(iface);
                     }
                 },
                 listDevices: (_, parameters, callback) => {
@@ -3289,6 +3483,7 @@ module.exports = function (RED) {
             }
 
             this.lastEvent[iface] = now();
+            this.livenessEvent(iface);
             if (this.hadTimeout.has(iface)) {
                 this.setIfaceStatus(iface, true);
             }

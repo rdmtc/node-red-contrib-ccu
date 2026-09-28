@@ -30,6 +30,17 @@ append commits automatically).
   the detection is repeated after 1, 2, 4, 8 s and then every 15 s (up to 20
   times, then the five-minute rule again), and the failing ReGa poll asks for
   a re-detection too. A CCU's 404 is still a conclusive "no".
+- **After an hmipserver restart HmIP-RF events stopped for up to ten minutes**
+  (B-29). hmipserver forgets its clients when it restarts and does not tell
+  them: the `init` had succeeded, nothing failed, and the events simply stopped
+  until the 600 s silence timeout called `init` again. The connection now
+  pings HmIP-RF after 30 s without an event and, when no event (the PONG)
+  arrives within 10 s, subscribes again at once - the interface shows
+  _waiting_ meanwhile, one warning names the reason, and the retry of 4.4.4
+  covers the time the process is down. A `newDevices` from the restarted
+  hmipserver (it sends one about 16 s in) triggers the ping right away, so
+  events are back well within a minute. An interface that never delivered an
+  event since its `init` is not re-subscribed on a missing PONG alone.
 
 ## 4.4.5 (2026-09-26)
 
