@@ -9,6 +9,7 @@
    set by hand as the device would through its events. */
 
 const fs = require('fs');
+const os = require('os');
 const path = require('path');
 require('should');
 const helper = require('node-red-node-test-helper');
@@ -25,10 +26,11 @@ const IFACE = 'BidCos-RF';
 const CACHE_FILES = ['ccu_127.0.0.1.json', 'ccu_rega_127.0.0.1.json', 'ccu_values_127.0.0.1.json'].map((f) =>
     path.join(__dirname, '..', f),
 );
+const PARAMSETS_SCRATCH = path.join(os.tmpdir(), 'nrccu-setvalue_dedupe-paramsets.json');
 const BLIND = 'B19BLIND01';
 
 function removeCache() {
-    for (const file of CACHE_FILES) {
+    for (const file of [...CACHE_FILES, PARAMSETS_SCRATCH]) {
         try {
             fs.unlinkSync(file);
         } catch {}
@@ -197,6 +199,9 @@ describe('queued writes and the value cache (B-19)', function () {
         rfd = fakeRfd();
         await load([nodeConnection, nodeValue, nodeSetValue], flow(options));
         nc = helper.getNode('nc');
+        // fetched paramset descriptions would be saved into the repository's paramsets.json (the
+        // test helper has no userDir) - a scratch file instead, removed with the cache
+        nc.paramsetFile = PARAMSETS_SCRATCH;
         (await until(() => nc.ifaceStatus[IFACE], 5000)).should.be.true();
         // the throttle would defer a second write to the same datapoint
         nc.setValueThrottle = 1;

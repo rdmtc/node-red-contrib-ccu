@@ -137,6 +137,26 @@
                     $nodeConfigInputHost.focus();
                 }
             }, 250);
+
+            // task 9: re-read the device table of the deployed connection
+            const $reread = $('#node-config-reread');
+            const $rereadStatus = $('#node-config-reread-status');
+            $reread.on('click', () => {
+                $reread.prop('disabled', true);
+                $rereadStatus.text('Re-reading ...');
+                $.ajax({url: 'ccu/' + this.id + '/reread', type: 'POST', dataType: 'json'})
+                    .done(summary => {
+                        const parts = Object.keys(summary).map(iface => {
+                            const s = summary[iface];
+                            return iface + ': ' + (s.error ? s.error : s.total + ' entries (' + s.added + ' new, ' + s.changed + ' changed, ' + s.removed + ' removed)');
+                        });
+                        $rereadStatus.text(parts.length > 0 ? parts.join('; ') : 'no interface connected');
+                    })
+                    .fail(xhr => {
+                        $rereadStatus.text(xhr.status === 404 ? 'Deploy this connection first.' : 'Failed: ' + (xhr.responseJSON && xhr.responseJSON.error || xhr.statusText));
+                    })
+                    .always(() => $reread.prop('disabled', false));
+            });
         }
     });
 
@@ -209,6 +229,13 @@
     <div class="form-row">
         <label for="node-config-input-rpcPingTimeout"><i class="icon-tag"></i> RPC ping timeout (s)</label>
         <input type="text" id="node-config-input-rpcPingTimeout">
+    </div>
+    <div class="form-row">
+        <label for="node-config-reread"><i class="icon-tag"></i> Device data</label>
+        <div style="width: 70%; display: inline-block; vertical-align: text-top;">
+            <button type="button" class="red-ui-button" id="node-config-reread">Re-read device data</button><br>
+            <small id="node-config-reread-status">Asks every connected interface for its device list again; new and changed devices get their datapoints fetched, removed ones go.</small>
+        </div>
     </div>
     <div class="form-row">
         <label for="node-config-input-regaPoll"><i class="icon-tag"></i> Rega poll</label>
@@ -337,6 +364,12 @@ Weiteres unter <a target="_blank" href="https://nodered.org/docs/user-guide/cont
             </ul>
             <ul>
                 <li><b>openccu-lite Port</b>: Nur nötig, wenn der Webserver des Systems nicht auf Port 80 bzw. 443 (TLS) läuft.</li>
+            </ul>
+            <ul>
+                <li><b>Device data / Re-read device data</b>: Liest die Geräteliste jeder verbundenen Schnittstelle neu ein.
+                Neue und geänderte Geräte (z.&nbsp;B. ein Kanal, dessen Typ sich geändert hat) bekommen ihre Datenpunkte neu
+                geholt, entfernte verschwinden aus der Tabelle. Ein Gerät, das die CCU mit geändertem Typ oder geänderter Version
+                meldet, wird auch ohne Klick automatisch neu eingelesen. Der Knopf setzt eine deployte Verbindung voraus.</li>
             </ul>
             <ul>
                 <li><b>Authentication</b>: Hier kann angegeben werden wie mit der CCU Kommuniziert werden soll.</li>

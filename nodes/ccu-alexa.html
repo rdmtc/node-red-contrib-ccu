@@ -30,6 +30,7 @@
             let ifacesLoaded = false;
             let ifacesPending = false;
             let ifaceLoadRetries = 5;
+            let channelLoadRetries = 30;
 
             function loadIfaces(iface, cb) {
                 if (ifacesPending) {
@@ -73,7 +74,16 @@
 
                 const nodeId = $nodeInputCcuConfig.val();
                 const url = 'ccu?config=' + nodeId + '&type=channels&iface=' + $nodeInputIface.val();
-                $.getJSON(url, d => {
+                $.getJSON(url, (d, _status, xhr) => {
+                    // task 9: an empty list while the connection is still initialising is "not yet",
+                    // not "nothing" - keep what is configured, say so, and ask again
+                    if (Object.keys(d).length === 0 && xhr.getResponseHeader('X-CCU-Loading') && channelLoadRetries-- > 0) {
+                        $nodeInputChannel.attr('placeholder', 'loading device data ...');
+                        setTimeout(loadConfig, 2000);
+                        return;
+                    }
+
+                    $nodeInputChannel.removeAttr('placeholder');
                     data = d;
                     autocompleteChannel();
                 });
@@ -124,7 +134,7 @@
 
                 // ${ENV} placeholders are substituted by Node-RED before the node is
                 // constructed (subflow parameters, #158) - do not clear them
-                if (!/^\$\{[^}]+\}$/.test($nodeInputChannel.val()) && !data[$nodeInputChannel.val().split(' ')[0]]) {
+                if (Object.keys(data).length > 0 && !/^\$\{[^}]+\}$/.test($nodeInputChannel.val()) && !data[$nodeInputChannel.val().split(' ')[0]]) {
                     $nodeInputChannel.val('');
                 }
             }

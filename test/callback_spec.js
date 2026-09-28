@@ -6,6 +6,7 @@
    Both callback servers are exercised: binrpc (BidCos-RF) and xmlrpc (HmIP-RF). */
 
 const fs = require('fs');
+const os = require('os');
 const path = require('path');
 const should = require('should');
 const helper = require('node-red-node-test-helper');
@@ -22,9 +23,10 @@ const XML_PORT = 2068;
 const CACHE_FILES = ['ccu_127.0.0.1.json', 'ccu_rega_127.0.0.1.json', 'ccu_values_127.0.0.1.json'].map((f) =>
     path.join(__dirname, '..', f),
 );
+const PARAMSETS_SCRATCH = path.join(os.tmpdir(), 'nrccu-callback-paramsets.json');
 
 function removeCache() {
-    for (const file of CACHE_FILES) {
+    for (const file of [...CACHE_FILES, PARAMSETS_SCRATCH]) {
         try {
             fs.unlinkSync(file);
         } catch {}
@@ -168,6 +170,9 @@ describe('callback calls with an unknown interface id (B-32)', function () {
         servers = [fakeServer('binrpc', 2001), fakeServer('http', 2010)];
         await load([nodeConnection], flow);
         nc = helper.getNode('nc');
+        // fetched paramset descriptions would be saved into the repository's paramsets.json (the
+        // test helper has no userDir) - a scratch file instead, removed with the cache
+        nc.paramsetFile = PARAMSETS_SCRATCH;
         (await until(() => nc.ifaceStatus['BidCos-RF'] && nc.ifaceStatus['HmIP-RF'], 5000)).should.be.true();
         clients = [
             binrpc.createClient({host: HOST, port: BIN_PORT, reconnectTimeout: 0}),

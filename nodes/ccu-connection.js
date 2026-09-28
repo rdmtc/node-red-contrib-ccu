@@ -47,6 +47,21 @@ function execToCallback(promise, callback) {
 /** B-28: how often an inconclusive metadata api detection is repeated (1, 2, 4, 8 s, then every 15 s) */
 const META_REDETECT_ATTEMPTS = 20;
 
+/**
+ * task 9: has a device description changed in a way that changes its paramsets?
+ * (the paramset key is TYPE/FIRMWARE/VERSION of the device and the channel TYPE)
+ * @param {object} known the cached description
+ * @param {object} device the one the process reports
+ * @returns {boolean}
+ */
+function deviceChanged(known, device) {
+    return ['TYPE', 'VERSION', 'FIRMWARE', 'PARENT_TYPE'].some(
+        (key) =>
+            (known[key] === undefined ? '' : String(known[key])) !==
+            (device[key] === undefined ? '' : String(device[key])),
+    );
+}
+
 function isIterable(object) {
     return object != null && typeof object[Symbol.iterator] === 'function' && typeof object.forEach === 'function';
 }
@@ -88,6 +103,42 @@ module.exports = function (RED) {
     });
     ccu.network.listen.push('0.0.0.0');
 
+    /**
+     * task 9: the editor's channel pickers ask while the connection may still be
+     * initialising - an empty answer then means "not yet", not "nothing". The
+     * header lets the dialog show "loading" and ask again instead of emptying
+     * the picker (and the configured channel with it).
+     * @param {object} config the connection node
+     * @param {string} [iface] the interface asked for, or every enabled one
+     * @returns {boolean}
+     */
+    function deviceDataLoading(config, iface) {
+        const ifaces = iface ? [iface] : Object.keys(config.ifaceTypes).filter((i) => config.ifaceTypes[i].enabled);
+        const connecting = ifaces.some(
+            (i) =>
+                config.ifaceTypes[i] &&
+                config.ifaceTypes[i].init &&
+                config.ifaceTypes[i].enabled &&
+                !config.ifaceStatus[i],
+        );
+        const fetching = Boolean(config.paramsetPending) || (config.paramsetQueue && config.paramsetQueue.length > 0);
+        return connecting || fetching;
+    }
+
+    // task 9: "re-read device data" from the connection node's dialog
+    RED.httpAdmin.post('/ccu/:id/reread', RED.auth.needsPermission('ccu.write'), (request, res) => {
+        const config = RED.nodes.getNode(request.params.id);
+        if (!config || typeof config.rereadDevices !== 'function') {
+            res.status(404).send(JSON.stringify({error: 'connection not deployed'}));
+            return;
+        }
+
+        config
+            .rereadDevices()
+            .then((summary) => res.status(200).send(JSON.stringify(summary)))
+            .catch((error) => res.status(500).send(JSON.stringify({error: error.message})));
+    });
+
     RED.httpAdmin.get('/ccu', RED.auth.needsPermission('ccu.read'), (request, res) => {
         if (request.query.config && request.query.config !== '_ADD_') {
             const config = RED.nodes.getNode(request.query.config);
@@ -97,6 +148,10 @@ module.exports = function (RED) {
             }
 
             const object = {};
+
+            if (['channels', 'tree'].includes(request.query.type) && deviceDataLoading(config, request.query.iface)) {
+                res.set('X-CCU-Loading', '1');
+            }
 
             switch (request.query.type) {
                 case 'ifaces': {
@@ -2325,29 +2380,66 @@ module.exports = function (RED) {
                         }
 
                         const knownDevices = [];
-                        let change = false;
+                        const summary = {total: 0, added: 0, changed: 0, removed: 0};
                         devices.forEach((device) => {
+                            if (!device || typeof device.ADDRESS !== 'string' || !device.TYPE) {
+                                return;
+                            }
+
                             knownDevices.push(device.ADDRESS);
-                            if (!this.metadata.devices[iface][device.ADDRESS]) {
+                            const known = this.metadata.devices[iface][device.ADDRESS];
+                            if (!known) {
                                 this.newDevice(iface, device);
-                                change = true;
+                                summary.added += 1;
+                            } else if (deviceChanged(known, device)) {
+                                // task 9: a TYPE/VERSION change since the cache was written
+                                this.newDevice(iface, device);
+                                summary.changed += 1;
                             }
                         });
 
                         Object.keys(this.metadata.devices[iface]).forEach((addr) => {
                             if (!knownDevices.includes(addr)) {
                                 this.deleteDevice(iface, addr);
-                                change = true;
+                                summary.removed += 1;
                             }
                         });
 
-                        if (change) {
+                        summary.total = Object.keys(this.metadata.devices[iface]).length;
+                        if (summary.added || summary.changed || summary.removed) {
                             this.saveMetadata();
                         }
 
-                        resolve();
+                        resolve(summary);
                     })
                     .catch(reject);
+            });
+        }
+
+        /**
+         * task 9: re-read the device table of every connected interface from its
+         * process (the button in the connection node's dialog). New and changed
+         * devices get their paramset descriptions fetched, vanished ones go.
+         * @returns {Promise<object>} per interface: total, added, changed, removed - or an error text
+         */
+        rereadDevices() {
+            const ifaces = Object.keys(this.ifaceTypes).filter(
+                (iface) => this.ifaceTypes[iface].enabled && this.ifaceTypes[iface].init && iface !== 'CUxD',
+            );
+            this.logger.info('re-reading device data:', ifaces.join(', '));
+            return Promise.all(
+                ifaces.map((iface) =>
+                    this.getDevices(iface)
+                        .then((summary) => [iface, summary])
+                        .catch((error) => [iface, {error: error.message || String(error)}]),
+                ),
+            ).then((entries) => {
+                const summary = {};
+                entries.forEach(([iface, result]) => {
+                    summary[iface] = result;
+                });
+                this.logger.info('device data re-read', JSON.stringify(summary));
+                return summary;
             });
         }
 
@@ -2528,15 +2620,21 @@ module.exports = function (RED) {
                 return;
             }
 
-            if (!this.metadata.devices[iface] || !Object.keys(this.metadata.devices[iface]).length > 0) {
-                return;
-            }
+            // task 9 (old B-11): the watchdog used to return here for an interface without
+            // devices in the cache, so such an interface never pinged and never re-initialised
+            // after a CCU reboot. It pings now; it re-initialises only when the interface has
+            // devices or has ever delivered an event (a PONG counts) - a process that answers
+            // no ping at all is not asked to init every timeout.
+            const hasDevices = Boolean(
+                this.metadata.devices[iface] && Object.keys(this.metadata.devices[iface]).length > 0,
+            );
+            const mayReinit = hasDevices || Boolean(this.lastRealEvent[iface]);
 
             clearTimeout(this.rpcPingTimer[iface]);
             const pingTimeout = this.ifaceTypes[iface].pingTimeout || this.rpcPingTimeout;
             const elapsed = Math.round((now() - (this.lastEvent[iface] || 0)) / 1000);
             this.logger.debug('rpcCheckInit', iface, elapsed, pingTimeout);
-            if (elapsed > pingTimeout) {
+            if (elapsed > pingTimeout && mayReinit) {
                 this.hadTimeout.add(iface);
                 this.setIfaceStatus(iface, false);
                 this.logger.warn('ping timeout', iface, elapsed);
@@ -2886,7 +2984,29 @@ module.exports = function (RED) {
                 this.metadata.types[iface] = {};
             }
 
-            if (this.metadata.devices[iface][device.ADDRESS]) {
+            const known = this.metadata.devices[iface][device.ADDRESS];
+            if (known && deviceChanged(known, device)) {
+                // task 9 (#146, #181): a channel whose TYPE (or the device's VERSION/FIRMWARE)
+                // changed in place kept its old datapoints; the paramset key changes with
+                // it, so the description is fetched anew below, and the old type list
+                // forgets the address
+                this.logger.info(
+                    'device data changed',
+                    iface,
+                    device.ADDRESS,
+                    known.TYPE + '/' + (known.FIRMWARE || '-') + '/' + (known.VERSION || '-'),
+                    '->',
+                    device.TYPE + '/' + (device.FIRMWARE || '-') + '/' + (device.VERSION || '-'),
+                );
+                if (this.metadata.types[iface][known.TYPE]) {
+                    this.metadata.types[iface][known.TYPE] = this.metadata.types[iface][known.TYPE].filter(
+                        (addr) => addr !== device.ADDRESS,
+                    );
+                    if (this.metadata.types[iface][known.TYPE].length === 0) {
+                        delete this.metadata.types[iface][known.TYPE];
+                    }
+                }
+            } else if (known) {
                 this.logger.trace('newDevice (already known)', iface, device.ADDRESS);
             } else {
                 this.logger.debug('newDevice', iface, device.ADDRESS);

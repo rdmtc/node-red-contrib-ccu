@@ -6,6 +6,7 @@
    intervals are shortened on the node for the test. */
 
 const fs = require('fs');
+const os = require('os');
 const path = require('path');
 const should = require('should');
 const helper = require('node-red-node-test-helper');
@@ -20,9 +21,10 @@ const IPRF_PORT = 2010;
 const CACHE_FILES = ['ccu_127.0.0.1.json', 'ccu_rega_127.0.0.1.json', 'ccu_values_127.0.0.1.json'].map((f) =>
     path.join(__dirname, '..', f),
 );
+const PARAMSETS_SCRATCH = path.join(os.tmpdir(), 'nrccu-liveness-paramsets.json');
 
 function removeCache() {
-    for (const file of CACHE_FILES) {
+    for (const file of [...CACHE_FILES, PARAMSETS_SCRATCH]) {
         try {
             fs.unlinkSync(file);
         } catch {}
@@ -155,6 +157,9 @@ describe('HmIP-RF liveness ping (B-29)', function () {
         hmip = fakeHmipServer();
         await load([nodeConnection], flow);
         nc = helper.getNode('nc');
+        // fetched paramset descriptions would be saved into the repository's paramsets.json (the
+        // test helper has no userDir) - a scratch file instead, removed with the cache
+        nc.paramsetFile = PARAMSETS_SCRATCH;
         (await until(() => nc.ifaceStatus['HmIP-RF'] && hmip.inits.length === 1, 5000)).should.be.true();
         // the test's clock: a ping after 1 s without an event, the PONG expected within 0.5 s
         nc.ifaceTypes['HmIP-RF'].pingInterval = 1;

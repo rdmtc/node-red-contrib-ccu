@@ -65,6 +65,23 @@ append commits automatically).
 
 ### Changed
 
+- **The device table follows the CCU, and can be re-read by hand** (task 9,
+  #146, #181). A device or channel the CCU reports with another TYPE,
+  VERSION or FIRMWARE than the cache holds replaces the cached entry, leaves
+  its old type list and gets its datapoints fetched again - a channel whose
+  type changed in place kept its old datapoints before, until the cache file
+  was deleted. The connection node's dialog has a _Re-read device data_
+  button that asks every connected interface for its device list again
+  (new and changed devices get their datapoints, removed ones go) and
+  reports what changed. The editor's channel pickers no longer empty the
+  configured channel when the connection is still initialising: they show
+  _loading device data_ and ask again.
+- **An interface without devices is watched too** (task 9, old B-11). The
+  ping watchdog returned early for an interface with no devices in the
+  cache, so such an interface never pinged and never re-initialised after a
+  CCU reboot. It pings now, and re-initialises after the ping timeout once
+  it has ever delivered an event (a PONG counts) - a process that answers no
+  ping at all is not asked to `init` every timeout.
 - **The `listDevices` answer to hmipserver lists the CCU's virtual remote
   control (HmIP-RCV-1) again** (task 13). It was left out since CCU3 firmware
   3.43.15 (2019), whose hmipserver failed on an answer that held it; current
