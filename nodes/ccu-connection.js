@@ -15,7 +15,7 @@ const nextport = require('./lib/nextport.js');
 const hmDiscover = require('./lib/discover.js');
 const {Rega} = require('homematic-rega'); // ES module - require(esm) needs Node >= 20.19 / >= 22.12
 const metaProvider = require('./lib/metaprovider.js');
-const {InitRetry} = require('./lib/initretry.js');
+const {InitRetry, retryDelay} = require('./lib/initretry.js');
 const xmlrpc = require('homematic-xmlrpc');
 const binrpc = require('binrpc');
 
@@ -43,6 +43,9 @@ function execToCallback(promise, callback) {
         (err) => callback(err),
     );
 }
+
+/** B-28: how often an inconclusive metadata api detection is repeated (1, 2, 4, 8 s, then every 15 s) */
+const META_REDETECT_ATTEMPTS = 20;
 
 function isIterable(object) {
     return object != null && typeof object[Symbol.iterator] === 'function' && typeof object.forEach === 'function';
@@ -661,12 +664,15 @@ module.exports = function (RED) {
                 // metadata api. It does not on a CCU/RaspberryMatic/OpenCCU,
                 // where everything below runs exactly as before.
                 this.lastMetaProbe = now();
-                this.detectMeta()
-                    .then((info) => {
-                        if (info) {
-                            return this.startMeta(info);
+                this.detectMetaOutcome()
+                    .then((outcome) => {
+                        if (outcome.info) {
+                            return this.startMeta(outcome.info);
                         }
 
+                        // B-28: a timeout or a refused connection decides nothing -
+                        // the ReGa path starts, and the detection is repeated
+                        this.scheduleMetaRedetect(outcome);
                         return this.getRegaData().then(() => {
                             this.regaPoll();
                         });
@@ -1120,6 +1126,8 @@ module.exports = function (RED) {
             this.logger.debug('clear regaPollTimeout');
             this.cancelRegaPoll = true;
             clearTimeout(this.regaPollTimeout);
+            clearTimeout(this.metaRedetectTimeout);
+            this.metaRedetectTimeout = null;
 
             if (this.meta) {
                 this.logger.debug('stop metadata event stream');
@@ -1219,12 +1227,97 @@ module.exports = function (RED) {
          * @returns {Promise<object|null>}
          */
         detectMeta() {
-            return metaProvider.detect({
+            return this.detectMetaOutcome().then((outcome) => outcome.info);
+        }
+
+        /**
+         * B-28: the detection with its outcome - `info` for an openccu-lite,
+         * `inconclusive` when nothing was decided (timeout, refused connection,
+         * the web server up but the api behind it not yet).
+         * @returns {Promise<{info: object|null, inconclusive: boolean, reason?: string}>}
+         */
+        detectMetaOutcome() {
+            return metaProvider.detectOutcome({
                 host: this.host,
                 port: this.metaPort,
                 tls: Boolean(this.tlsEnabled),
                 insecure: Boolean(this.inSecure),
                 logger: this.logger,
+            });
+        }
+
+        /**
+         * B-28: an inconclusive detection (the box busy or still starting) used
+         * to leave the connection in ReGa mode for good - the only re-detection
+         * ran from rare error paths, at most every five minutes. Ask again after
+         * 1, 2, 4, 8 s, then every 15 s, up to META_REDETECT_ATTEMPTS times;
+         * after that the five-minute rule of recheckMeta() applies.
+         * @param {{inconclusive: boolean, reason?: string}} outcome
+         */
+        scheduleMetaRedetect(outcome) {
+            if (!outcome || !outcome.inconclusive || this.metaMode || this.cancelRegaPoll) {
+                this.metaRedetectAttempt = 0;
+                return;
+            }
+
+            this.metaRedetectAttempt = (this.metaRedetectAttempt || 0) + 1;
+            if (this.metaRedetectAttempt > META_REDETECT_ATTEMPTS) {
+                this.logger.info(
+                    'meta api detection still inconclusive (' +
+                        outcome.reason +
+                        ') after ' +
+                        META_REDETECT_ATTEMPTS +
+                        ' attempts - staying with the ReGaHSS, detecting again every five minutes',
+                );
+                this.metaRedetectAttempt = 0;
+                return;
+            }
+
+            const delay = retryDelay(this.metaRedetectAttempt);
+            const line =
+                'meta api detection inconclusive (' +
+                outcome.reason +
+                ') - names come from the ReGaHSS until the box answers, detecting again in ' +
+                delay / 1000 +
+                ' s';
+            if (this.metaRedetectAttempt === 1) {
+                this.logger.info(line);
+            } else {
+                this.logger.debug(line);
+            }
+
+            clearTimeout(this.metaRedetectTimeout);
+            this.metaRedetectTimeout = setTimeout(() => this.redetectMeta(), delay);
+        }
+
+        /** B-28: one scheduled re-detection. */
+        redetectMeta() {
+            this.metaRedetectTimeout = null;
+            if (this.metaMode || this.cancelRegaPoll) {
+                return;
+            }
+
+            this.lastMetaProbe = now();
+            this.detectMetaOutcome().then((outcome) => {
+                if (this.metaMode || this.cancelRegaPoll) {
+                    return;
+                }
+
+                if (outcome.info) {
+                    this.logger.info('meta api detected after ' + (this.metaRedetectAttempt + 1) + ' attempts');
+                    this.metaRedetectAttempt = 0;
+                    return this.startMeta(outcome.info);
+                }
+
+                if (outcome.inconclusive) {
+                    this.scheduleMetaRedetect(outcome);
+                    return;
+                }
+
+                this.metaRedetectAttempt = 0;
+                this.logger.info(
+                    'not an openccu-lite (' + outcome.reason + ') - names, rooms and functions come from the ReGaHSS',
+                );
             });
         }
 
@@ -1296,10 +1389,13 @@ module.exports = function (RED) {
                         this.meta = null;
                         this.lastMetaProbe = 0;
                         this.logger.warn('this box no longer answers as openccu-lite - detecting again');
-                        this.detectMeta().then((again) => {
-                            if (again) {
-                                return this.startMeta(again);
+                        this.detectMetaOutcome().then((outcome) => {
+                            if (outcome.info) {
+                                return this.startMeta(outcome.info);
                             }
+
+                            // B-28: an unreachable box is not a CCU yet - keep asking
+                            this.scheduleMetaRedetect(outcome);
 
                             if (this.ifaceTypes.ReGaHSS.enabled && !this.clients.ReGaHSS) {
                                 this.createClient('ReGaHSS').then(() => this.setIfaceStatus('ReGaHSS', true));
@@ -1346,7 +1442,7 @@ module.exports = function (RED) {
          * picked up without a redeploy.
          */
         recheckMeta() {
-            if (this.metaMode || this.cancelRegaPoll || this.metaRecheckPending) {
+            if (this.metaMode || this.cancelRegaPoll || this.metaRecheckPending || this.metaRedetectTimeout) {
                 return;
             }
 
@@ -1668,9 +1764,16 @@ module.exports = function (RED) {
                 this.regaPollPending = true;
                 clearTimeout(this.regaPollTimeout);
                 this.getRegaVariables()
-                    .catch((error) => this.logger.error('getRegaVariables', error))
+                    .catch((error) => {
+                        this.logger.error('getRegaVariables', error);
+                        // B-28: the poll is what fails on a box without ReGaHSS
+                        this.recheckMeta();
+                    })
                     .then(() => this.getRegaPrograms())
-                    .catch((error) => this.logger.error('getRegaPrograms', error))
+                    .catch((error) => {
+                        this.logger.error('getRegaPrograms', error);
+                        this.recheckMeta();
+                    })
                     .finally(() => {
                         if (this.regaInterval && this.regaPollEnabled && !this.cancelRegaPoll) {
                             //this.logger.trace('rega next poll in', this.regaInterval, 'seconds');

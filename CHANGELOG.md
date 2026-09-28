@@ -18,6 +18,18 @@ append commits automatically).
   is now answered with an empty result (the method list for
   `system.listMethods`) and logged at debug; a throw inside a handler is
   logged as an error and answered instead of ending the process.
+- **A metadata api detection that timed out at start left the connection in
+  ReGa mode for good** (B-28). On openccu-lite the connection asks
+  `GET /api/meta/v1/version` once at start; when that probe ran into its 5 s
+  timeout - on a Raspberry Pi 3 Node-RED's own start blocks the event loop
+  long enough for that at every start, on a busy system now and then - the
+  connection settled for the ReGaHSS, the ReGa polls failed every 30 s and
+  names, rooms and functions stayed empty; the only re-detection ran from rare
+  error paths, at most every five minutes. A timeout, a refused connection or
+  a 502/503/504 is now taken as "not decided": the ReGa path starts as before,
+  the detection is repeated after 1, 2, 4, 8 s and then every 15 s (up to 20
+  times, then the five-minute rule again), and the failing ReGa poll asks for
+  a re-detection too. A CCU's 404 is still a conclusive "no".
 
 ## 4.4.5 (2026-09-26)
 

@@ -9,6 +9,7 @@ const {
     MetaProvider,
     buildNames,
     detect,
+    detectOutcome,
     flattenEnum,
     memberNames,
     readLocalToken,
@@ -270,6 +271,66 @@ test('detect() recognises openccu-lite and nothing else', async (t) => {
     assert.equal(await detect({host: '127.0.0.1', port: other.address().port}), null);
 
     // nothing listening at all
+    assert.equal(await detect({host: '127.0.0.1', port: 1, timeout: 1000}), null);
+});
+
+test('detectOutcome() tells "no" from "not now" (B-28)', async (t) => {
+    const box = await fakeBox();
+    t.after(() => box.close());
+    const yes = await detectOutcome({host: '127.0.0.1', port: box.port});
+    assert.equal(yes.info.api, 'meta');
+    assert.equal(yes.inconclusive, false);
+
+    // a CCU's 404 is a conclusive no
+    const ccu = http.createServer((request_, res) => {
+        res.writeHead(404, {'content-type': 'text/html'}).end('<html>404</html>');
+    });
+    await new Promise((resolve) => ccu.listen(0, '127.0.0.1', resolve));
+    t.after(() => new Promise((resolve) => ccu.close(resolve)));
+    const no = await detectOutcome({host: '127.0.0.1', port: ccu.address().port});
+    assert.deepEqual(no, {info: null, inconclusive: false, reason: 'status 404'});
+
+    // a 200 that is not the api, or not even json: conclusive as well
+    const other = http.createServer((request_, res) => {
+        res.writeHead(200, {'content-type': 'text/html'}).end('<html>hello</html>');
+    });
+    await new Promise((resolve) => other.listen(0, '127.0.0.1', resolve));
+    t.after(() => new Promise((resolve) => other.close(resolve)));
+    assert.deepEqual(await detectOutcome({host: '127.0.0.1', port: other.address().port}), {
+        info: null,
+        inconclusive: false,
+        reason: 'not the metadata api',
+    });
+
+    // the web server is up, the api behind it is not (lighttpd while occulited starts)
+    const gateway = http.createServer((request_, res) => {
+        res.writeHead(503, {'content-type': 'text/html'}).end('<html>503</html>');
+    });
+    await new Promise((resolve) => gateway.listen(0, '127.0.0.1', resolve));
+    t.after(() => new Promise((resolve) => gateway.close(resolve)));
+    assert.deepEqual(await detectOutcome({host: '127.0.0.1', port: gateway.address().port}), {
+        info: null,
+        inconclusive: true,
+        reason: 'status 503',
+    });
+
+    // a box that does not answer in time: inconclusive
+    const busy = http.createServer(() => {});
+    await new Promise((resolve) => busy.listen(0, '127.0.0.1', resolve));
+    t.after(() => new Promise((resolve) => busy.closeAllConnections() || busy.close(resolve)));
+    const slow = await detectOutcome({host: '127.0.0.1', port: busy.address().port, timeout: 200});
+    assert.equal(slow.info, null);
+    assert.equal(slow.inconclusive, true);
+    assert.equal(slow.reason, 'timeout');
+
+    // nothing listening: inconclusive too (the web server of either kind is not up yet)
+    const refused = await detectOutcome({host: '127.0.0.1', port: 1, timeout: 1000});
+    assert.equal(refused.info, null);
+    assert.equal(refused.inconclusive, true);
+    // this WSL machine's mirrored networking lets a connect to a closed port hang instead of refusing it
+    assert.match(refused.reason, /ECONNREFUSED|timeout/);
+
+    // detect() keeps its old answer
     assert.equal(await detect({host: '127.0.0.1', port: 1, timeout: 1000}), null);
 });
 

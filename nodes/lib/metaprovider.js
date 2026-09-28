@@ -281,38 +281,65 @@ function readBody(res) {
     });
 }
 
+/** lighttpd answers these while the api behind it is not up yet - the box is starting, nothing is decided */
+const INCONCLUSIVE_STATUS = new Set([502, 503, 504]);
+
 /**
- * Feature detection: `GET /api/meta/v1/version` answers on openccu-lite and
- * needs no credential; a CCU / RaspberryMatic / OpenCCU answers 404 or HTML.
- * Never rejects - a box that is simply unreachable is not openccu-lite either.
+ * Feature detection with its outcome: `GET /api/meta/v1/version` answers on
+ * openccu-lite and needs no credential; a CCU / RaspberryMatic / OpenCCU
+ * answers 404 or HTML - that is a conclusive "no". A timeout, a refused
+ * connection or a 502/503/504 decides nothing (B-28: a busy or still starting
+ * box), so the caller can ask again instead of settling for the ReGa.
+ * Never rejects.
  * @param {object} options host, port, tls, insecure, timeout, logger
- * @returns {Promise<object|null>} the version document, or null
+ * @returns {Promise<{info: object|null, inconclusive: boolean, reason?: string}>}
  */
-async function detect(options) {
+async function detectOutcome(options) {
     const {logger = SILENT} = options;
+    let status;
+    let body;
     try {
-        const {status, res} = await request({
+        const answer = await request({
             ...options,
             path: API_PATH + '/version',
             token: undefined,
             timeout: options.timeout || 5000,
         });
-        const body = await readBody(res);
-        if (status !== 200) {
-            logger.debug('meta api detection: status ' + status);
-            return null;
-        }
-
-        const info = JSON.parse(body);
-        if (!info || info.api !== 'meta' || typeof info.version !== 'number') {
-            return null;
-        }
-
-        return info;
+        status = answer.status;
+        body = await readBody(answer.res);
     } catch (error) {
         logger.debug('meta api detection: ' + error.message);
-        return null;
+        return {info: null, inconclusive: true, reason: error.message};
     }
+
+    if (status !== 200) {
+        logger.debug('meta api detection: status ' + status);
+        return {info: null, inconclusive: INCONCLUSIVE_STATUS.has(status), reason: 'status ' + status};
+    }
+
+    let info = null;
+    try {
+        info = JSON.parse(body);
+    } catch {
+        info = null;
+    }
+
+    if (!info || info.api !== 'meta' || typeof info.version !== 'number') {
+        return {info: null, inconclusive: false, reason: 'not the metadata api'};
+    }
+
+    return {info, inconclusive: false};
+}
+
+/**
+ * Feature detection: the version document of an openccu-lite, or null for
+ * anything else (a CCU, an unreachable box). See detectOutcome() for the
+ * difference between "no" and "not now".
+ * @param {object} options host, port, tls, insecure, timeout, logger
+ * @returns {Promise<object|null>} the version document, or null
+ */
+async function detect(options) {
+    return (await detectOutcome(options)).info;
 }
 
 /**
@@ -708,6 +735,7 @@ module.exports = {
     MetaProvider,
     buildNames,
     detect,
+    detectOutcome,
     flattenEnum,
     memberNames,
     readLocalToken,
