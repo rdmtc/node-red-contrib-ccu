@@ -410,6 +410,13 @@ module.exports = function (RED) {
         constructor(config) {
             RED.nodes.createNode(this, config);
 
+            // B-31: the CCU password and the openccu-lite token come from Node-RED's
+            // credentials. A flow written by an older version still carries them as
+            // plain properties: use them once and move them into the credentials, so
+            // the next deploy drops them from flows.json.
+            const secrets = this.migrateSecrets(config);
+            config = {...config, password: secrets.password, metaToken: secrets.metaToken};
+
             this.logger.debug('ccu-connection', config.host);
 
             this.checkDuplicateConfig(config);
@@ -700,6 +707,41 @@ module.exports = function (RED) {
             this.stats(true);
 
             this.on('close', this.destructor);
+        }
+
+        /**
+         * B-31: the password and the token, from the credentials or - once - from the
+         * plain properties of a flow written before 4.4.6.
+         * @param {object} config the node's configuration as deployed
+         * @returns {{password: string, metaToken: string}}
+         */
+        migrateSecrets(config) {
+            const credentials = this.credentials || {};
+            const result = {
+                password: credentials.password || config.password || '',
+                metaToken: credentials.metaToken || config.metaToken || '',
+            };
+            const plain = ['password', 'metaToken'].filter((key) => config[key] && !credentials[key]);
+            if (plain.length > 0) {
+                const moved = {...credentials};
+                plain.forEach((key) => {
+                    moved[key] = config[key];
+                });
+                if (typeof RED.nodes.addCredentials === 'function') {
+                    RED.nodes.addCredentials(this.id, moved);
+                    this.warn(
+                        'the ' +
+                            plain.join(' and ') +
+                            ' of this connection came from the flow in plain text - moved into the credentials, the next deploy removes ' +
+                            (plain.length > 1 ? 'them' : 'it') +
+                            ' from flows.json',
+                    );
+                } else {
+                    this.warn('the ' + plain.join(' and ') + ' of this connection is stored in the flow in plain text');
+                }
+            }
+
+            return result;
         }
 
         get logger() {
@@ -3971,5 +4013,10 @@ module.exports = function (RED) {
         }
     }
 
-    RED.nodes.registerType('ccu-connection', CcuConnectionNode, {});
+    RED.nodes.registerType('ccu-connection', CcuConnectionNode, {
+        credentials: {
+            password: {type: 'password'},
+            metaToken: {type: 'password'},
+        },
+    });
 };

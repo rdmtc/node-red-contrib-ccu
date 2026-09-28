@@ -29,15 +29,19 @@
             inSecure: {value: false},
             authentication: {value: false},            
             username: {value: ''},
-            password: {value: ''},
 
-            metaToken: {value: ''},
             metaPort: {value: ''},
 
             queueTimeout: {value: 5000, required: true},
             queuePause: {value: 250, required: true},
 
             contextStore: {value: ''}
+        },
+        // B-31: the CCU password and the openccu-lite token live in Node-RED's
+        // credentials (flows_cred.json, encrypted, never exported), not in the flow
+        credentials: {
+            password: {type: 'password'},
+            metaToken: {type: 'password'}
         },
         label() {
             return this.name || this.host;
@@ -322,15 +326,17 @@ Weiteres unter <a target="_blank" href="https://nodered.org/docs/user-guide/cont
             </ul>
             <ul>
                 <li><b>openccu-lite Token</b>: Nur für <a href="https://github.com/hobbyquaker/openccu-lite" target="_blank">openccu-lite</a>,
-                eine CCU-Firmware ohne ReGaHSS. Namen, Räume und Gewerke kommen dort aus der Metadaten-API der Box;
-                dafür wird ein Token benötigt, das auf der Box unter <i>Benutzer</i> erzeugt wird. Läuft Node-RED
-                auf der Box selbst (RedMatic), bleibt das Feld leer – das lokale Token wird dann automatisch gelesen.
+                eine CCU-Firmware ohne ReGaHSS. Namen, Räume und Gewerke kommen dort aus der Metadaten-API des Systems;
+                dafür wird ein Token benötigt, das dort unter <i>Benutzer</i> erzeugt wird. Läuft Node-RED
+                auf dem System selbst (RedMatic), bleibt das Feld leer – das lokale Token wird dann automatisch gelesen.
+                Das Token wird wie das Passwort in den Node-RED-Credentials gespeichert (verschlüsselt in
+                <code>flows_cred.json</code>, nie im Flow und nie im Export).
                 Eine CCU/RaspberryMatic/OpenCCU ignoriert das Feld vollständig. Systemvariablen, Programme und
                 HM-Scripte gibt es auf openccu-lite nicht; die entsprechenden Nodes bleiben im Flow, melden aber pro
                 Nachricht einen Fehler.</li>
             </ul>
             <ul>
-                <li><b>openccu-lite Port</b>: Nur nötig, wenn der Webserver der Box nicht auf Port 80 bzw. 443 (TLS) läuft.</li>
+                <li><b>openccu-lite Port</b>: Nur nötig, wenn der Webserver des Systems nicht auf Port 80 bzw. 443 (TLS) läuft.</li>
             </ul>
             <ul>
                 <li><b>Authentication</b>: Hier kann angegeben werden wie mit der CCU Kommuniziert werden soll.</li>
@@ -339,7 +345,10 @@ Weiteres unter <a target="_blank" href="https://nodered.org/docs/user-guide/cont
                     <li>TLS/SSL: Aktiviert die Transportverschlüsselung</li>
                     <li>Ignore invalid TLS Certificates: Node-RED akzeptiert nicht vertrauenswürdige Zertifikate. Notwendig wenn die CCU kein vertrauenswürdiges Zertifikat hat.</li>
                     <li>Username: Ein Benutzer der sich an der CCU anmelden darf.</li>
-                    <li>Password: Das Passwort des Benutzers.</li>                    
+                    <li>Password: Das Passwort des Benutzers. Es wird in den Node-RED-Credentials gespeichert
+                    (verschlüsselt in <code>flows_cred.json</code>), nicht im Flow. Ein Flow aus einer Version vor 4.4.6,
+                    der es noch im Klartext enthält, wird beim ersten Start übernommen; der nächste Deploy entfernt es aus
+                    <code>flows.json</code>.</li>
                 </ul>
             </ul>
 </script>

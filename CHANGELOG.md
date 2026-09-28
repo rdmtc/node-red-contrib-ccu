@@ -53,6 +53,16 @@ append commits automatically).
   own pre-check no longer drops a forced write when the cache already holds
   the value.
 
+### Security
+
+- **The CCU password and the openccu-lite token were stored in plain text in
+  `flows.json`** and went out with every exported flow (B-31). Both are
+  Node-RED credentials now (`flows_cred.json`, encrypted, never exported).
+  A flow written before this version still carries them as plain properties:
+  the connection uses them once, moves them into the credentials and warns;
+  the editor no longer knows the two properties, so the next deploy removes
+  them from `flows.json`. Nothing to do by hand.
+
 ## 4.4.5 (2026-09-26)
 
 ### Fixed
