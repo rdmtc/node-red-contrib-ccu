@@ -63,6 +63,15 @@ append commits automatically).
   the editor no longer knows the two properties, so the next deploy removes
   them from `flows.json`. Nothing to do by hand.
 
+### Changed
+
+- **The `listDevices` answer to hmipserver lists the CCU's virtual remote
+  control (HmIP-RCV-1) again** (task 13). It was left out since CCU3 firmware
+  3.43.15 (2019), whose hmipserver failed on an answer that held it; current
+  hmipservers take it, and without it every `init` made hmipserver log a
+  _handleIDMigration_ warning and send the whole virtual remote (52
+  descriptions) again with `newDevices`.
+
 ## 4.4.5 (2026-09-26)
 
 ### Fixed

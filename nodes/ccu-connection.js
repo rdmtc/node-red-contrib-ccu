@@ -2935,10 +2935,11 @@ module.exports = function (RED) {
             if (this.metadata.devices[iface]) {
                 Object.keys(this.metadata.devices[iface]).forEach((addr) => {
                     const dev = this.metadata.devices[iface][addr];
-                    if (dev.TYPE === 'HmIP-RCV-50' || dev.PARENT_TYPE === 'HmIP-RCV-50') {
-                        // Würgaround for Firmware 3.43.15
-                        return;
-                    }
+                    // The CCU's own virtual remote control (HmIP-RCV-1, type HmIP-RCV-50) is listed
+                    // like any other device. It was left out since CCU3 firmware 3.43.15 (2019),
+                    // whose hmipserver failed on an answer that held it; current hmipservers do
+                    // not, and without it every init made hmipserver log a handleIDMigration
+                    // warning and send the whole virtual remote again with newDevices (task 13).
 
                     if (dev.TYPE === 'MULTI_MODE_INPUT_TRANSMITTER') {
                         //this.paramsQueuePush(iface, dev);

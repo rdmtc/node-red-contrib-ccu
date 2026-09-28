@@ -260,6 +260,57 @@ describe('callback calls with an unknown interface id (B-32)', function () {
             .length.should.equal(1);
     });
 
+    it('listDevices lists the virtual remote control (HmIP-RCV-1) in the reduced HmIP shape (task 13)', () => {
+        nc.metadata.devices['HmIP-RF'] = {
+            'HmIP-RCV-1': {
+                ADDRESS: 'HmIP-RCV-1',
+                TYPE: 'HmIP-RCV-50',
+                VERSION: 1,
+                FIRMWARE: '3.89.9',
+                FLAGS: 1,
+                INTERFACE: '',
+                PARAMSETS: ['MASTER'],
+                CHILDREN: ['HmIP-RCV-1:0', 'HmIP-RCV-1:1'],
+                RX_MODE: 1,
+                UPDATABLE: 0,
+            },
+            'HmIP-RCV-1:1': {
+                ADDRESS: 'HmIP-RCV-1:1',
+                TYPE: 'KEY_TRANSCEIVER',
+                PARENT: 'HmIP-RCV-1',
+                PARENT_TYPE: 'HmIP-RCV-50',
+                VERSION: 1,
+                INDEX: 1,
+                PARAMSETS: ['MASTER', 'VALUES'],
+                OPERATIONS: 7,
+            },
+            '0000DEADBEEF01': {
+                ADDRESS: '0000DEADBEEF01',
+                TYPE: 'HmIP-BSM',
+                VERSION: 1,
+                FIRMWARE: '2.0.0',
+                PARAMSETS: ['MASTER'],
+            },
+        };
+        const answer = nc.listDevices('HmIP-RF');
+        answer.map((d) => d.ADDRESS).should.deepEqual(['HmIP-RCV-1', 'HmIP-RCV-1:1', '0000DEADBEEF01']);
+        answer[0].should.deepEqual({
+            ADDRESS: 'HmIP-RCV-1',
+            VERSION: 1,
+            CHILDREN: ['HmIP-RCV-1:0', 'HmIP-RCV-1:1'],
+            FIRMWARE: '3.89.9',
+            FLAGS: 1,
+            PARAMSETS: ['MASTER'],
+            RX_MODE: 1,
+            TYPE: 'HmIP-RCV-50',
+        });
+        // the reduced shape: no OPERATIONS, no UPDATABLE, empty strings dropped, VERSION kept
+        should(answer[1].OPERATIONS).be.undefined();
+        answer[1].VERSION.should.equal(1);
+        answer[1].PARENT_TYPE.should.equal('HmIP-RCV-50');
+        delete nc.metadata.devices['HmIP-RF'];
+    });
+
     it('our own id still works after all that: the event is published and the counters move', async () => {
         const id = servers[0].ids[0];
         const before = nc.rxCounters['BidCos-RF'] || 0;
