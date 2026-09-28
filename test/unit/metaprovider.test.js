@@ -353,6 +353,9 @@ test('the provider loads the snapshot and follows the event stream', async (t) =
 
     provider.start();
     await waitFor(() => names.length > 0 && status.includes(true));
+    // B-30: the snapshot is in, the stream may not be - the fake box registers a client only in
+    // its sse handler (after sseHeaderDelay), and a send() before that is lost. Wait for the stream.
+    await waitFor(() => box.clients.size > 0);
     assert.equal(names[0].channelNames['000A1B2C3D4E5F:4'], 'Deckenlampe');
     assert.equal(names[0].revision, 12);
 
@@ -398,6 +401,7 @@ test('a node event, an import and a revision gap re-read the snapshot', async (t
     // a room was renamed on the box - member paths may have been rewritten
     box.document.enums.room.tree[0].name = 'Parterre';
     box.document.revision = 13;
+    await waitFor(() => box.clients.size > 0); // B-30
     box.send({revision: 13, kind: 'node.updated', enum: 'room', path: 'room/eg', value: {id: 'eg', name: 'Parterre'}});
     await waitFor(() => names.at(-1).rooms.includes('Parterre'));
     assert.equal(box.snapshots, 2);
