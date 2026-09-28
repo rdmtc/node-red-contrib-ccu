@@ -807,6 +807,11 @@ module.exports = function (RED) {
          * @param connected
          */
         setIfaceStatus(iface, connected, waiting = false) {
+            if (!iface || !this.ifaceTypes[iface]) {
+                // B-32: never a status line for something that is not an interface of ours
+                return;
+            }
+
             waiting = Boolean(waiting) && !connected;
             const waitingChanged = Boolean(this.ifaceWaiting[iface]) !== waiting;
             if (this.ifaceStatus[iface] !== connected || waitingChanged) {
@@ -2358,12 +2363,10 @@ module.exports = function (RED) {
                         }
 
                         this.logger.debug('rpc <', protocol, method, JSON.stringify(parameters));
-                        if (method === 'event') {
-                            method = 'eventSingle';
-                        }
+                        const handler = method === 'event' ? 'eventSingle' : method;
 
                         if (isIterable(parameters)) {
-                            this.rpcMethods[method](err, parameters, callback);
+                            this.callRpcMethod(handler, err, parameters, callback);
                         } else {
                             this.logger.error(
                                 'rpc <',
@@ -2373,7 +2376,7 @@ module.exports = function (RED) {
                                 'params not iterable',
                                 JSON.stringify(parameters),
                             );
-                            callback(null, '');
+                            callback(null, this.rpcDefaultAnswer(method));
                         }
                     });
                 });
@@ -2684,98 +2687,191 @@ module.exports = function (RED) {
          * @returns {*}
          */
         getIfaceFromIdInit(idInit) {
+            if (typeof idInit !== 'string') {
+                return null;
+            }
+
             if (idInit === 'CUxD') {
                 return idInit;
             }
 
             const match = idInit.match(/^nr_[\da-zA-Z]{6}_([a-zA-Z-]+)$/);
-            return match && match[1];
+            return match && this.ifaceTypes[match[1]] ? match[1] : null;
+        }
+
+        /**
+         * B-32: the interface a callback call belongs to, or null with a debug line when the
+         * first parameter is not one of our own init ids. Anything on the system can connect
+         * to the callback ports on the loopback; such a call is answered, never thrown on.
+         * @param {string} method
+         * @param {Array} parameters
+         * @returns {string|null}
+         */
+        rpcIface(method, parameters) {
+            const [idInit] = parameters;
+            const iface = this.getIfaceFromIdInit(idInit);
+            if (!iface) {
+                this.logger.debug('rpc <', method, 'unknown interface id', JSON.stringify(idInit));
+            }
+
+            return iface;
+        }
+
+        /**
+         * B-32: what a callback call is answered with when it cannot be handled.
+         * @param {string} method
+         * @returns {Array|string}
+         */
+        rpcDefaultAnswer(method) {
+            if (method === 'system.listMethods') {
+                return Object.keys(this.rpcMethods);
+            }
+
+            if (method === 'listDevices' || method === 'system.multicall') {
+                return [];
+            }
+
+            return '';
+        }
+
+        /**
+         * B-32: run a callback handler so that a throw inside it is logged and answered
+         * instead of ending the process (the RPC servers call us from an event emitter,
+         * so an exception there is uncaught). The callback is answered exactly once.
+         * @param {string} method the key in rpcMethods
+         * @param {*} err
+         * @param {Array} parameters
+         * @param {function} callback
+         */
+        callRpcMethod(method, err, parameters, callback) {
+            let answered = false;
+            const answer = (error, result) => {
+                if (!answered) {
+                    answered = true;
+                    callback(error, result);
+                }
+            };
+
+            try {
+                this.rpcMethods[method](err, parameters, answer);
+            } catch (error) {
+                this.logger.error(
+                    'rpc <',
+                    method,
+                    'failed:',
+                    error && error.message ? error.message : String(error),
+                    JSON.stringify(parameters),
+                );
+                answer(null, this.rpcDefaultAnswer(method === 'eventSingle' ? 'event' : method));
+            }
         }
 
         get rpcMethods() {
             return {
                 'system.listMethods': (_, parameters, callback) => {
-                    const [idInit] = parameters;
-                    const iface = this.getIfaceFromIdInit(idInit);
-                    this.lastEvent[iface] = now();
-                    this.setIfaceStatus(iface, true);
+                    const iface = this.rpcIface('system.listMethods', parameters);
                     const res = Object.keys(this.rpcMethods);
+                    if (iface) {
+                        this.lastEvent[iface] = now();
+                        this.setIfaceStatus(iface, true);
+                    }
+
                     this.logger.debug('    >', iface, 'system.listMethods', JSON.stringify(res));
                     callback(null, res);
                 },
                 setReadyConfig: (_, parameters, callback) => {
-                    const [idInit] = parameters;
-                    const iface = this.getIfaceFromIdInit(idInit);
+                    const iface = this.rpcIface('setReadyConfig', parameters);
                     this.logger.debug('    >', iface, 'setReadyConfig ""');
                     callback(null, '');
                 },
                 updateDevice: (_, parameters, callback) => {
-                    const [idInit] = parameters;
-                    const iface = this.getIfaceFromIdInit(idInit);
+                    const iface = this.rpcIface('updateDevice', parameters);
                     this.logger.debug('    >', iface, 'updateDevice ""');
                     callback(null, '');
                 },
                 replaceDevice: (_, parameters, callback) => {
-                    const [idInit] = parameters;
-                    const iface = this.getIfaceFromIdInit(idInit);
+                    const iface = this.rpcIface('replaceDevice', parameters);
                     this.logger.debug('    >', iface, 'replaceDevice ""');
                     callback(null, '');
                 },
                 readdedDevice: (_, parameters, callback) => {
-                    const [idInit] = parameters;
-                    const iface = this.getIfaceFromIdInit(idInit);
+                    const iface = this.rpcIface('readdedDevice', parameters);
                     this.logger.debug('    >', iface, 'readdedDevice ""');
                     callback(null, '');
                 },
                 newDevices: (_, parameters, callback) => {
-                    const [idInit, devices] = parameters;
-                    const iface = this.getIfaceFromIdInit(idInit);
+                    const [, devices] = parameters;
+                    const iface = this.rpcIface('newDevices', parameters);
 
-                    devices.forEach((device) => {
-                        this.newDevice(iface, device);
-                    });
+                    let changed = false;
+                    if (iface && Array.isArray(devices)) {
+                        devices.forEach((device) => {
+                            if (device && typeof device.ADDRESS === 'string' && device.TYPE) {
+                                this.newDevice(iface, device);
+                                changed = true;
+                            } else {
+                                this.logger.warn(
+                                    'newDevices',
+                                    iface,
+                                    'skipping malformed entry',
+                                    JSON.stringify(device),
+                                );
+                            }
+                        });
+                    }
 
                     this.logger.debug('    >', iface, 'newDevices ""');
                     callback(null, '');
 
-                    this.saveMetadata();
+                    if (changed) {
+                        this.saveMetadata();
+                    }
                 },
                 deleteDevices: (_, parameters, callback) => {
-                    const [idInit, devices] = parameters;
-                    const iface = this.getIfaceFromIdInit(idInit);
+                    const [, devices] = parameters;
+                    const iface = this.rpcIface('deleteDevices', parameters);
 
-                    devices.forEach((device) => {
-                        this.deleteDevice(iface, device);
-                    });
+                    let changed = false;
+                    if (iface && Array.isArray(devices) && this.metadata.devices[iface]) {
+                        devices.forEach((device) => {
+                            if (typeof device === 'string' && this.metadata.devices[iface][device]) {
+                                this.deleteDevice(iface, device);
+                                changed = true;
+                            }
+                        });
+                    }
 
                     this.logger.debug('    >', iface, 'deleteDevices ""');
                     callback(null, '');
 
-                    this.saveMetadata();
+                    if (changed) {
+                        this.saveMetadata();
+                    }
                 },
                 listDevices: (_, parameters, callback) => {
-                    const [idInit] = parameters;
-                    const iface = this.getIfaceFromIdInit(idInit);
-                    this.lastEvent[iface] = now();
-                    this.setIfaceStatus(iface, true);
-                    const res = this.listDevices(iface) || [];
+                    const iface = this.rpcIface('listDevices', parameters);
+                    let res = [];
+                    if (iface) {
+                        this.lastEvent[iface] = now();
+                        this.setIfaceStatus(iface, true);
+                        res = this.listDevices(iface) || [];
+                    }
+
                     this.logger.debug('    >', iface, 'listDevices', JSON.stringify(res));
                     callback(null, res);
                 },
                 event: (_, parameters, callback) => {
-                    const [idInit] = parameters;
-                    const iface = this.getIfaceFromIdInit(idInit);
+                    const iface = this.rpcIface('event', parameters);
                     this.logger.debug('    >', iface, 'event ""');
                     this.publishEvent(parameters);
                     callback(null, '');
                 },
                 eventSingle: (_, parameters, callback) => {
-                    const [idInit] = parameters;
-                    const iface = this.getIfaceFromIdInit(idInit);
+                    const iface = this.rpcIface('event', parameters);
                     this.logger.debug('    >', iface, 'event ""');
                     this.publishEvent(parameters);
 
-                    if (parameters[2] !== 'PONG') {
+                    if (iface && parameters[2] !== 'PONG') {
                         if (this.rxCounters[iface]) {
                             this.rxCounters[iface] += 1;
                         } else {
@@ -2796,8 +2892,8 @@ module.exports = function (RED) {
                     if (isIterable(parameters[0])) {
                         parameters[0].forEach((call) => {
                             if (call && call.methodName === 'event') {
-                                queue.push(call);
                                 if (isIterable(call.params)) {
+                                    queue.push(call);
                                     const [idInit, , datapoint, value] = call.params;
                                     if (datapoint !== 'PONG') {
                                         pong = false;
@@ -2819,16 +2915,32 @@ module.exports = function (RED) {
                                         }
                                     }
 
-                                    iface = this.getIfaceFromIdInit(idInit);
+                                    iface = this.getIfaceFromIdInit(idInit) || iface;
+                                } else {
+                                    this.logger.debug(
+                                        'rpc <',
+                                        'event',
+                                        'params not iterable',
+                                        JSON.stringify(call.params),
+                                    );
                                 }
 
                                 result.push('');
-                            } else if (call && this.rpcMethods[call.methodName]) {
+                            } else if (
+                                call &&
+                                call.methodName !== 'system.multicall' &&
+                                this.rpcMethods[call.methodName]
+                            ) {
                                 pong = false;
                                 if (isIterable(call.params)) {
-                                    this.rpcMethods[call.methodName](call.methodName, call.params, (_, res) =>
-                                        result.push(res),
-                                    );
+                                    let answered = false;
+                                    this.callRpcMethod(call.methodName, null, call.params, (_, res) => {
+                                        answered = true;
+                                        result.push(res);
+                                    });
+                                    if (!answered) {
+                                        result.push(this.rpcDefaultAnswer(call.methodName));
+                                    }
                                 } else {
                                     this.logger.error(
                                         'rpc <',
@@ -2836,7 +2948,11 @@ module.exports = function (RED) {
                                         'params not iterable',
                                         JSON.stringify(call.params),
                                     );
+                                    result.push(this.rpcDefaultAnswer(call.methodName));
                                 }
+                            } else {
+                                // B-32: an unknown or nested method keeps the answer's shape
+                                result.push('');
                             }
                         });
                         queue.forEach((call) => {
@@ -3062,6 +3178,12 @@ module.exports = function (RED) {
         publishEvent(parameters, working, direction) {
             const [idInit, channel, datapoint, payload] = parameters;
             const iface = this.getIfaceFromIdInit(idInit);
+
+            if (!iface || typeof channel !== 'string' || typeof datapoint !== 'string') {
+                // B-32: not one of our interfaces, or not an event's shape - nothing to publish
+                this.logger.debug('rpc <', 'event', 'ignored', JSON.stringify(parameters));
+                return;
+            }
 
             this.lastEvent[iface] = now();
             if (this.hadTimeout.has(iface)) {

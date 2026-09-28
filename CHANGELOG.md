@@ -5,6 +5,20 @@ Notable changes to node-red-contrib-ccu. Format follows
 user-visible symptom and the cause, not the commit list (the release notes
 append commits automatically).
 
+## Unreleased
+
+### Fixed
+
+- **A callback call with an unknown interface id ended Node-RED** (B-32).
+  Anything on the system can connect to the connection's callback ports on
+  the loopback; a `system.listMethods` without parameters, an `event` with an
+  id that is not one of ours, or a `newDevices` list with a malformed entry
+  threw inside the RPC server's handler, which runs from an event emitter -
+  an uncaught `TypeError`, and the whole Node-RED process exited. Such a call
+  is now answered with an empty result (the method list for
+  `system.listMethods`) and logged at debug; a throw inside a handler is
+  logged as an error and answered instead of ending the process.
+
 ## 4.4.5 (2026-09-26)
 
 ### Fixed
