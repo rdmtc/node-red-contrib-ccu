@@ -4,7 +4,7 @@ const statusHelper = require(path.join(__dirname, '/lib/status.js'));
 const {effectiveConfig, configCacheKey} = require(path.join(__dirname, '/lib/dynconfig.js'));
 
 /** What a message may supply or override (B-2, #172). */
-const DYNAMIC_KEYS = ['iface', 'channel', 'datapoint'];
+const DYNAMIC_KEYS = ['iface', 'channel', 'datapoint', 'force'];
 
 module.exports = function (RED) {
     class CcuValue {
@@ -46,6 +46,8 @@ module.exports = function (RED) {
                     ''
                 ).split(' ')[0];
                 const datapoint = over.datapoint || config.datapoint || message.datapoint || tDatapoint;
+                // B-19: force writes through the queue's dedupe (as set-value has it)
+                const force = typeof over.force === 'undefined' ? Boolean(config.force) : Boolean(over.force);
 
                 if (!iface) {
                     this.error('interface undefined');
@@ -119,6 +121,7 @@ module.exports = function (RED) {
                         datapoint,
                         message.payload,
                         config.burst,
+                        force,
                     )
                         .then(() => {
                             done();

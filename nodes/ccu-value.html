@@ -17,6 +17,7 @@
             cache: {value: false},
             certainOnly: {value: false},
             queue: {value: false},
+            force: {value: false},
             on: {value: ''},
             onType: {value: 'undefined'},
             ramp: {value: ''},
@@ -467,6 +468,16 @@
     </div>
 
     <div class="form-row">
+        <label for="node-input-force"><i class="icon-bookmark"></i> </label>
+        <div style="width: 70%; display: inline-block; vertical-align: text-top;">
+            <label class="ccu-checkbox" for="node-input-force">
+                <input type="checkbox" id="node-input-force">
+                <span data-i18n="ccu-value.force"></span>
+            </label>
+        </div>
+    </div>
+
+    <div class="form-row">
         <label for="node-input-change"><i class="icon-bookmark"></i> </label>
         <div style="width: 70%; display: inline-block; vertical-align: text-top;">
             <label class="ccu-checkbox" for="node-input-change">
@@ -595,8 +606,11 @@
         <li><code>iface</code></li>
         <li><code>channel</code></li>
         <li><code>datapoint</code></li>
+        <li><code>force</code></li>
     </ul>
     <p>Eine Nachricht ohne <code>payload</code> schreibt nichts, richtet aber die Ausgabe-Seite des Nodes neu aus.</p>
+    <h3>Queue und Erzwingen</h3>
+    <p>Mit <i>Queue</i> werden Schreibbefehle nacheinander gesendet, und ein Wert, den der Cache schon von einer anderen Quelle kennt, wird nicht noch einmal gesendet. Ein Wert, den dieser Node selbst zuletzt geschrieben hat, wird immer gesendet: ein von Hand bewegter Rollladen meldet auf seinem Steuerkanal keinen neuen Sollwert. <i>Erzwingen</i> (auch <code>msg.config.force</code>) sendet in jedem Fall.</p>
 </script>
 
 <script type="text/x-red" data-help-name="ccu-value" lang="en-US">
@@ -608,6 +622,9 @@
         <li><code>iface</code></li>
         <li><code>channel</code></li>
         <li><code>datapoint</code></li>
+        <li><code>force</code></li>
     </ul>
     <p>A message without a <code>payload</code> writes nothing but retargets the node's output side.</p>
+    <h3>Queue and force</h3>
+    <p>With <i>Queue</i> the writes go out one after another, and a value the cache already knows from another source is not sent again. A value this node itself wrote last is always sent: a blind moved by hand does not report a new set point on its control channel. <i>Force</i> (also <code>msg.config.force</code>) always sends.</p>
 </script>

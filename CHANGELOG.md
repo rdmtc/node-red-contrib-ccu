@@ -41,6 +41,17 @@ append commits automatically).
   hmipserver (it sends one about 16 s in) triggers the ping right away, so
   events are back well within a minute. An interface that never delivered an
   event since its `init` is not re-subscribed on a missing PONG alone.
+- **A queued write of the same set point was dropped after the actuator had
+  been operated by hand** (B-19, #151). The value node's _Queue_ compared the
+  new value with the value cache, and the cache of a control channel
+  (HmIP-FROLL/BROLL `:4`, the status lives in `:3`) holds the echo of our own
+  last write for good - a blind moved by hand reports no new set point there,
+  so the same `1` could never be sent again while Homematic Manager moved the
+  blind at once. A cached value that is the echo of our own last write no
+  longer dedupes; only a value from another source does. The value node has a
+  _Force_ option (and `msg.config.force`), as set-value has it; set-value's
+  own pre-check no longer drops a forced write when the cache already holds
+  the value.
 
 ## 4.4.5 (2026-09-26)
 

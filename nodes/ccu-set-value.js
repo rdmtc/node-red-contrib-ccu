@@ -102,18 +102,13 @@ module.exports = function (RED) {
                     }
 
                     datapointsOf(this.ccu, iface, address, config).forEach((dp) => {
-                        const datapointName = iface + '.' + address + '.' + dp;
-                        const currentValue = this.ccu.values[datapointName] && this.ccu.values[datapointName].value;
                         count += 1;
-                        if (
-                            dp.startsWith('PRESS_') ||
-                            typeof currentValue === 'undefined' ||
-                            currentValue !== message.payload
-                        ) {
-                            this.ccu
-                                .setValueQueued(iface, address, dp, message.payload, false, config.force)
-                                .catch(() => {});
-                        }
+                        // the queue dedupes against the value cache itself (B-19: force and
+                        // the echo of our own write get through; the pre-check here used to
+                        // drop a forced write whenever the cache already held the value)
+                        this.ccu
+                            .setValueQueued(iface, address, dp, message.payload, false, config.force)
+                            .catch(() => {});
                     });
                 });
             });

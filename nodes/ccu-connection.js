@@ -622,6 +622,9 @@ module.exports = function (RED) {
             this.setValueThrottle = 500;
             this.setValueTimers = {};
             this.setValueCache = {};
+            // B-19: the value this connection last wrote to a datapoint, so the queued
+            // write's dedupe can tell the echo of its own write from another source
+            this.lastWrite = {};
             this.setValueQueue = [];
 
             this.lastEvent = {};
@@ -3791,7 +3794,14 @@ module.exports = function (RED) {
                 const datapointName = iface + '.' + address + '.' + datapoint;
                 const currentValue = this.values[datapointName] && this.values[datapointName].value;
                 const cache = this.values[datapointName] && this.values[datapointName].cache;
-                if (force || value !== currentValue || cache || datapoint.startsWith('PRESS_')) {
+                // B-19: a cached value that is the echo of our own last write does not
+                // prove the actuator is there - a blind moved by hand keeps its control
+                // channel's set point (#151). Only a value from another source dedupes:
+                // one that differs from what we wrote last, or one reported before it.
+                const lastWrite = this.lastWrite[datapointName];
+                const cachedTs = this.values[datapointName] && this.values[datapointName].ts;
+                const ownEcho = Boolean(lastWrite) && lastWrite.value === currentValue && cachedTs > lastWrite.ts;
+                if (force || value !== currentValue || cache || ownEcho || datapoint.startsWith('PRESS_')) {
                     this.setValueQueue.push({iface, address, datapoint, value, burst, resolve, reject});
                     this.setValueShiftQueue();
                 } else {
@@ -3853,6 +3863,7 @@ module.exports = function (RED) {
          * @returns {Promise<any>}
          */
         setValue(iface, address, datapoint, value, burst) {
+            this.lastWrite[iface + '.' + address + '.' + datapoint] = {value, ts: now()};
             const device = this.metadata.devices[iface] && this.metadata.devices[iface][address];
             const description = this.paramsetDescriptions[this.paramsetName(iface, device, 'VALUES')];
             const combined = combinedParameterValue(datapoint, value, description);

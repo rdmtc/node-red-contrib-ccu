@@ -9,6 +9,7 @@
     "cache": "Beim Start letzten bekannten Wert ausgeben",
     "working": "Während WORKING keine Werte ausgeben",
     "queue": "Queue",
+    "force": "Erzwingen (Cache ignorieren)",
     "certainOnly": "Unsichere Werte verwerfen"
   }
 }
