@@ -5,7 +5,7 @@ Notable changes to node-red-contrib-ccu. Format follows
 user-visible symptom and the cause, not the commit list (the release notes
 append commits automatically).
 
-## Unreleased
+## 4.5.0 (2026-09-29)
 
 ### Added
 
@@ -31,7 +31,7 @@ append commits automatically).
   certificates_, the CCU's self-signed certificate is refused, as before.
 
 - **One topic template in every node that emits, the value node's input
-  takes the emitted shape** (task 6, #39). The `get value` node has a _Topic_
+  takes the emitted shape** (task 6, #39 @psi-4ward). The `get value` node has a _Topic_
   field now, the same `${…}` template as rpc-event, value, sysvar, program,
   rpc and script; empty (the default, and every existing flow) leaves
   `msg.topic` as it came in. The value node's input accepts a datapoint
@@ -108,7 +108,7 @@ append commits automatically).
   events are back well within a minute. An interface that never delivered an
   event since its `init` is not re-subscribed on a missing PONG alone.
 - **A queued write of the same set point was dropped after the actuator had
-  been operated by hand** (B-19, #151). The value node's _Queue_ compared the
+  been operated by hand** (B-19, #151 @vigeland). The value node's _Queue_ compared the
   new value with the value cache, and the cache of a control channel
   (HmIP-FROLL/BROLL `:4`, the status lives in `:3`) holds the echo of our own
   last write for good - a blind moved by hand reports no new set point there,
@@ -132,7 +132,7 @@ append commits automatically).
 ### Changed
 
 - **The device table follows the CCU, and can be re-read by hand** (task 9,
-  #146, #181). A device or channel the CCU reports with another TYPE,
+  #146 @guny74, #181 @vore). A device or channel the CCU reports with another TYPE,
   VERSION or FIRMWARE than the cache holds replaces the cached entry, leaves
   its old type list and gets its datapoints fetched again - a channel whose
   type changed in place kept its old datapoints before, until the cache file
