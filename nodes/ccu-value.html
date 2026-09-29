@@ -628,6 +628,14 @@
         <li><code>force</code></li>
     </ul>
     <p>Eine Nachricht ohne <code>payload</code> schreibt nichts, richtet aber die Ausgabe-Seite des Nodes neu aus.</p>
+    <h3>Party-/Urlaubsmodus (HmIP)</h3>
+    <p>Ein HmIP-Thermostat (eTRV, WTH) nimmt <code>PARTY_TIME_START</code>, <code>PARTY_TIME_END</code> und
+    <code>PARTY_SET_POINT_TEMPERATURE</code> nur gemeinsam an; einzeln geschrieben setzt er die anderen beiden zurück. Ein
+    Schreiben auf einen der drei Datenpunkte geht deshalb als ein <code>putParamset</code> mit allen dreien hinaus – die
+    beiden anderen aus dem letzten eigenen Schreiben, dem Wertecache oder einem Lesen vom Gerät. Die Zeiten können als
+    Gerätestring <code>YYYY_MM_DD HH:MM</code>, als JavaScript-Date, ISO-String oder Millisekunden angegeben werden; sie
+    werden in lokaler Zeit für das Gerät formatiert. Ältere HM-Thermostate (<code>PARTY_MODE_SUBMIT</code>) sind nicht
+    abgedeckt.</p>
     <h3>Queue und Erzwingen</h3>
     <p>Mit <i>Queue</i> werden Schreibbefehle nacheinander gesendet, und ein Wert, den der Cache schon von einer anderen Quelle kennt, wird nicht noch einmal gesendet. Ein Wert, den dieser Node selbst zuletzt geschrieben hat, wird immer gesendet: ein von Hand bewegter Rollladen meldet auf seinem Steuerkanal keinen neuen Sollwert. <i>Erzwingen</i> (auch <code>msg.config.force</code>) sendet in jedem Fall.</p>
 </script>

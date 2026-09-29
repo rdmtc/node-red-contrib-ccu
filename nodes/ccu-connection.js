@@ -7,6 +7,7 @@ const crypto = require('crypto');
 const base62 = require('./lib/base62.js').toBase62;
 const {castValue, castSysvar} = require('./lib/cast.js');
 const {combinedParameterValue} = require('./lib/combined.js');
+const {isPartyWrite, mergePartyValues, PARTY_DATAPOINTS} = require('./lib/party.js');
 const {createMessage} = require('./lib/message.js');
 const {topicReplace} = require('./lib/topic.js');
 const {isLocalCcu} = require('./lib/localccu.js');
@@ -4045,6 +4046,13 @@ module.exports = function (RED) {
             this.lastWrite[iface + '.' + address + '.' + datapoint] = {value, ts: now()};
             const device = this.metadata.devices[iface] && this.metadata.devices[iface][address];
             const description = this.paramsetDescriptions[this.paramsetName(iface, device, 'VALUES')];
+            if (isPartyWrite(datapoint, description)) {
+                // an HmIP thermostat takes PARTY_TIME_START, PARTY_TIME_END and
+                // PARTY_SET_POINT_TEMPERATURE only together - one alone resets the
+                // other two (#156, #161): write all three in one putParamset
+                return this.setPartyValues(iface, address, datapoint, value);
+            }
+
             const combined = combinedParameterValue(datapoint, value, description);
             if (combined !== null) {
                 // HmIP actuators accept but ignore a lone LEVEL_2 write; the CCU
@@ -4084,6 +4092,80 @@ module.exports = function (RED) {
                             reject(error);
                         });
                 }
+            });
+        }
+
+        /**
+         * Party mode on an HmIP thermostat (task 2, #156, #161): the written
+         * datapoint merged with the current values of the other two - our own
+         * last write when it is newer than the cache, else the cached value,
+         * else the values read from the interface process (hmipserver answers
+         * getParamset from its own state) - into one putParamset on VALUES.
+         * @param {string} iface
+         * @param {string} address the channel
+         * @param {string} datapoint the one being written
+         * @param {*} value
+         * @returns {Promise<any>}
+         */
+        setPartyValues(iface, address, datapoint, value) {
+            const current = {};
+            for (const name of PARTY_DATAPOINTS) {
+                if (name === datapoint) {
+                    continue;
+                }
+
+                const key = iface + '.' + address + '.' + name;
+                const cached = this.values[key];
+                const written = this.lastWrite[key];
+                if (written && (!cached || !(cached.ts > written.ts))) {
+                    current[name] = written.value;
+                } else if (cached && cached.value !== undefined) {
+                    current[name] = cached.value;
+                }
+            }
+
+            let merged = mergePartyValues(datapoint, value, current);
+            const read =
+                merged.missing.length > 0
+                    ? this.methodCall(iface, 'getParamset', [address, 'VALUES']).then((values) => {
+                          merged.missing.forEach((name) => {
+                              if (values && values[name] !== undefined) {
+                                  current[name] = values[name];
+                              }
+                          });
+                          merged = mergePartyValues(datapoint, value, current);
+                      })
+                    : Promise.resolve();
+
+            return read.then(() => {
+                if (merged.missing.length > 0) {
+                    throw new Error(
+                        'party mode: no current value for ' +
+                            merged.missing.join(', ') +
+                            ' on ' +
+                            iface +
+                            ' ' +
+                            address,
+                    );
+                }
+
+                const parameters = {};
+                Object.keys(merged.values).forEach((name) => {
+                    parameters[name] = this.paramCast(iface, address, 'VALUES', name, merged.values[name]);
+                    this.lastWrite[iface + '.' + address + '.' + name] = {value: merged.values[name], ts: now()};
+                });
+                this.logger.debug('setValue', datapoint, value, '-> putParamset VALUES', JSON.stringify(parameters));
+                return this.methodCall(iface, 'putParamset', [address, 'VALUES', parameters]).catch((error) => {
+                    this.logger.error(
+                        'rpc >',
+                        iface,
+                        'putParamset',
+                        JSON.stringify([address, 'VALUES', parameters]),
+                        '<',
+                        error,
+                    );
+                    throw error;
+                });
             });
         }
 

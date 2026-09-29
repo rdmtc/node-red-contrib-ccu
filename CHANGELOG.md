@@ -46,6 +46,19 @@ append commits automatically).
 
 ### Fixed
 
+- **Writing one party-mode datapoint of an HmIP thermostat reset the other
+  two** (task 2, #156 @ben-5555, #161 @lolli78). An HmIP eTRV/WTH takes
+  `PARTY_TIME_START`, `PARTY_TIME_END` and `PARTY_SET_POINT_TEMPERATURE` only
+  together: a `setValue` of one of them put the others back to
+  `1999_11_30 00:00`, so party or holiday mode could not be set from the
+  value nodes at all. A write to one of the three through the value or
+  set-value node now goes out as one `putParamset` on `VALUES` with all
+  three, the other two taken from our own last write, the value cache or a
+  `getParamset` read of the channel - the way the WebUI writes them. The two
+  times may be given as the device's `YYYY_MM_DD HH:MM` string, a JavaScript
+  Date, an ISO string or epoch milliseconds; they are formatted for the device
+  in local time. Any other datapoint of the channel is written as before. The
+  older HM thermostats (`PARTY_MODE_SUBMIT`) are not covered.
 - **A callback call with an unknown interface id ended Node-RED** (B-32).
   Anything on the system can connect to the connection's callback ports on
   the loopback; a `system.listMethods` without parameters, an `event` with an
