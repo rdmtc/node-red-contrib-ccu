@@ -1,0 +1,26 @@
+<script type="text/html" data-help-name="ccu-program">
+    <p>Führt ein ReGaHSS Programm aus.</p>
+    <h3>Inputs</h3>
+    <dl class="message-properties">
+        <dt>payload
+            <span class="property-type">*</span>
+        </dt>
+        <dd>
+            Ist der Payload vom Typ boolean wird das Programm bei <code>true</code> aktiviert und ausgeführt und bei
+            <code>false</code> deaktiviert. In allen anderen Fällen (Payload ist z.B. ein leerer String) wird das
+            Programm ausgeführt.
+        </dd>
+    </dl>
+    <h3>Outputs</h3>
+     <ol class="node-ports">
+         <li>Output
+             <dl class="message-properties">
+                 <dt>payload <span class="property-type">string</span></dt>
+                 <dd>
+                   Im Payload ist der Zeitstempel der letzten Programmausführung (Attribut <code>ts</code>) sowie
+                   die Information ob ein Programm aktiv oder inaktiv ist (Attribut <code>active</code>) enthalten.
+                 </dd>
+             </dl>
+         </li>
+     </ol>
+</script>

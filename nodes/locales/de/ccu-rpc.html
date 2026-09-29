@@ -1,0 +1,31 @@
+<script type="text/html" data-help-name="ccu-rpc">
+    <p>Führt eine RPC Methode aus und gibt das Ergebnis zurück.</p>
+    <h3>Inputs</h3>
+    <dl class="message-properties">
+        <dt>topic
+            <span class="property-type">String</span>
+        </dt>
+        <dd>
+            Die Methode die aufgerufen werden soll. Siehe <a href="https://www.eq-3.de/Downloads/eq3/download%20bereich/hm_web_ui_doku/HM_XmlRpc_API.pdf">XMLRPC API Dokumentation</a>
+        </dd>
+        <dt>payload
+            <span class="property-type">Array|String</span>
+        </dt>
+        <dd>
+            Ein Array oder ein in einem JSON-string enthaltenes Array von Parametern die für den RPC Methodenaufruf
+            genutzt werden.
+        </dd>
+
+    </dl>
+    <h3>Outputs</h3>
+     <ol class="node-ports">
+         <li>Output
+             <dl class="message-properties">
+                 <dt>payload <span class="property-type">array</span></dt>
+                 <dd>
+                    Die Rückgabe des RPC Methodenaufrufs.
+                 </dd>
+             </dl>
+         </li>
+     </ol>
+</script>

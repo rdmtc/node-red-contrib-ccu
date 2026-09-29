@@ -1,0 +1,16 @@
+<script type="text/html" data-help-name="ccu-get-value">
+    <p>Dieser Node gibt bei jeder eingehenden Message den aktuellen zwischengespeicherten Zustand eines Datenpunktes oder einer CCU Systemvariable aus.</p>
+        <h3>Konfiguration</h3>
+        Um über die eingehende Message die Attribute <code>iface</code>, <code>channel</code>, <code>datapoint</code> und <code>sysvar</code> setzen zu können müssen die entsprechenden Konfigurationsoptionen leer gelassen werden.
+    <ul>
+        <li><b>Topic</b>: <code>msg.topic</code> der ausgehenden Nachricht, dieselbe Vorlage wie in den anderen Nodes
+        (<code>${CCU}</code>, <code>${Interface}</code>, <code>${device}</code>, <code>${deviceName}</code>,
+        <code>${channel}</code>, <code>${channelName}</code>, <code>${channelType}</code>, <code>${channelIndex}</code>,
+        <code>${datapoint}</code>; bei einer Systemvariable <code>${Name}</code>), z.&nbsp;B.
+        <code>${CCU}/${Interface}/${channel}/${datapoint}</code>. Leer (Voreinstellung): <code>msg.topic</code> bleibt
+        wie es hereinkam.</li>
+    </ul>
+    <h3>Input</h3>
+    <h3>Output</h3>
+    <p>Was ein Datenpunkt bedeutet, sein Wertebereich und seine Einheit: die <a href="https://www.eq-3.de/Downloads/eq3/download%20bereich/hm_web_ui_doku/HmIP_Device_Documentation.pdf" target="_blank">eQ-3 HmIP-Gerätedokumentation (PDF)</a>.</p>
+</script>

@@ -1,0 +1,13 @@
+<script type="text/html" data-help-name="ccu-script">
+    <p>Führt ein HM-Script (ReGaHSS) auf der CCU aus und gibt das Ergebnis aus.</p>
+    <h3>Konfiguration</h3>
+    <ul>
+        <li><b>CCU</b>: Die zu verwendende CCU-Konfiguration.</li>
+        <li><b>Topic</b>: <code>msg.topic</code> der ausgehenden Nachricht, Vorlage mit Platzhaltern (<code>${CCU}</code>, <code>${Interface}</code>), Standard <code>${CCU}/${Interface}</code>.</li>
+        <li><b>Script</b>: Das Script. Bleibt das Feld leer, wird <code>msg.payload</code> der eingehenden Nachricht als Script ausgeführt.</li>
+    </ul>
+    <h3>Input</h3>
+    <p>Jede eingehende Nachricht startet das Script; ohne konfiguriertes Script ist <code>msg.payload</code> das Script.</p>
+    <h3>Output</h3>
+    <p><code>msg.payload</code> ist die Ausgabe des Scripts (was es mit <code>WriteLine</code> schreibt), <code>msg.objects</code> die Werte der Variablen, die das Script gesetzt hat, dazu <code>iface</code> (<code>ReGaHSS</code>) und <code>ccu</code>. Ein Script, das nicht bis zum Ende läuft, meldet <i>Script call failed</i>. Auf openccu-lite gibt es keine ReGaHSS; der Node meldet dort pro Nachricht einen Fehler.</p>
+</script>

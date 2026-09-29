@@ -1,4 +1,10 @@
 <script type="text/html" data-help-name="ccu-switch">
+    <p>Route a message depending on the state of an actuator or a system variable.</p>
+    <h3>Details</h3>
+    <p>The ccu switch node behaves like Node-RED's own switch node: it routes a message depending on the state of an actuator (a datapoint's property) or a system variable, to different outputs per rule if wanted. <i>Interface</i>, <i>Channel</i>/<i>Datapoint</i> or <i>Sysvar</i> and <i>Property</i> pick the value the rules are checked against.</p>
+    <h4>Documentation</h4>
+    <a target="_blank" href="https://github.com/rdmtc/RedMatic/wiki/CCU-Nodes#ccu-switch-node">ccu switch node in the RedMatic wiki</a> (German)
+
     <h3>Dynamic configuration</h3>
     <p><code>msg.config</code> is an object whose properties override this node's configuration for that one message. The stored configuration is never modified.</p>
     <ul>

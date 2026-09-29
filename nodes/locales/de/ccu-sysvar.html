@@ -1,0 +1,43 @@
+<script type="text/html" data-help-name="ccu-sysvar">
+    <p>Setzen und lesen von ReGaHSS Systemvariablen.</p>
+    <h3>Inputs</h3>
+    <dl class="message-properties">
+        <dt>payload
+            <span class="property-type">*</span>
+        </dt>
+        <dd>
+            Der Wert der der Systemvariablen zugewiesen werden soll.
+        </dd>
+    </dl>
+    <h3>Outputs</h3>
+     <ol class="node-ports">
+         <li>Output
+
+               <code>msg</code> Beispiel:<br>
+               <pre><code>
+{
+	"ccu": "localhost",
+	"iface": "ReGaHSS",
+	"type": "SYSVAR",
+	"name": "Anwesenheit",
+	"payload": false,
+	"value": false,
+	"valueType": "boolean",
+	"valueEnum": "nicht anwesend",
+	"ts": 1525197999611,
+	"lc": 1525197999611,
+	"enum": ["nicht anwesend", "anwesend"],
+	"id": 950,
+	"topic": "ReGaHSS/Anwesenheit"
+}
+               </code></pre>
+         </li>
+     </ol>
+
+    <h3>Dynamische Konfiguration</h3>
+    <p><code>msg.config</code> ist ein Objekt, dessen Eigenschaften die Konfiguration dieses Nodes für genau diese Nachricht überschreiben. Die gespeicherte Konfiguration bleibt unverändert.</p>
+    <ul>
+        <li><code>name</code></li>
+    </ul>
+    <p>Woher der zu schreibende Wert kommt, stellt das Feld <em>Wert aus</em> ein (msg/flow/global/env) — er muss nicht mehr in <code>msg.payload</code> stehen.</p>
+</script>

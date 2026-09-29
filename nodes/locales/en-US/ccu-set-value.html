@@ -1,0 +1,45 @@
+<script type="text/html" data-help-name="ccu-set-value">
+    <p>Write one value to several devices at once: every channel the filters match gets <code>msg.payload</code> written into the chosen datapoint.</p>
+    <h3>Configuration</h3>
+    <ul>
+        <li><b>CCU</b>: The CCU configuration to use.</li>
+        <li><b>Interface</b>: The interface whose devices are addressed; <code>*</code> for every connected interface.</li>
+        <li><b>room</b>, <b>function</b>: Room and function filters, e.g. <code>Living room</code>, <code>Lights</code>.</li>
+        <li><b>device</b>, <b>deviceName</b>, <b>deviceType</b>: Filters on the device's serial number, CCU name and type, e.g. <code>OEQ1662328</code>, <code>Ceiling lamp.*</code>, <code>HM-LC-Sw1-FM</code>.</li>
+        <li><b>channel</b>, <b>channelName</b>, <b>channelType</b>, <b>channelIndex</b>: Filters on the channel address (<code>OEQ1245312:4</code>), channel name, channel type (<code>SWITCH</code>, <code>DIMMER</code>) and channel index.</li>
+        <li><b>datapoint</b>: The datapoint written to, e.g. <code>STATE</code> or <code>LEVEL</code>. What a datapoint means, its range and unit:
+        the <a href="https://www.eq-3.de/Downloads/eq3/download%20bereich/hm_web_ui_doku/HmIP_Device_Documentation.pdf" target="_blank">eQ-3 HmIP device documentation (PDF)</a>.</li>
+        <li><b>force</b>: Writes even when the cache already holds the value (see <i>Queue and force</i> in the value node's help).</li>
+    </ul>
+    <p>Every filter is a text or, with the selector next to it, a regular expression; an empty filter matches everything. The value is written to every channel that passes all filters set and has the datapoint.</p>
+
+    <h3>Input</h3>
+    <p><code>msg.payload</code> is the value written. Filters left empty are filled from properties of the message with the same name (<code>msg.iface</code>, <code>msg.rooms</code>, <code>msg.channel</code>, <code>msg.datapoint</code> and so on); <code>msg.config</code> overrides the configuration for that one message (below).</p>
+
+    <h3>Party and holiday mode (HmIP)</h3>
+    <p>An HmIP thermostat (eTRV, WTH) takes <code>PARTY_TIME_START</code>, <code>PARTY_TIME_END</code> and
+    <code>PARTY_SET_POINT_TEMPERATURE</code> only together; written alone, one resets the other two. A write to one of the
+    three therefore goes out as one <code>putParamset</code> with all three - the other two from our own last write, the
+    value cache or a read from the device. The times may be the device's own <code>YYYY_MM_DD HH:MM</code> string, a
+    JavaScript Date, an ISO string or epoch milliseconds; they are formatted for the device in local time. The older HM
+    thermostats (<code>PARTY_MODE_SUBMIT</code>) are not covered.</p>
+
+    <h3>Dynamic configuration</h3>
+    <p><code>msg.config</code> is an object whose properties override this node's configuration for that one message. The stored configuration is never modified.</p>
+    <ul>
+        <li><code>iface</code></li>
+        <li><code>rooms</code></li>
+        <li><code>functions</code></li>
+        <li><code>device</code></li>
+        <li><code>deviceType</code></li>
+        <li><code>deviceName</code></li>
+        <li><code>channel</code></li>
+        <li><code>channelType</code></li>
+        <li><code>channelIndex</code></li>
+        <li><code>channelName</code></li>
+        <li><code>datapoint</code></li>
+        <li><code>force</code></li>
+        <li>and the matching <code>...Rx</code> selectors</li>
+    </ul>
+    <p>Properties of the message itself (<code>msg.rooms</code> and so on) also fill in fields left empty in the dialog, as they always did.</p>
+</script>

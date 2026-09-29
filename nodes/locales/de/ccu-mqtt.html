@@ -1,0 +1,21 @@
+<script type="text/html" data-help-name="ccu-mqtt">
+    <p>Die CCU an MQTT anbinden: Events der Geräte und Änderungen der Systemvariablen gehen als Nachrichten mit fertigem Topic heraus, eingehende Nachrichten schalten, lesen oder rufen RPC-Methoden auf. Verdrahtet wird der Node zwischen einem <i>mqtt in</i>- und einem <i>mqtt out</i>-Node.</p>
+    <h3>Konfiguration</h3>
+    <ul>
+        <li><b>CCU</b>: Die zu verwendende CCU-Konfiguration.</li>
+        <li><b>Cache</b>: Beim Start werden die zwischengespeicherten Werte aller Datenpunkte einmal ausgegeben.</li>
+        <li><b>Topics</b>, jeweils eine Vorlage mit Platzhaltern (<code>${channelName}</code>, <code>${channelNameOrAddress}</code>, <code>${datapoint}</code>, <code>${name}</code>, <code>${iface}</code>, <code>${paramset}</code>, <code>${param}</code>, <code>${method}</code>, <code>${callid}</code>, <code>${rxtx}</code>):
+            <ul>
+                <li><b>Event</b>: ausgehende Geräte-Events, Standard <code>hm/status/${channelName}/${datapoint}</code>.</li>
+                <li><b>setValue</b>: eingehend, schreibt <code>payload</code> in den Datenpunkt; <code>${channelNameOrAddress}</code> nimmt den Kanalnamen oder die Adresse.</li>
+                <li><b>get</b>: eingehend, gibt den zwischengespeicherten Wert des Datenpunkts auf dem Event-Topic aus.</li>
+                <li><b>Sysvar/Program Change</b>: ausgehend, Änderungen von Systemvariablen und Programmen; <b>Sysvar/Program Set</b>: eingehend, setzt eine Variable bzw. startet ein Programm.</li>
+                <li><b>putParam</b>, <b>putParamset</b>: eingehend, schreibt einen Parameter bzw. einen ganzen Parametersatz (<code>MASTER</code>, <code>VALUES</code>) als JSON.</li>
+                <li><b>RPC</b>: eingehend, ruft eine RPC-Methode der Schnittstelle auf (<code>payload</code>: die Parameter als JSON-Array); die Antwort geht auf dem <b>RPC Response</b>-Topic mit derselben <code>${callid}</code> heraus.</li>
+                <li><b>Message Counters</b>: ausgehend, die Zähler empfangener und gesendeter Nachrichten je Schnittstelle (<code>${rxtx}</code> = <code>rx</code>/<code>tx</code>).</li>
+            </ul>
+        </li>
+        <li><b>Output Payload</b>: <i>Plain</i> (nur der Wert), <i>MQTT-Smarthome JSON Basic</i> (<code>{"val", "ts", "lc"}</code>) oder <i>MQTT-Smarthome JSON Extended</i> (zusätzlich die Homematic-Eigenschaften der Nachricht: <code>hm.iface</code>, <code>hm.channel</code>, <code>hm.datapoint</code> usw.). Eingehend werden ein nackter Wert und ein Objekt mit <code>val</code> gleichermaßen verstanden.</li>
+    </ul>
+    <p>Für Home Assistant gibt es den <i>ccu-homeassistant</i>-Node, der die Discovery-Konfigurationen zu diesen Topics erzeugt.</p>
+</script>

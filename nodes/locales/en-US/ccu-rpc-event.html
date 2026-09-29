@@ -1,0 +1,31 @@
+<script type="text/html" data-help-name="ccu-rpc-event">
+    <p>Emits the CCU's events: one message per datapoint change that passes the filters.</p>
+    <h3>Configuration</h3>
+    <ul>
+        <li><b>CCU</b>: The CCU configuration to use.</li>
+        <li><b>Topic</b>: <code>msg.topic</code> of the outgoing messages, with placeholders: <code>${CCU}</code>,
+        <code>${Interface}</code>, <code>${device}</code>, <code>${deviceName}</code>, <code>${deviceType}</code>,
+        <code>${channel}</code>, <code>${channelName}</code>, <code>${channelType}</code>, <code>${channelIndex}</code>,
+        <code>${datapoint}</code>, <code>${datapointName}</code>. Every node that emits messages has the same template
+        (value, get value, sysvar, program, rpc, script).</li>
+        <li><b>Interface</b>: The interface the devices are connected through; <code>*</code> passes the events of every connected interface.</li>
+        <li><b>room</b>: Room filter, e.g. <code>Living room</code>.</li>
+        <li><b>function</b>: Function filter, e.g. <code>Buttons</code>.</li>
+        <li><b>device</b>: The serial number of the device, e.g. <code>OEQ1662328</code>.</li>
+        <li><b>deviceName</b>: The device's name in the CCU, e.g. <code>Smoke detector study</code>; every smoke detector with a regular expression: <code>Smoke detector.*</code>.</li>
+        <li><b>deviceType</b>: The device type, e.g. <code>HM-Sec-SD-2</code>.</li>
+        <li><b>channel</b>: The channel address - serial number and channel index, e.g. <code>OEQ1245312:4</code>.</li>
+        <li><b>channelName</b>: The channel's name in the CCU, e.g. <code>Bathroom ceiling light PIR</code>.</li>
+        <li><b>channelType</b>: The channel type, e.g. <code>VIRTUAL_KEY</code> or <code>DIMMER</code>.</li>
+        <li><b>channelIndex</b>: The channel index, e.g. <code>2</code>.</li>
+        <li><b>datapoint</b>: The channel's datapoint, e.g. <code>PRESS_SHORT</code> or <code>ACTUAL_TEMPERATURE</code>. What a datapoint means:
+        the <a href="https://www.eq-3.de/Downloads/eq3/download%20bereich/hm_web_ui_doku/HmIP_Device_Documentation.pdf" target="_blank">eQ-3 HmIP device documentation (PDF)</a>.</li>
+        <li><b>Only changed values</b> - an event is emitted only when the value differs from the last event's.</li>
+        <li><b>No values while WORKING</b> - dimmers and blinds report their state continuously during a ramp (a blind moving, a lamp dimming). This option emits the end state only; useful with dashboard nodes to keep sliders from jumping.</li>
+        <li><b>Emit the last known value at start</b> - when Node-RED starts, the last value (as far as known) is emitted, e.g. to hand a dashboard a correct value at start. <b>Note:</b> if the emitted message ends in a Homematic write further down the flow, every (full) deploy costs duty cycle.</li>
+    </ul>
+    <p>Every filter is a text or, with the selector next to it, a regular expression; an empty filter matches everything. A message must pass all filters that are set.</p>
+
+    <h3>Output</h3>
+    <p>One message per event. Besides <code>payload</code> (the value) it carries the datapoint's context: <code>ccu</code>, <code>iface</code>, <code>device</code>, <code>deviceName</code>, <code>deviceType</code>, <code>channel</code>, <code>channelName</code>, <code>channelType</code>, <code>channelIndex</code>, <code>datapoint</code>, <code>datapointName</code>, <code>datapointType</code>, <code>datapointMin</code>, <code>datapointMax</code>, <code>datapointEnum</code>, <code>datapointDefault</code>, <code>datapointControl</code>, <code>value</code>, <code>valuePrevious</code>, <code>valueEnum</code>, <code>valueStable</code>, <code>rooms</code>/<code>room</code>, <code>functions</code>/<code>function</code>, <code>ts</code>, <code>tsPrevious</code> and <code>lc</code> (the event's time, the previous event's, the last change's), <code>change</code>, <code>cache</code> (true for a value emitted at start), <code>working</code>, <code>direction</code>, <code>uncertain</code>, and <code>topic</code> as configured.</p>
+</script>

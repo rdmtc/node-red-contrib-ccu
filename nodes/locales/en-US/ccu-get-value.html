@@ -1,0 +1,13 @@
+<script type="text/html" data-help-name="ccu-get-value">
+    <p>This Node outputs the current state of a datapoint or a ccu variable on any incoming message.</p>
+    <h3>Configuration</h3>
+    <ul>
+        <li><b>Topic</b>: <code>msg.topic</code> of the outgoing message, the same template as in the other nodes
+        (<code>${CCU}</code>, <code>${Interface}</code>, <code>${device}</code>, <code>${deviceName}</code>,
+        <code>${channel}</code>, <code>${channelName}</code>, <code>${channelType}</code>, <code>${channelIndex}</code>,
+        <code>${datapoint}</code>; for a variable <code>${Name}</code>), e.g.
+        <code>${CCU}/${Interface}/${channel}/${datapoint}</code>. Empty (the default): <code>msg.topic</code> stays as it
+        came in.</li>
+    </ul>
+    <p>What a datapoint means, its range and unit: the <a href="https://www.eq-3.de/Downloads/eq3/download%20bereich/hm_web_ui_doku/HmIP_Device_Documentation.pdf" target="_blank">eQ-3 HmIP device documentation (PDF)</a>.</p>
+</script>

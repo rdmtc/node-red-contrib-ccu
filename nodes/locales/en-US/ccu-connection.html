@@ -1,0 +1,41 @@
+<script type="text/html" data-help-name="ccu-connection">
+    <p>The connection node manages the connection to the CCU's interface processes and to its logic layer.</p>
+    <h3>Configuration</h3>
+    <ul>
+        <li><b>Name</b>: A name of your choice for this CCU configuration. It tells several CCUs apart and appears in every other CCU node.</li>
+        <li><b>CCU Address</b>: The IP address or host name of the CCU. With the RedMatic addon Node-RED runs on the CCU itself, so the loopback address <code>localhost</code> or <code>127.0.0.1</code> is the right one.</li>
+        <li><b>Listen Address</b>: The address of the network interface the RPC servers listen on for the CCU's events. On the CCU itself (RedMatic) this is <code>localhost</code> / <code>127.0.0.1</code> as well; <code>0.0.0.0</code> listens on every interface.</li>
+        <li><b>Init Address</b>: Normally the same as <i>Listen Address</i>: the address under which the CCU reaches Node-RED. It may stay empty.
+        <p>For advanced setups: when listening on every interface (<code>0.0.0.0</code>), when Node-RED runs in a container (Docker) behind NAT, or in other special networks, <i>Init Address</i> and <i>Listen Address</i> may have to differ.</p></li>
+        <li><b>BINRPC listening port</b>: The port of the BIN-RPC server the CCU sends its events to. Several connections (several connection nodes) each need a port of their own.</li>
+        <li><b>XMLRPC listening port</b>: The port of the XML-RPC server the CCU sends its events to. Several connections each need a port of their own.</li>
+        <li><b>Interfaces</b>: The interfaces to use. Untick what you do not have (no CUxD, no HmIP devices, say) to switch the unused parts off.
+            <ul>
+                <li>ReGaHSS: the CCU's logic layer, which holds the programs and system variables</li>
+                <li>BidCos-RF: Homematic radio</li>
+                <li>BidCos-Wired: Homematic wired</li>
+                <li>HmIP-RF: Homematic IP radio</li>
+                <li>VirtualDevices: heating groups and systems the CCU integrates, such as Osram Lightify</li>
+                <li>CUxD</li>
+                <li>CCU-Jack: the XML-RPC interface of the <a href="https://github.com/mdzio/ccu-jack" target="_blank">CCU-Jack</a> addon (port configurable, 2121 by default, 2122 with TLS)</li>
+            </ul>
+        </li>
+        <li><b>RPC ping</b> and <b>RPC ping timeout (s)</b>: How often the connection to the interface processes is checked with a ping, and after how many seconds without an answer it subscribes again. Off means no pings and no timeout-triggered re-init for this connection.</li>
+        <li><b>Rega poll</b>: Changes of system variables are not pushed by the CCU. With polling on, the variables and their values are read every <i>Rega poll interval</i> seconds.</li>
+        <li><b>Names/rooms refresh (min)</b>: How often channel names, rooms and functions are re-read; 0 never.</li>
+        <li><b>Queue timeout (ms)</b>, <b>Queue pause (ms)</b>: The write queue's timeout per write and the pause between two writes.</li>
+        <li><b>Context Store</b>: The Node-RED context store the states of all devices and variables are kept in. See <a target="_blank" href="https://nodered.org/docs/user-guide/context">Working with context</a> in the Node-RED documentation.</li>
+        <li><b>openccu-lite token</b>: Only for <a href="https://github.com/hobbyquaker/openccu-lite" target="_blank">openccu-lite</a>, a CCU firmware without ReGaHSS. Names, rooms and functions come from the system's metadata API there, which needs a token made under <i>Users</i> on the system. When Node-RED runs on the system itself (RedMatic) the field stays empty: the local token is read automatically. The token is kept, like the password, in Node-RED's credentials (encrypted in <code>flows_cred.json</code>, never in the flow, never in an export). A CCU, RaspberryMatic or OpenCCU ignores the field. openccu-lite has no system variables, programs or HM-Script; those nodes stay in the flow and report an error per message.</li>
+        <li><b>openccu-lite port</b>: Only needed when the system's web server is not on port 80 (443 with TLS).</li>
+        <li><b>Device data / Re-read device data</b>: Reads the device list of every connected interface again. New and changed devices (a channel whose type changed, say) get their datapoints fetched anew, removed ones leave the table. A device the CCU reports with a changed type or version is re-read without the button as well. The button needs a deployed connection.</li>
+        <li><b>Authentication</b>: Encryption and login for a CCU on the network (Node-RED not on the CCU). Both belong to the CCU's web server, which fronts the interface processes: on a CCU3 TLS and authentication are switched on in the firewall settings, on openccu-lite under <i>Remote access</i> (classic RPC). When Node-RED runs on the system itself (RedMatic; address <code>localhost</code> / <code>127.0.0.1</code>) the processes are reached directly on the loopback, BidCos over BIN-RPC, without TLS and without a login; these settings are then not used.
+            <ul>
+                <li>Enabled: The username and password are sent with every call (HTTP basic auth) to every XML-RPC interface (BidCos-RF, BidCos-Wired, HmIP-RF, VirtualDevices, CCU-Jack) and to the ReGaHSS. BIN-RPC (CUxD, the hidden BIN-RPC option for BidCos-RF) has no login. Without TLS the credentials travel in plain text, so the dialog switches TLS on with it.</li>
+                <li>TLS/SSL: Transport encryption. The interfaces are reached over the CCU's TLS ports (42000, 42001, 42010, 49292, ReGaHSS 48181, CCU-Jack 2122), openccu-lite's metadata API over 443. BIN-RPC has no TLS: with TLS on, BidCos-RF always goes over XML-RPC.</li>
+                <li>Ignore invalid TLS Certificates: Node-RED accepts an untrusted certificate too. Needed as long as the CCU uses its self-signed certificate.</li>
+                <li>Username: A user allowed to log in to the CCU.</li>
+                <li>Password: The user's password. It is kept in Node-RED's credentials (encrypted in <code>flows_cred.json</code>), not in the flow. A flow from a version before 4.4.6 that still carries it in plain text is taken over at the first start; the next deploy removes it from <code>flows.json</code>.</li>
+            </ul>
+            The other direction stays unencrypted: the CCU sends its events to the XML-RPC or BIN-RPC server Node-RED opens for it (<i>Listen Address</i>, <i>BINRPC</i> and <i>XMLRPC listening port</i>) without TLS and without a login - it cannot log in there or verify our certificate. Those ports should be open in the Node-RED host's firewall for the CCU only.</li>
+    </ul>
+</script>

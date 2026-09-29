@@ -1,0 +1,30 @@
+<script type="text/html" data-help-name="ccu-rpc">
+    <p>Executes a RPC method and outputs the return value.</p>
+    <h3>Inputs</h3>
+    <dl class="message-properties">
+        <dt>topic
+            <span class="property-type">String</span>
+        </dt>
+        <dd>
+            The method that should be called
+        </dd>
+        <dt>payload
+            <span class="property-type">Array|String</span>
+        </dt>
+        <dd>
+            An array or an JSON string containing an array of parameters for the rpc call.
+        </dd>
+
+    </dl>
+    <h3>Outputs</h3>
+     <ol class="node-ports">
+         <li>Output
+             <dl class="message-properties">
+                 <dt>payload <span class="property-type">array</span></dt>
+                 <dd>
+                    The return value of the rpc call.
+                 </dd>
+             </dl>
+         </li>
+     </ol>
+</script>

@@ -1,0 +1,21 @@
+<script type="text/html" data-help-name="ccu-mqtt">
+    <p>Connect the CCU to MQTT: device events and system variable changes go out as messages with a ready-made topic, incoming messages switch, read or call RPC methods. Wire the node between an <i>mqtt in</i> and an <i>mqtt out</i> node.</p>
+    <h3>Configuration</h3>
+    <ul>
+        <li><b>CCU</b>: The CCU configuration to use.</li>
+        <li><b>Cache</b>: At start the cached values of all datapoints are emitted once.</li>
+        <li><b>Topics</b>, each a template with placeholders (<code>${channelName}</code>, <code>${channelNameOrAddress}</code>, <code>${datapoint}</code>, <code>${name}</code>, <code>${iface}</code>, <code>${paramset}</code>, <code>${param}</code>, <code>${method}</code>, <code>${callid}</code>, <code>${rxtx}</code>):
+            <ul>
+                <li><b>Event</b>: outgoing device events, default <code>hm/status/${channelName}/${datapoint}</code>.</li>
+                <li><b>setValue</b>: incoming, writes <code>payload</code> into the datapoint; <code>${channelNameOrAddress}</code> takes the channel's name or its address.</li>
+                <li><b>get</b>: incoming, emits the datapoint's cached value on the event topic.</li>
+                <li><b>Sysvar/Program Change</b>: outgoing, changes of system variables and programs; <b>Sysvar/Program Set</b>: incoming, sets a variable or starts a program.</li>
+                <li><b>putParam</b>, <b>putParamset</b>: incoming, writes one parameter or a whole paramset (<code>MASTER</code>, <code>VALUES</code>) given as JSON.</li>
+                <li><b>RPC</b>: incoming, calls an RPC method of the interface (<code>payload</code>: the parameters as a JSON array); the answer goes out on the <b>RPC Response</b> topic with the same <code>${callid}</code>.</li>
+                <li><b>Message Counters</b>: outgoing, the counters of received and sent messages per interface (<code>${rxtx}</code> = <code>rx</code>/<code>tx</code>).</li>
+            </ul>
+        </li>
+        <li><b>Output Payload</b>: <i>Plain</i> (the value only), <i>MQTT-Smarthome JSON Basic</i> (<code>{"val", "ts", "lc"}</code>) or <i>MQTT-Smarthome JSON Extended</i> (plus the message's Homematic properties: <code>hm.iface</code>, <code>hm.channel</code>, <code>hm.datapoint</code> and so on). Incoming, a bare value and an object with <code>val</code> are both understood.</li>
+    </ul>
+    <p>For Home Assistant the <i>ccu-homeassistant</i> node publishes the discovery configurations for these topics.</p>
+</script>

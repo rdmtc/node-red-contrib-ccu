@@ -1,0 +1,23 @@
+<script type="text/html" data-help-name="ccu-homeassistant">
+    <p>Publishes Home Assistant MQTT discovery configurations for selected devices.</p>
+    <p>The node is a companion to the <b>ccu-mqtt</b> node: it reuses that node's topic templates and
+    payload format, so the discovery configs point at the topics ccu-mqtt already publishes and
+    consumes. State and commands keep flowing through ccu-mqtt.</p>
+    <h3>Wiring</h3>
+    <p>Connect the output to the same <b>mqtt out</b> node as the ccu-mqtt node. The node sends
+    <code>msg.topic</code>, <code>msg.payload</code> and <code>msg.retain</code>.</p>
+    <h3>Device selection</h3>
+    <p>Only checked devices are announced to Home Assistant (one HA device per Homematic device).
+    Unchecking a previously checked device publishes an empty config on the next deploy, which
+    removes the device from Home Assistant.</p>
+    <h3>Entities</h3>
+    <p>Switches, dimmers (light), blinds/shutters (cover), thermostats (climate), contacts/motion/
+    smoke/water (binary_sensor), keys (event), KeyMatic (lock), energy/weather (sensor). With the
+    <i>other datapoints</i> option every remaining datapoint is included as an entity that is
+    disabled by default.</p>
+    <h3>Input</h3>
+    <p>Any incoming message republishes the discovery configs.</p>
+    <h3>Requirements</h3>
+    <p>Home Assistant ≥ 2024.11 (device-based discovery). Device availability is derived from the
+    UNREACH datapoint of the maintenance channel.</p>
+</script>

@@ -1,0 +1,81 @@
+<script type="text/html" data-help-name="ccu-value">
+    <p>Control a device and/or receive its events: one datapoint of one channel.</p>
+    <h3>Configuration</h3>
+    <ul>
+        <li><b>CCU</b>: The CCU configuration to use.</li>
+        <li><b>Topic</b>: <code>msg.topic</code> of the outgoing messages, with placeholders: <code>${CCU}</code>,
+        <code>${Interface}</code>, <code>${device}</code>, <code>${deviceName}</code>, <code>${deviceType}</code>,
+        <code>${channel}</code>, <code>${channelName}</code>, <code>${channelType}</code>, <code>${channelIndex}</code>,
+        <code>${datapoint}</code>, <code>${datapointName}</code>. Every node that emits messages has the same template;
+        enter e.g. <code>hm/${Interface}/${channel}/${datapoint}</code> everywhere for one topic scheme.</li>
+        <li><b>Interface</b>: The interface the device is connected through.</li>
+        <li><b>Channel</b>: The channel whose datapoint is used - its serial number and channel index. Autocomplete finds it by its name.</li>
+        <li><b>Datapoint</b>: The channel's datapoint, with autocomplete as well. What a datapoint means, its range and unit:
+        the <a href="https://www.eq-3.de/Downloads/eq3/download%20bereich/hm_web_ui_doku/HmIP_Device_Documentation.pdf" target="_blank">eQ-3 HmIP device documentation (PDF)</a>.</li>
+        <li><b>ON_TIME</b>: Seconds after which a switch or dimmer is switched off again once switched on:
+            <ul>
+                <li><code>undefined</code> no automatic switch-off</li>
+                <li><code>number</code> a fixed delay in seconds</li>
+                <li><code>global</code>, <code>flow</code> the delay in seconds comes from a context variable</li>
+                <li><code>msg</code> the delay in seconds comes from a message property</li>
+            </ul>
+        </li>
+        <li><b>set Mode</b>: For devices that support both the BURST and the WAKEUP rx_mode, such as battery switch actuators or smoke detectors with a siren: whether the value goes out through BURST or WAKEUP.
+            <ul>
+                <li><b>WAKEUP</b> - sends the value once the receiver reports to the CCU.</li>
+                <li><b>BURST</b> - wakes every BURST receiver up for the transmission, which costs duty cycle and the battery life of all burst receivers.</li>
+            </ul>
+        </li>
+        <li><b>Flags</b>:
+            <ul>
+                <li><b>Only changed values</b> - an event is emitted only when the value differs from the last event's.</li>
+                <li><b>No values while WORKING</b> - dimmers and blinds report their state continuously during a ramp (a blind moving, a lamp dimming). This option emits the end state only; useful with dashboard nodes to keep sliders from jumping.</li>
+                <li><b>Emit the last known value at start</b> - when Node-RED starts, the last value (as far as known) is emitted, e.g. to hand a dashboard a correct value at start. <b>Note:</b> if the emitted message ends in a Homematic write further down the flow, every (full) deploy costs duty cycle.</li>
+            </ul>
+        </li>
+    </ul>
+
+    <h3>Input</h3>
+    <p><code>msg.payload</code> is the value written to the datapoint. Interface, channel and datapoint may come from the message: leave the fields empty and set them through the incoming <code>msg</code>.</p>
+    <b>Option 1</b>: as message properties:
+    <code>
+<pre>{
+  "interface": "BidCos-RF",
+  "channel": "OEQ1868878:1",
+  "datapoint": "STATE",
+  "payload": true
+}</pre>
+    </code>
+    <b>Option 2</b>: through <code>msg.topic</code>, interface, channel and datapoint separated by dots:
+    <code>
+<pre>{
+  "topic": "BidCos-RF.OEQ1868878:1.STATE",
+  "payload": true
+}</pre>
+    </code>
+    Or in the shape the nodes emit their topics in - with slashes, the last three segments count
+    (<code>ccu3/BidCos-RF/OEQ1868878:1/STATE</code>, <code>hm/BidCos-RF/OEQ1868878:1/STATE</code> and
+    <code>BidCos-RF/OEQ1868878:1/STATE</code> address the same datapoint), so an event's topic can be fed straight back.
+
+    <h3>Output</h3>
+    <p>The value node emits events only when interface, channel and datapoint are set. The message is the one described for the rpc-event node.</p>
+
+    <h3>Dynamic configuration</h3>
+    <p><code>msg.config</code> is an object whose properties override this node's configuration for that one message. The stored configuration is never modified.</p>
+    <ul>
+        <li><code>iface</code></li>
+        <li><code>channel</code></li>
+        <li><code>datapoint</code></li>
+        <li><code>force</code></li>
+    </ul>
+    <p>A message without a <code>payload</code> writes nothing but retargets the node's output side.</p>
+    <h3>Party and holiday mode (HmIP)</h3>
+    <p>An HmIP thermostat (eTRV, WTH) takes <code>PARTY_TIME_START</code>, <code>PARTY_TIME_END</code> and
+    <code>PARTY_SET_POINT_TEMPERATURE</code> only together; written alone, one resets the other two. A write to one of the
+    three therefore goes out as one <code>putParamset</code> with all three - the other two from our own last write, the
+    value cache or a read from the device. The times may be the device's own <code>YYYY_MM_DD HH:MM</code> string, a
+    JavaScript Date, an ISO string or epoch milliseconds; they are formatted for the device in local time. The older HM
+    thermostats (<code>PARTY_MODE_SUBMIT</code>) are not covered.</p>
+    <h3>Queue and force</h3>
+    <p>With <i>Queue</i> the writes go out one after another, and a value the cache already knows from another source is not sent again. A value this node itself wrote last is always sent: a blind moved by hand does not report a new set point on its control channel. <i>Force</i> (also <code>msg.config.force</code>) always sends.</p>
+</script>

@@ -1,0 +1,46 @@
+<script type="text/html" data-help-name="ccu-set-value">
+    <p>Einen Wert in mehrere Geräte auf einmal schreiben: alle Kanäle, auf die die Filter passen, bekommen <code>msg.payload</code> in den gewählten Datenpunkt.</p>
+    <h3>Konfiguration</h3>
+    <ul>
+        <li><b>CCU</b>: Die zu verwendende CCU-Konfiguration.</li>
+        <li><b>Interface</b>: Die Schnittstelle, deren Geräte angesprochen werden; <code>*</code> für alle verbundenen Schnittstellen.</li>
+        <li><b>room</b>, <b>function</b>: Raum- und Gewerke-Filter, z.&nbsp;B. <code>Wohnzimmer</code>, <code>Licht</code>.</li>
+        <li><b>device</b>, <b>deviceName</b>, <b>deviceType</b>: Filter auf Seriennummer, CCU-Name und Typ des Geräts, z.&nbsp;B. <code>OEQ1662328</code>, <code>Deckenlampe.*</code>, <code>HM-LC-Sw1-FM</code>.</li>
+        <li><b>channel</b>, <b>channelName</b>, <b>channelType</b>, <b>channelIndex</b>: Filter auf Kanaladresse (<code>OEQ1245312:4</code>), Kanalname, Kanaltyp (<code>SWITCH</code>, <code>DIMMER</code>) und Kanalindex.</li>
+        <li><b>datapoint</b>: Der Datenpunkt, in den geschrieben wird, z.&nbsp;B. <code>STATE</code> oder <code>LEVEL</code>. Was ein Datenpunkt bedeutet, sein Wertebereich und seine Einheit:
+        die <a href="https://www.eq-3.de/Downloads/eq3/download%20bereich/hm_web_ui_doku/HmIP_Device_Documentation.pdf" target="_blank">eQ-3 HmIP-Gerätedokumentation (PDF)</a>.</li>
+        <li><b>force</b>: Schreibt auch dann, wenn der Cache den Wert schon kennt (siehe <i>Queue und Erzwingen</i> beim value Node).</li>
+    </ul>
+    <p>Jeder Filter ist ein Text oder, mit dem Wahlschalter daneben, ein regulärer Ausdruck; ein leerer Filter passt auf alles. Geschrieben wird in jeden Kanal, der alle gesetzten Filter passiert und den Datenpunkt hat.</p>
+
+    <h3>Input</h3>
+    <p><code>msg.payload</code> ist der Wert, der geschrieben wird. Leer gelassene Filter füllen gleichnamige Eigenschaften der Nachricht (<code>msg.iface</code>, <code>msg.rooms</code>, <code>msg.channel</code>, <code>msg.datapoint</code> usw.); <code>msg.config</code> überschreibt die Konfiguration für genau diese Nachricht (siehe unten).</p>
+
+    <h3>Party-/Urlaubsmodus (HmIP)</h3>
+    <p>Ein HmIP-Thermostat (eTRV, WTH) nimmt <code>PARTY_TIME_START</code>, <code>PARTY_TIME_END</code> und
+    <code>PARTY_SET_POINT_TEMPERATURE</code> nur gemeinsam an; einzeln geschrieben setzt er die anderen beiden zurück. Ein
+    Schreiben auf einen der drei Datenpunkte geht deshalb als ein <code>putParamset</code> mit allen dreien hinaus – die
+    beiden anderen aus dem letzten eigenen Schreiben, dem Wertecache oder einem Lesen vom Gerät. Die Zeiten können als
+    Gerätestring <code>YYYY_MM_DD HH:MM</code>, als JavaScript-Date, ISO-String oder Millisekunden angegeben werden; sie
+    werden in lokaler Zeit für das Gerät formatiert. Ältere HM-Thermostate (<code>PARTY_MODE_SUBMIT</code>) sind nicht
+    abgedeckt.</p>
+
+    <h3>Dynamische Konfiguration</h3>
+    <p><code>msg.config</code> ist ein Objekt, dessen Eigenschaften die Konfiguration dieses Nodes für genau diese Nachricht überschreiben. Die gespeicherte Konfiguration bleibt unverändert.</p>
+    <ul>
+        <li><code>iface</code></li>
+        <li><code>rooms</code></li>
+        <li><code>functions</code></li>
+        <li><code>device</code></li>
+        <li><code>deviceType</code></li>
+        <li><code>deviceName</code></li>
+        <li><code>channel</code></li>
+        <li><code>channelType</code></li>
+        <li><code>channelIndex</code></li>
+        <li><code>channelName</code></li>
+        <li><code>datapoint</code></li>
+        <li><code>force</code></li>
+        <li>sowie die zugehörigen <code>...Rx</code>-Selektoren</li>
+    </ul>
+    <p>Zusätzlich füllen gleichnamige Eigenschaften der Nachricht selbst (<code>msg.rooms</code> usw.) leer gelassene Felder — so war es schon immer.</p>
+</script>

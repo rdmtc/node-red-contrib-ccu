@@ -1,0 +1,42 @@
+<script type="text/html" data-help-name="ccu-sysvar">
+    <p>Set and read ReGaHSS system variables.</p>
+        <h3>Inputs</h3>
+    <dl class="message-properties">
+        <dt>payload
+            <span class="property-type">*</span>
+        </dt>
+        <dd>
+            The value that should be assigned to the variable.
+        </dd>
+    </dl>
+
+    <h3>Outputs</h3>
+    <ol class="node-ports">
+        <li>Output - every change of the variable (with <i>Rega poll</i> on in the connection) and, after a write, its new state. <code>msg</code> example:<br>
+            <pre><code>
+{
+	"ccu": "localhost",
+	"iface": "ReGaHSS",
+	"type": "SYSVAR",
+	"name": "Presence",
+	"payload": false,
+	"value": false,
+	"valueType": "boolean",
+	"valueEnum": "absent",
+	"ts": 1525197999611,
+	"lc": 1525197999611,
+	"enum": ["absent", "present"],
+	"id": 950,
+	"topic": "ReGaHSS/Presence"
+}
+            </code></pre>
+        </li>
+    </ol>
+
+    <h3>Dynamic configuration</h3>
+    <p><code>msg.config</code> is an object whose properties override this node's configuration for that one message. The stored configuration is never modified.</p>
+    <ul>
+        <li><code>name</code></li>
+    </ul>
+    <p>The <em>Value from</em> field selects where the value to write comes from (msg/flow/global/env); it no longer has to be <code>msg.payload</code>.</p>
+</script>

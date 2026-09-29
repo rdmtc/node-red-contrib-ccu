@@ -44,6 +44,22 @@ append commits automatically).
   section lists the defaults and the placeholders, the help texts of
   rpc-event, value and get value the placeholders.
 
+- **Help texts for every node in German and English, as locale files**
+  (task 7, #58). The help moved from inline blocks in the node files into
+  `nodes/locales/de/` and `nodes/locales/en-US/`, the layout Node-RED
+  documents for node help: the runtime serves one language's text per
+  request through the same lookup as its own nodes (`de` and `de-DE` both
+  get the German text, everything else the English one) instead of shipping
+  every language's block with the node. German is the source; the English texts of the connection,
+  value, rpc-event, set-value, sysvar and switch nodes, which were missing or
+  one-line stubs, are complete now, the mqtt node's help describes its topics,
+  commands and payload formats in both languages, the set-value node's German
+  configuration list (empty bullets since 3.x) and the rpc-event node's output
+  section are written, and the value nodes link the eQ-3 HmIP device
+  documentation for what a datapoint means (@lolli78). A unit test guards
+  that every node has both files, that neither is a stub, and that no inline
+  help is left.
+
 ### Fixed
 
 - **Writing one party-mode datapoint of an HmIP thermostat reset the other

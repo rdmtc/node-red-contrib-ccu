@@ -1,0 +1,32 @@
+<script type="text/html" data-help-name="ccu-rpc-event">
+    <p>Gibt RPC Events aus.</p>
+    <h3>Konfiguration</h3>
+    <ul>
+        <li><b>CCU</b>: Die zu verwendende CCU-Konfiguration.</li>
+        <li><b>topic</b>: <code>msg.topic</code> ausgehender Nachrichten, mit Platzhaltern: <code>${CCU}</code>,
+        <code>${Interface}</code>, <code>${device}</code>, <code>${deviceName}</code>, <code>${deviceType}</code>,
+        <code>${channel}</code>, <code>${channelName}</code>, <code>${channelType}</code>, <code>${channelIndex}</code>,
+        <code>${datapoint}</code>, <code>${datapointName}</code>. Dieselbe Vorlage gibt es in jedem Node, der Nachrichten
+        ausgibt (value, get value, sysvar, program, rpc, script).</li>
+        <li><b>interface</b>: Die Schnittstelle über welche die gewüschten Geräte angebunden sind. <code>*</code> erlaubt Events aller verbundenen Schnittstellen.</li>
+        <li><b>room</b>: Raum Filter. Beispiel: <code>Wohnzimmer</code>.</li>
+        <li><b>function</b>: Gewerk Filter. Beispiel: <code>Taster</code></li>
+        <li><b>device</b>: Die Seriennummer der Homematic Komponente. Beispiel: <code>OEQ1662328</code></li>
+        <li><b>deviceName</b>: Der in der CCU vergebene Name der Homematic Komponente. Beispiel: <code>Rauchmelder Arbeitszimmer</code>; alle Rauchemelder über RegEx: <code>Rauchmelder.*</code></li>
+        <li><b>deviceType</b>: Die Typen-Bezeichnung der Homematic Komponente. Beispiel: <code>HM-Sec-SD-2</code></li>
+        <li><b>channel</b>: Die Kanaladresse bestehend aus Serien- und Kanalnummer. Beispiel: <code>OEQ1245312:4</code></li>
+        <li><b>channelName</b>: Der in der CCU vergebene Kanalname. Beispiel: <code>Bad Lichte Decke PIR</code></li>
+        <li><b>channelType</b>: Der Typ des Kanals. Beispiel: <code>VIRTUAL_KEY</code> oder <code>DIMMER</code></li>
+        <li><b>channelIndex</b>: Der Index des Kanals. Beispiel: <code>2</code>
+        <li><b>datapoint</b>: Der Datenpunkt des Kanals. Beispiel: <code>PRESS_SHORT</code> oder <code>ACTUAL_TEMPERATURE</code>. Was ein Datenpunkt bedeutet:
+        die <a href="https://www.eq-3.de/Downloads/eq3/download%20bereich/hm_web_ui_doku/HmIP_Device_Documentation.pdf" target="_blank">eQ-3 HmIP-Gerätedokumentation (PDF)</a>.</li>
+        <li><b>Nur geänderte Werte ausgeben</b> - Ein Event wird nur dann erzeugt, wenn sich der Wert seit dem letztn Event verändert hat.</li>
+        <li><b>Während WORKING keine Werte ausgeben</b> - Es gibt Aktoren, z.B. Dimmer oder Rolladen, die während einer Rampe (Öffnen/Schließen eines Rollladen, Dimmen einer Lampe) fortwährend den aktuellen Zustand ausgeben. Um nur den End-Status auszugeben kann diese Option benutzt werden. Gebräuchlich auch bei Verwendung mit Dashboard-Nodes um "springende" Slider zu verhindern.</li>
+        <li><b>Beim Start letzten bekannten Wert ausgeben</b> - Wenn Node-RED gestartet wird, dann wird der letzte Wert (sofern in der ReGaHSS bekannt) ausgegeben. Z.B. um beim Start einen korrekten Wert an das Dashboard zu übergeben. <b>Achtung:</b> Wird durch die ausgegebene Nachricht im weiteren Verlauf des Flows ein Homematic Wert gesetzt wirkt sich jedes (Full-)Deployment negativ auf den DutyCycle aus.</li>
+    </ul>
+
+    <p>Jeder Filter ist ein Text oder, mit dem Wahlschalter daneben, ein regulärer Ausdruck; ein leerer Filter passt auf alles. Eine Nachricht muss alle gesetzten Filter passieren.</p>
+
+    <h3>Output</h3>
+    <p>Eine Nachricht pro Event. Neben <code>payload</code> (dem Wert) trägt sie den Kontext des Datenpunkts: <code>ccu</code>, <code>iface</code>, <code>device</code>, <code>deviceName</code>, <code>deviceType</code>, <code>channel</code>, <code>channelName</code>, <code>channelType</code>, <code>channelIndex</code>, <code>datapoint</code>, <code>datapointName</code>, <code>datapointType</code>, <code>datapointMin</code>, <code>datapointMax</code>, <code>datapointEnum</code>, <code>datapointDefault</code>, <code>datapointControl</code>, <code>value</code>, <code>valuePrevious</code>, <code>valueEnum</code>, <code>valueStable</code>, <code>rooms</code>/<code>room</code>, <code>functions</code>/<code>function</code>, <code>ts</code>, <code>tsPrevious</code> und <code>lc</code> (Zeitpunkt des Events, des vorigen Events, der letzten Änderung), <code>change</code>, <code>cache</code> (true für einen beim Start ausgegebenen Wert), <code>working</code>, <code>direction</code>, <code>uncertain</code> sowie <code>topic</code> wie konfiguriert.</p>
+</script>
