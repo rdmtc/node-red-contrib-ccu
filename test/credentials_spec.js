@@ -136,6 +136,8 @@ describe('password and token in the credentials (B-31)', function () {
         await load([nodeConnection], flow({authentication: false}), {nc: {password: 'secret1'}});
         const nc = helper.getNode('nc');
         should(nc.rega.password).be.undefined();
-        nc.ifaceTypes['HmIP-RF'].pass.should.equal('secret1');
+        // task 5: nor to the interface clients - credentials go out only with authentication on
+        should(nc.ifaceTypes['HmIP-RF'].pass).be.undefined();
+        nc.credentials.password.should.equal('secret1');
     });
 });

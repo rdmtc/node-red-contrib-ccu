@@ -71,6 +71,14 @@ describe('isFault and describeError', () => {
         assert.equal(describeError(null), 'unknown error');
     });
 
+    test('a web page where XML-RPC was expected names the likely cause (task 5: a 401 with an HTML body)', () => {
+        assert.equal(
+            describeError(new Error("Unknown XML-RPC tag 'META'")),
+            "the CCU answered a web page instead of XML-RPC (Unknown XML-RPC tag 'META') - authentication is on and the credentials are missing or wrong, or this is not an RPC port",
+        );
+        assert.equal(describeError(new Error("Unknown XML-RPC tag 'FOO'")), "Unknown XML-RPC tag 'FOO'");
+    });
+
     test('an aggregate connect error without syscall', () => {
         const error = new AggregateError([], '');
         error.code = 'ECONNREFUSED';

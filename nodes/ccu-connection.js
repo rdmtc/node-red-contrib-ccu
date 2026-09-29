@@ -10,6 +10,7 @@ const {combinedParameterValue} = require('./lib/combined.js');
 const {createMessage} = require('./lib/message.js');
 const {topicReplace} = require('./lib/topic.js');
 const {isLocalCcu} = require('./lib/localccu.js');
+const {resolveTransport} = require('./lib/transport.js');
 const {bestMatch} = require('./lib/similarity.js');
 const nextport = require('./lib/nextport.js');
 const hmDiscover = require('./lib/discover.js');
@@ -485,6 +486,21 @@ module.exports = function (RED) {
                 this.logger.info('local connection on ccu >= v3.41 detected');
             }
 
+            // task 5 (#27): TLS and credentials belong to the CCU's web server, which
+            // fronts the interface processes for the LAN; a local connection reaches
+            // them directly and uses neither, BIN-RPC has neither (lib/transport.js)
+            const transport = resolveTransport({
+                isLocal: this.isLocal,
+                tls: config.tls,
+                authentication: config.authentication,
+                inSecure: config.inSecure,
+                bcrfBinRpc: config.bcrfBinRpc,
+            });
+            transport.notes.forEach((note) => this.logger[note.level](note.message));
+            const {tls, auth, inSecure} = transport;
+            const user = auth ? config.username : undefined;
+            const pass = auth ? config.password : undefined;
+
             this.ifaceTypes = {
                 ReGaHSS: {
                     conf: 'rega',
@@ -496,40 +512,40 @@ module.exports = function (RED) {
                 },
                 'BidCos-RF': {
                     conf: 'bcrf',
-                    rpc: this.isLocal || config.bcrfBinRpc ? binrpc : xmlrpc,
-                    port: this.isLocal ? 32001 : config.tls ? 42001 : 2001,
-                    protocol: this.isLocal || config.bcrfBinRpc ? 'binrpc' : 'http',
-                    auth: config.authentication,
-                    user: config.username,
-                    pass: config.password,
-                    tls: config.tls,
-                    inSecure: config.inSecure,
+                    rpc: this.isLocal || transport.bcrfBinRpc ? binrpc : xmlrpc,
+                    port: this.isLocal ? 32001 : tls ? 42001 : 2001,
+                    protocol: this.isLocal || transport.bcrfBinRpc ? 'binrpc' : 'http',
+                    auth,
+                    user,
+                    pass,
+                    tls,
+                    inSecure,
                     init: true,
                     ping: true,
                 },
                 'BidCos-Wired': {
                     conf: 'bcwi',
                     rpc: this.isLocal ? binrpc : xmlrpc,
-                    port: this.isLocal ? 32000 : config.tls ? 42000 : 2000,
+                    port: this.isLocal ? 32000 : tls ? 42000 : 2000,
                     protocol: this.isLocal ? 'binrpc' : 'http',
-                    auth: config.authentication,
-                    user: config.username,
-                    pass: config.password,
-                    tls: config.tls,
-                    inSecure: config.inSecure,
+                    auth,
+                    user,
+                    pass,
+                    tls,
+                    inSecure,
                     init: true,
                     ping: true,
                 },
                 'HmIP-RF': {
                     conf: 'iprf',
                     rpc: xmlrpc,
-                    port: this.isLocal ? 32010 : config.tls ? 42010 : 2010,
+                    port: this.isLocal ? 32010 : tls ? 42010 : 2010,
                     protocol: 'http',
-                    auth: config.authentication,
-                    user: config.username,
-                    pass: config.password,
-                    tls: config.tls,
-                    inSecure: config.inSecure,
+                    auth,
+                    user,
+                    pass,
+                    tls,
+                    inSecure,
                     init: true,
                     ping: true, // Todo https://github.com/eq-3/occu/issues/42 - should be fixed, but isn't
                     pingTimeout: 600, // Overwrites ccu-connection config
@@ -541,14 +557,14 @@ module.exports = function (RED) {
                 VirtualDevices: {
                     conf: 'virt',
                     rpc: xmlrpc,
-                    port: this.isLocal ? 39292 : config.tls ? 49292 : 9292,
+                    port: this.isLocal ? 39292 : tls ? 49292 : 9292,
                     path: 'groups',
                     protocol: 'http',
-                    auth: config.authentication,
-                    user: config.username,
-                    pass: config.password,
-                    tls: config.tls,
-                    inSecure: config.inSecure,
+                    auth,
+                    user,
+                    pass,
+                    tls,
+                    inSecure,
                     init: true,
                     ping: false, // Todo ?
                 },
@@ -563,14 +579,14 @@ module.exports = function (RED) {
                 'CCU-Jack': {
                     conf: 'jack',
                     rpc: xmlrpc,
-                    port: Number(config.jackPort) || (config.tls ? 2122 : 2121),
+                    port: Number(config.jackPort) || (tls ? 2122 : 2121),
                     path: 'RPC3',
                     protocol: 'http',
-                    auth: config.authentication,
-                    user: config.username,
-                    pass: config.password,
-                    tls: config.tls,
-                    inSecure: config.inSecure,
+                    auth,
+                    user,
+                    pass,
+                    tls,
+                    inSecure,
                     init: true,
                     ping: false,
                 },
@@ -625,9 +641,9 @@ module.exports = function (RED) {
             // B-17 openccu-lite: the metadata api sits behind the box's
             // lighttpd, i.e. on the plain http(s) port. The field exists for
             // reverse proxies and tests, it is empty in every normal install.
-            this.tlsEnabled = Boolean(config.tls);
-            this.inSecure = Boolean(config.inSecure);
-            this.metaPort = Number.parseInt(config.metaPort, 10) || (config.tls ? 443 : 80);
+            this.tlsEnabled = tls;
+            this.inSecure = inSecure;
+            this.metaPort = Number.parseInt(config.metaPort, 10) || (tls ? 443 : 80);
             this.metaToken = config.metaToken || metaProvider.readLocalToken();
             this.metaMode = false;
             this.meta = null;
@@ -714,11 +730,11 @@ module.exports = function (RED) {
 
             this.rega = new Rega({
                 host: this.host,
-                port: this.isLocal ? 8183 : config.tls ? 48181 : 8181,
-                tls: config.tls,
-                insecure: config.inSecure,
-                username: config.authentication ? config.username : undefined,
-                password: config.authentication ? config.password : undefined,
+                port: this.isLocal ? 8183 : tls ? 48181 : 8181,
+                tls,
+                insecure: inSecure,
+                username: user,
+                password: pass,
             });
 
             this.enabledIfaces = [];

@@ -70,6 +70,17 @@ function describeError(error) {
         return (error.syscall ? error.syscall + ' ' : 'connect ') + error.code;
     }
 
+    // task 5 (#27): the CCU's web server answers a 401 (authentication on, the
+    // credentials missing or wrong) with an HTML page, and the XML-RPC client
+    // reports only the parser's complaint about it - say what that means
+    if (/^Unknown XML-RPC tag '(HTML|HEAD|META|BODY|TITLE|!DOCTYPE)/i.test(String(error.message || ''))) {
+        return (
+            'the CCU answered a web page instead of XML-RPC (' +
+            error.message +
+            ') - authentication is on and the credentials are missing or wrong, or this is not an RPC port'
+        );
+    }
+
     return error.message || String(error);
 }
 

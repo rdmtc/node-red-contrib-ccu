@@ -7,6 +7,29 @@ append commits automatically).
 
 ## Unreleased
 
+### Added
+
+- **TLS and authentication for every connection to a CCU on the network**
+  (task 5, #27). With _TLS/SSL_ on, all XML-RPC interfaces are reached over
+  the CCU's TLS ports (42000, 42001, 42010, 49292; CCU-Jack 2122), the ReGaHSS
+  over 48181 and openccu-lite's metadata api over 443; with _Authentication_
+  on, the username and password go out as HTTP basic auth on every call, the
+  `init` included, to every XML-RPC interface and the ReGaHSS. Both are the
+  CCU's web server's - a CCU3 switches them on in its firewall settings,
+  openccu-lite under remote access. A local connection (Node-RED on the
+  system, `localhost` / `127.0.0.1`) reaches the interface processes directly
+  on the loopback and uses neither, whatever the dialog says: https to a plain
+  port or credentials in a BIN-RPC frame only broke the connection before;
+  the dialog hides the fields for a loopback address and says so. BIN-RPC has
+  neither: with TLS on, BidCos-RF goes XML-RPC over TLS even when the hidden
+  `bcrfBinRpc` property asked for BIN-RPC (a warning names it); CUxD's BIN-RPC
+  never has them. Node-RED's own callback server for the CCU's events stays
+  plain HTTP - the CCU presents no credentials and cannot verify our
+  certificate; the help text says so and asks for a firewall rule on the
+  Node-RED host. Ticking _Authentication_ ticks _TLS/SSL_ with a notice in the
+  editor instead of a browser alert. Without _Ignore invalid TLS
+  certificates_, the CCU's self-signed certificate is refused, as before.
+
 ### Fixed
 
 - **A callback call with an unknown interface id ended Node-RED** (B-32).

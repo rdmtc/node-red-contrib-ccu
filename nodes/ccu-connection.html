@@ -138,6 +138,29 @@
                 }
             }, 250);
 
+            // task 5 (#27): credentials without TLS travel in plain text - turning
+            // authentication on turns TLS on too (it can be unticked again)
+            const $auth = $('#node-config-input-authentication');
+            const $tls = $('#node-config-input-tls');
+            $auth.on('change', () => {
+                if ($auth.is(':checked') && !$tls.is(':checked')) {
+                    $tls.prop('checked', true);
+                    RED.notify('TLS/SSL switched on: without it the credentials would be sent in plain text.', {type: 'warning', timeout: 6000});
+                }
+            });
+
+            // a loopback address is Node-RED on the system: the interface processes are
+            // reached directly, TLS and credentials are not used (lib/localccu.js)
+            const isLoopback = host => /^(127\.|localhost$|::1$)/.test(String(host || '').trim());
+            const showAuthRows = () => {
+                const local = isLoopback($nodeConfigInputHost.val());
+                $('#node-config-auth-fields, #node-config-auth-hint').toggle(!local);
+                $('#node-config-input-username, #node-config-input-password').closest('.form-row').toggle(!local);
+                $('#node-config-auth-local').toggle(local);
+            };
+            $nodeConfigInputHost.on('change keyup', showAuthRows);
+            showAuthRows();
+
             // task 9: re-read the device table of the deployed connection
             const $reread = $('#node-config-reread');
             const $rereadStatus = $('#node-config-reread-status');
@@ -159,15 +182,6 @@
             });
         }
     });
-
-    // called from the inline onclick attribute of the authentication checkbox
-    // eslint-disable-next-line no-unused-vars
-    function TLSSSL(){        
-        if (document.getElementById('node-config-input-authentication').checked && !document.getElementById('node-config-input-tls').checked){
-            document.getElementById('node-config-input-tls').checked = true
-            alert('TLS/SSL activated. \nWithout TLS/SSL your credentials would be sent unencrypted!')
-        }
-    }
 
 </script>
 
@@ -269,9 +283,13 @@
     <div class="form-row">
         <label for="node-config-input-authentication"><i class="icon-tag"></i> Authentication</label>
         <div style="width: 70%; display: inline-block; vertical-align: text-top;">
-            <label class="ccu-checkbox"><input type="checkbox" id="node-config-input-authentication" onclick="TLSSSL()"> Enabled</label><br>
-            <label class="ccu-checkbox"><input type="checkbox" id="node-config-input-tls"> TLS/SSL</label><br>
-            <label class="ccu-checkbox"><input type="checkbox" id="node-config-input-inSecure"> Ignore invalid TLS Certificates</label><br>
+            <span id="node-config-auth-fields">
+                <label class="ccu-checkbox"><input type="checkbox" id="node-config-input-authentication"> Enabled</label><br>
+                <label class="ccu-checkbox"><input type="checkbox" id="node-config-input-tls"> TLS/SSL</label><br>
+                <label class="ccu-checkbox"><input type="checkbox" id="node-config-input-inSecure"> Ignore invalid TLS Certificates</label><br>
+            </span>
+            <small id="node-config-auth-hint">For a CCU on the network: TLS uses the CCU's 4xxxx ports, the credentials are sent as HTTP basic auth (switch both on in the CCU's firewall settings, on openccu-lite under remote access). Node-RED's own callback server for the CCU's events stays plain HTTP.</small>
+            <small id="node-config-auth-local" style="display: none;">Node-RED runs on the system itself: the interface processes are reached directly on the loopback (BIN-RPC for BidCos), without TLS and without credentials. These settings are not used.</small>
         </div>
     </div>
     <div class="form-row">
@@ -372,16 +390,31 @@ Weiteres unter <a target="_blank" href="https://nodered.org/docs/user-guide/cont
                 meldet, wird auch ohne Klick automatisch neu eingelesen. Der Knopf setzt eine deployte Verbindung voraus.</li>
             </ul>
             <ul>
-                <li><b>Authentication</b>: Hier kann angegeben werden wie mit der CCU Kommuniziert werden soll.</li>
+                <li><b>Authentication</b>: Verschlüsselung und Anmeldung für eine CCU im Netzwerk (Node-RED läuft nicht auf der CCU).
+                Beides gehört zum Webserver der CCU, der die Schnittstellenprozesse nach außen vertritt: auf einer CCU3 werden
+                TLS und Authentifizierung in den Firewall-Einstellungen eingeschaltet, auf openccu-lite unter <i>Fernzugriff</i>
+                (klassisches RPC). Läuft Node-RED auf dem System selbst (RedMatic; Adresse <code>localhost</code> bzw.
+                <code>127.0.0.1</code>), werden die Prozesse direkt über den Loopback erreicht, BidCos per BIN-RPC – ohne TLS und
+                ohne Anmeldung; die Einstellungen werden dann nicht verwendet.
                 <ul>
-                    <li>Enabled: Es soll via Benutzer/Passwort kommuniziert werden</li>
-                    <li>TLS/SSL: Aktiviert die Transportverschlüsselung</li>
-                    <li>Ignore invalid TLS Certificates: Node-RED akzeptiert nicht vertrauenswürdige Zertifikate. Notwendig wenn die CCU kein vertrauenswürdiges Zertifikat hat.</li>
+                    <li>Enabled: Benutzer und Passwort werden bei jedem Aufruf mitgeschickt (HTTP Basic Auth) – an alle
+                    XML-RPC-Schnittstellen (BidCos-RF, BidCos-Wired, HmIP-RF, VirtualDevices, CCU-Jack) und an die ReGaHSS. BIN-RPC
+                    (CUxD, die versteckte BIN-RPC-Option für BidCos-RF) kennt keine Anmeldung. Ohne TLS gehen die Zugangsdaten im
+                    Klartext über das Netz; der Dialog schaltet TLS deshalb mit ein.</li>
+                    <li>TLS/SSL: Transportverschlüsselung. Die Schnittstellen werden über die TLS-Ports der CCU erreicht (42000, 42001,
+                    42010, 49292, ReGaHSS 48181, CCU-Jack 2122), die Metadaten-API von openccu-lite über Port 443. BIN-RPC kennt kein
+                    TLS: mit TLS geht BidCos-RF immer über XML-RPC.</li>
+                    <li>Ignore invalid TLS Certificates: Node-RED akzeptiert auch ein nicht vertrauenswürdiges Zertifikat. Nötig,
+                    solange die CCU ihr selbst ausgestelltes Zertifikat verwendet.</li>
                     <li>Username: Ein Benutzer der sich an der CCU anmelden darf.</li>
                     <li>Password: Das Passwort des Benutzers. Es wird in den Node-RED-Credentials gespeichert
                     (verschlüsselt in <code>flows_cred.json</code>), nicht im Flow. Ein Flow aus einer Version vor 4.4.6,
                     der es noch im Klartext enthält, wird beim ersten Start übernommen; der nächste Deploy entfernt es aus
                     <code>flows.json</code>.</li>
                 </ul>
+                Die Gegenrichtung bleibt unverschlüsselt: Die CCU schickt ihre Ereignisse an den XML-RPC- bzw. BIN-RPC-Server, den
+                Node-RED dafür öffnet (<i>Listen Address</i>, <i>BinRPC Port</i>, <i>XMLRPC Port</i>), ohne TLS und ohne Anmeldung –
+                sie kann sich dort nicht anmelden und unser Zertifikat nicht prüfen. Diese Ports sollten in der Firewall des
+                Node-RED-Hosts nur für die CCU offen sein.</li>
             </ul>
 </script>
