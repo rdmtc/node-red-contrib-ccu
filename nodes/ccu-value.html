@@ -547,7 +547,12 @@
     <h3>Konfiguration</h3>
     <ul>
         <li><b>CCU:</b> Die zu verwendende CCU-Konfiguration.</li>
-        <li><b>Topic:</b> <code>msg.topic</code></li>
+        <li><b>Topic:</b> <code>msg.topic</code> ausgehender Nachrichten, mit Platzhaltern: <code>${CCU}</code>,
+        <code>${Interface}</code>, <code>${device}</code>, <code>${deviceName}</code>, <code>${deviceType}</code>,
+        <code>${channel}</code>, <code>${channelName}</code>, <code>${channelType}</code>, <code>${channelIndex}</code>,
+        <code>${datapoint}</code>, <code>${datapointName}</code>. Dieselbe Vorlage gibt es in jedem Node, der Nachrichten
+        ausgibt; wer überall z.&nbsp;B. <code>hm/${Interface}/${channel}/${datapoint}</code> einträgt, bekommt überall
+        dasselbe Topic-Schema.</li>
         <li><b>Interface</b>: Hier wird das Interface gewählt, über welches das gewüschnte Geräte angebunden ist.</li>
         <li><b>Channel</b>: Der Kanal dessen Datenpunkte verwendet werden sollen. Er besteht aus der Serien- sowie der Kanalnummer. Eine Autovervollständigung hilft bei der Auswahl anhand der Klarnamen.</li>
         <li><b>Datapoint</b>: Der Datenpunkt des Kanals, auch hier wird über eine Autovervollständigung die Auswahl vereinfacht.</li>
@@ -604,6 +609,10 @@
   "payload": true
 }</pre>
     </code>
+    Oder in der Form, in der die Nodes ihre Topics ausgeben – mit Schrägstrichen, die letzten drei Teile zählen
+    (<code>ccu3/BidCos-RF/OEQ1868878:1/STATE</code>, <code>hm/BidCos-RF/OEQ1868878:1/STATE</code> und
+    <code>BidCos-RF/OEQ1868878:1/STATE</code> meinen denselben Datenpunkt), so dass das Topic eines Events unverändert
+    zurückgeschickt werden kann.
 
 
     <h3>Output</h3>

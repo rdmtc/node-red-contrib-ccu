@@ -30,6 +30,20 @@ append commits automatically).
   editor instead of a browser alert. Without _Ignore invalid TLS
   certificates_, the CCU's self-signed certificate is refused, as before.
 
+- **One topic template in every node that emits, the value node's input
+  takes the emitted shape** (task 6, #39). The `get value` node has a _Topic_
+  field now, the same `${…}` template as rpc-event, value, sysvar, program,
+  rpc and script; empty (the default, and every existing flow) leaves
+  `msg.topic` as it came in. The value node's input accepts a datapoint
+  address in `msg.topic` in the shape the nodes emit
+  (`ccu3/BidCos-RF/OEQ1868878:1/STATE`, `hm/BidCos-RF/OEQ1868878:1/STATE`: the
+  last three slash-separated segments) besides the old
+  `BidCos-RF.OEQ1868878:1.STATE`, so an event's topic can be fed straight back.
+  No default changed: whoever wants one scheme everywhere enters e.g.
+  `hm/${Interface}/${channel}/${datapoint}` in each node; the README's _Topics_
+  section lists the defaults and the placeholders, the help texts of
+  rpc-event, value and get value the placeholders.
+
 ### Fixed
 
 - **A callback call with an unknown interface id ended Node-RED** (B-32).

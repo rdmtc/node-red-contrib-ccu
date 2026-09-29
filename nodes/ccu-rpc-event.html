@@ -615,7 +615,11 @@
     <h3>Konfiguration</h3>
     <ul>
         <li><b>CCU</b>: Die zu verwendende CCU-Konfiguration.</li>
-        <li><b>topic</b>: <code>msg.topic</code> ausgehender Nachrichten. Kann mit Platzhaltern konfiguriert werden.</li>
+        <li><b>topic</b>: <code>msg.topic</code> ausgehender Nachrichten, mit Platzhaltern: <code>${CCU}</code>,
+        <code>${Interface}</code>, <code>${device}</code>, <code>${deviceName}</code>, <code>${deviceType}</code>,
+        <code>${channel}</code>, <code>${channelName}</code>, <code>${channelType}</code>, <code>${channelIndex}</code>,
+        <code>${datapoint}</code>, <code>${datapointName}</code>. Dieselbe Vorlage gibt es in jedem Node, der Nachrichten
+        ausgibt (value, get value, sysvar, program, rpc, script).</li>
         <li><b>interface</b>: Die Schnittstelle über welche die gewüschten Geräte angebunden sind. <code>*</code> erlaubt Events aller verbundenen Schnittstellen.</li>
         <li><b>room</b>: Raum Filter. Beispiel: <code>Wohnzimmer</code>.</li>
         <li><b>function</b>: Gewerk Filter. Beispiel: <code>Taster</code></li>

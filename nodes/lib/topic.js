@@ -35,4 +35,25 @@ function topicReplace(topic, message) {
     return topic;
 }
 
-module.exports = {topicReplace};
+/**
+ * The datapoint address in an incoming msg.topic (task 6, #39). Two shapes:
+ * the value node's old input form `iface.channel.datapoint` (dots), and the
+ * shape the nodes emit by default, `${CCU}/${Interface}/${channel}/${datapoint}`
+ * or without the CCU part - with slashes, the last three segments count, so
+ * an event's topic can be fed straight back into a value node.
+ * @param {string} topic
+ * @returns {{iface: string|undefined, channel: string|undefined, datapoint: string|undefined}}
+ */
+function parseTopicAddress(topic) {
+    const text = typeof topic === 'string' ? topic : '';
+    if (text.includes('/')) {
+        const parts = text.split('/').filter((part) => part !== '');
+        const [iface, channel, datapoint] = parts.slice(-3);
+        return parts.length >= 3 ? {iface, channel, datapoint} : {};
+    }
+
+    const [iface, channel, datapoint] = text.split('.');
+    return {iface, channel, datapoint};
+}
+
+module.exports = {topicReplace, parseTopicAddress};

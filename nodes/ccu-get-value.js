@@ -1,3 +1,5 @@
+const {topicReplace} = require('./lib/topic.js');
+
 module.exports = function (RED) {
     class CcuGetValue {
         constructor(config) {
@@ -6,6 +8,9 @@ module.exports = function (RED) {
             this.ccu = RED.nodes.getNode(config.ccuConfig);
             this.setProp = config.setProp || 'payload';
             this.setPropType = config.setPropType || 'msg';
+            // task 6 (#39): the same topic template as the other emitting nodes; empty
+            // (the default, and every flow from before) leaves msg.topic as it came in
+            this.topic = config.topic || '';
 
             if (!this.ccu) {
                 return;
@@ -39,8 +44,18 @@ module.exports = function (RED) {
                     }
                 }
 
+                // the cached object the topic placeholders are taken from (iface, channel,
+                // channelName, datapoint, ... for a datapoint; name, iface, ... for a variable)
+                const source = value;
+                const setTopic = () => {
+                    if (this.topic) {
+                        message.topic = topicReplace(this.topic, source);
+                    }
+                };
+
                 if (config.setPropType === 'cmsg') {
                     Object.assign(message, value);
+                    setTopic();
                     send(message);
                     this.status({fill: 'green', shape: 'ring', text: String(value.payload)});
                     done();
@@ -55,6 +70,7 @@ module.exports = function (RED) {
 
                     this.status({fill: 'green', shape: 'ring', text: String(value)});
 
+                    setTopic();
                     if (config.setPropType === 'msg') {
                         RED.util.setMessageProperty(message, config.setProp, value);
                         if (send) {

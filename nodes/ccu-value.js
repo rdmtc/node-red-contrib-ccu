@@ -1,3 +1,4 @@
+const {parseTopicAddress} = require('./lib/topic.js');
 const path = require('path');
 
 const statusHelper = require(path.join(__dirname, '/lib/status.js'));
@@ -31,7 +32,9 @@ module.exports = function (RED) {
             });
 
             this.on('input', (message, send, done) => {
-                const [tIface, tChannel, tDatapoint] = (message.topic || '').split('.');
+                // task 6 (#39): the address may come as `iface.channel.datapoint` or in the
+                // shape the nodes emit, `${CCU}/${Interface}/${channel}/${datapoint}`
+                const {iface: tIface, channel: tChannel, datapoint: tDatapoint} = parseTopicAddress(message.topic);
                 // msg.config wins over the node's own configuration; the flat
                 // msg.iface/channel/datapoint chain below is unchanged
                 const {config: over} = effectiveConfig({}, message, DYNAMIC_KEYS);

@@ -12,7 +12,8 @@
                 datapoint: {value: ''},
                 datapointProperty: {value: 'value'},
                 setProp: {value: 'payload'},
-                setPropType: {value: 'msg'}
+                setPropType: {value: 'msg'},
+                topic: {value: ''}
             },
             inputs: 1,
             outputs: 1,
@@ -482,6 +483,10 @@
         <input type="text" id="node-input-setProp" placeholder="payload" style="width:250px;">
         <input type="hidden" id="node-input-setPropType">
     </div>
+    <div class="form-row">
+        <label for="node-input-topic"><i class="icon-tasks"></i> Topic</label>
+        <input type="text" id="node-input-topic" placeholder="empty: msg.topic stays as it came in">
+    </div>
     <div id="dialog-select-datapoint" title="Select Channel, Datapoint and Property">
         <div id="config-lookup-tree"></div>
     </div>
@@ -489,12 +494,29 @@
 
 <script type="text/x-red" data-help-name="ccu-get-value" lang="en-US">
     <p>This Node outputs the current state of a datapoint or a ccu variable on any incoming message.</p>
+    <h3>Configuration</h3>
+    <ul>
+        <li><b>Topic</b>: <code>msg.topic</code> of the outgoing message, the same template as in the other nodes
+        (<code>${CCU}</code>, <code>${Interface}</code>, <code>${device}</code>, <code>${deviceName}</code>,
+        <code>${channel}</code>, <code>${channelName}</code>, <code>${channelType}</code>, <code>${channelIndex}</code>,
+        <code>${datapoint}</code>; for a variable <code>${Name}</code>), e.g.
+        <code>${CCU}/${Interface}/${channel}/${datapoint}</code>. Empty (the default): <code>msg.topic</code> stays as it
+        came in.</li>
+    </ul>
 </script>
 
-<script type="text/x-red" data-help-name="ccu-display" lang="de-DE">
+<script type="text/x-red" data-help-name="ccu-get-value" lang="de-DE">
     <p>Dieser Node gibt bei jeder eingehenden Message den aktuellen zwischengespeicherten Zustand eines Datenpunktes oder einer CCU Systemvariable aus.</p>
         <h3>Konfiguration</h3>
         Um über die eingehende Message die Attribute <code>iface</code>, <code>channel</code>, <code>datapoint</code> und <code>sysvar</code> setzen zu können müssen die entsprechenden Konfigurationsoptionen leer gelassen werden.
+    <ul>
+        <li><b>Topic</b>: <code>msg.topic</code> der ausgehenden Nachricht, dieselbe Vorlage wie in den anderen Nodes
+        (<code>${CCU}</code>, <code>${Interface}</code>, <code>${device}</code>, <code>${deviceName}</code>,
+        <code>${channel}</code>, <code>${channelName}</code>, <code>${channelType}</code>, <code>${channelIndex}</code>,
+        <code>${datapoint}</code>; bei einer Systemvariable <code>${Name}</code>), z.&nbsp;B.
+        <code>${CCU}/${Interface}/${channel}/${datapoint}</code>. Leer (Voreinstellung): <code>msg.topic</code> bleibt
+        wie es hereinkam.</li>
+    </ul>
     <h3>Input</h3>
     <h3>Output</h3>
 </script>

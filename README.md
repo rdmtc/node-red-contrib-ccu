@@ -41,6 +41,28 @@ ReGaHSS; the connection node detects this at start (`GET /api/meta/v1/version`),
 - **System variables, programs and HM-Script do not exist there.** The `ccu-sysvar`, `ccu-program`, `ccu-script` and
   `ccu-poll` nodes stay in the flows and answer every message with an error.
 
+## Topics
+
+Every node that emits messages builds `msg.topic` from the same template, configurable per node, with these defaults:
+
+| Node            | Default topic                                     |
+| --------------- | ------------------------------------------------- |
+| rpc-event       | `${CCU}/${Interface}/${channelName}/${datapoint}` |
+| value           | `${CCU}/${Interface}/${channel}/${datapoint}`     |
+| get value       | _(empty: `msg.topic` stays as it came in)_        |
+| sysvar, program | `ReGaHSS/${Name}`                                 |
+| rpc             | `${CCU}/${Interface}/${Method}`                   |
+| script          | `${CCU}/${Interface}`                             |
+
+Placeholders are the message's properties, matched case-insensitively: `${CCU}`, `${Interface}`, `${device}`,
+`${deviceName}`, `${deviceType}`, `${channel}`, `${channelName}`, `${channelType}`, `${channelIndex}`, `${datapoint}`,
+`${datapointName}`; `${Name}` for a variable or program, `${Method}` for an RPC call. To get one scheme everywhere -
+`hm/<interface>/<channel>/<datapoint>`, say - enter `hm/${Interface}/${channel}/${datapoint}` in each node; the defaults
+stay as they are so existing flows and subscriptions keep working. The value node's input accepts a datapoint address in
+`msg.topic` either as `iface.channel.datapoint` or in the emitted shape (`ccu3/BidCos-RF/OEQ1868878:1/STATE`,
+`hm/BidCos-RF/OEQ1868878:1/STATE`: the last three segments count), so an event's topic can be fed straight back. The
+`ccu-mqtt` node has its own templates for its MQTT topics.
+
 ## Home Assistant
 
 The `ccu-homeassistant` node publishes
