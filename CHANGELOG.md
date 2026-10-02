@@ -5,6 +5,21 @@ Notable changes to node-red-contrib-ccu. Format follows
 user-visible symptom and the cause, not the commit list (the release notes
 append commits automatically).
 
+## Unreleased
+
+### Fixed
+
+- **No HmIP-RF events for up to 10 minutes after hmipserver restarted**
+  (B-37). hmipserver keeps its subscribers over a restart: it calls
+  `listDevices` and `newDevices` on them and answers their pings, but
+  delivers no event to such a kept subscription until it is subscribed
+  afresh. The liveness ping saw its PONG and was content, so the
+  subscription came back only with the 600 s silence timeout. A
+  `listDevices` or `newDevices` call that does not follow the connection's
+  own `init` now makes it subscribe again at once, and events are back
+  within seconds. A device paired while Node-RED runs costs one such `init`
+  as well.
+
 ## 4.5.1 (2026-10-02)
 
 ### Fixed

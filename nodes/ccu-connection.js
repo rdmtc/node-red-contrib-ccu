@@ -23,6 +23,11 @@ const binrpc = require('binrpc');
 
 const pkg = require(path.join(__dirname, '..', 'package.json'));
 
+// B-37: how long after our init the process's listDevices/newDevices still belong to it -
+// hmipserver answers the init at once and calls listDevices and newDevices afterwards. Such a
+// call later than this is the process calling on its own: it restarted and kept the subscription.
+const INIT_GRACE_MS = 30000;
+
 /**
  * check if an object is iterable
  * @link https://stackoverflow.com/a/37837872
@@ -630,6 +635,10 @@ module.exports = function (RED) {
             // and which of them are waiting for an unreachable process
             this.initRetry = {};
             this.ifaceWaiting = {};
+            // B-37: per interface {inFlight, at, reinit} of our own init, and how long after it the
+            // process's listDevices/newDevices still answer it (see keptSubscription())
+            this.initState = {};
+            this.initGrace = INIT_GRACE_MS;
             this.closing = false;
             this.serverError = {};
             this.queueTimeout = Number.parseInt(config.queueTimeout, 10) || 5000;
@@ -2345,9 +2354,12 @@ module.exports = function (RED) {
                     this.createClient(iface, {quiet: true});
                 }
 
+                // B-37: listDevices/newDevices while this init runs or shortly after belong to it
+                this.initState[iface] = {inFlight: true, at: 0, reinit: false};
                 // a failed init is logged by the retry (InitRetry), not here
                 this.methodCall(iface, 'init', [initUrl, initId], {quiet: true})
                     .then(() => {
+                        this.initState[iface] = {inFlight: false, at: now(), reinit: false};
                         // the ping/re-init liveness starts after a successful init only;
                         // a failed one is retried by rpcInitFailed (task 11)
                         if (this.ifaceTypes[iface].ping && !this.closing) {
@@ -2370,8 +2382,55 @@ module.exports = function (RED) {
                             resolve(iface);
                         }
                     })
-                    .catch((error) => reject(error));
+                    .catch((error) => {
+                        this.initState[iface] = {inFlight: false, at: 0, reinit: false};
+                        reject(error);
+                    });
             });
+        }
+
+        /**
+         * B-37: the interface process called listDevices or newDevices. Outside our own init it
+         * restarted and kept the subscription: hmipserver restores its subscribers from its
+         * handlers file, calls listDevices and newDevices on them and answers their pings (the
+         * PONG arrives, so neither the liveness ping nor the 600 s watchdog fires), but delivers
+         * no event to such a kept subscription until a fresh init (openccu-lite B-286, measured).
+         * So init again at once. A device paired while Node-RED runs costs one init the same way.
+         * @param iface
+         * @param {string} method
+         * @returns {boolean} whether a fresh init was started
+         */
+        keptSubscription(iface, method) {
+            const type = this.ifaceTypes[iface];
+            const state = this.initState[iface];
+            if (this.closing || !type || !type.enabled || !type.init) {
+                return false;
+            }
+
+            // never subscribed, an init running or already started for this restart
+            if (!state || state.inFlight || state.reinit || !state.at) {
+                return false;
+            }
+
+            if (this.initRetry[iface] && this.initRetry[iface].pending) {
+                return false;
+            }
+
+            if (now() - state.at < this.initGrace) {
+                return false;
+            }
+
+            state.reinit = true;
+            this.logger.info(
+                iface +
+                    ': ' +
+                    method +
+                    ' outside our init - the interface process restarted and kept the subscription, subscribing afresh',
+            );
+            this.rpcInit(iface)
+                .then(() => this.rpcInitSucceeded(iface))
+                .catch((error) => this.rpcInitFailed(iface, error));
+            return true;
         }
 
         /**
@@ -3457,7 +3516,8 @@ module.exports = function (RED) {
                         this.saveMetadata();
                     }
 
-                    if (iface) {
+                    // B-37: a restart that kept the subscription gets a fresh init, no ping
+                    if (iface && !this.keptSubscription(iface, 'newDevices')) {
                         this.deviceCallback(iface);
                     }
                 },
@@ -3498,6 +3558,9 @@ module.exports = function (RED) {
 
                     this.logger.debug('    >', iface, 'listDevices', JSON.stringify(res));
                     callback(null, res);
+                    if (iface) {
+                        this.keptSubscription(iface, 'listDevices');
+                    }
                 },
                 event: (_, parameters, callback) => {
                     const iface = this.rpcIface('event', parameters);
