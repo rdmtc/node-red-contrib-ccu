@@ -662,6 +662,13 @@ module.exports = function (RED) {
 
             this.newParamsetDescriptionCount = 0;
             this.paramsetQueue = [];
+            // B-36: iface/address/paramset whose description the interface refused
+            // with a fault (-2 Invalid device for an address it does not know) - not
+            // asked again in this run, so a stale cache entry costs one call, not one
+            // per lookup
+            this.paramsetFailed = new Set();
+            this.valuesPruneTimer = null;
+            this.valuesPruneDelay = 5000;
             this.paramsQueue = [];
 
             this.paramsetFile = path.join(RED.settings.userDir || path.join(__dirname, '..'), 'paramsets.json');
@@ -726,6 +733,7 @@ module.exports = function (RED) {
             this.loadMetadata();
             this.loadRegadata();
             this.loadValues();
+            this.pruneCaches();
 
             this.setContext();
 
@@ -1264,6 +1272,7 @@ module.exports = function (RED) {
                 clearTimeout(this.rpcPingTimer[iface]);
             });
             Object.keys(this.liveness).forEach((iface) => this.stopLiveness(iface));
+            clearTimeout(this.valuesPruneTimer);
 
             this.saveRegadata();
             this.saveValues();
@@ -1642,6 +1651,8 @@ module.exports = function (RED) {
                         });
                         this.cachedValuesReceived = true;
                         this.saveValues();
+                        // B-36: ReGa keeps the datapoints of a deleted device
+                        this.scheduleValuesPrune();
                         resolve();
                     }
                 });
@@ -2427,6 +2438,10 @@ module.exports = function (RED) {
                             this.saveMetadata();
                         }
 
+                        if (summary.removed) {
+                            this.scheduleValuesPrune();
+                        }
+
                         resolve(summary);
                     })
                     .catch(reject);
@@ -2896,7 +2911,13 @@ module.exports = function (RED) {
             if (device && device.PARAMSETS) {
                 device.PARAMSETS.forEach((paramset) => {
                     const name = this.paramsetName(iface, device, paramset);
-                    if (!this.paramsetDescriptions[name]) {
+                    if (
+                        !this.paramsetDescriptions[name] &&
+                        // B-36: once per description key in the queue, and never again
+                        // for an address/paramset the interface refused in this run
+                        !this.paramsetFailed.has(iface + '/' + device.ADDRESS + '/' + paramset) &&
+                        !(name && this.paramsetQueue.some((item) => item.name === name))
+                    ) {
                         this.paramsetQueue.push({
                             iface,
                             name,
@@ -2932,7 +2953,7 @@ module.exports = function (RED) {
                     clearTimeout(this.getParamsetTimeout);
                     setImmediate(() => this.paramsetQueueShift());
                 } else {
-                    this.methodCall(iface, 'getParamsetDescription', [address, paramset])
+                    this.methodCall(iface, 'getParamsetDescription', [address, paramset], {quiet: true})
                         .then((res) => {
                             //this.logger.trace('paramsetDescription', name);
                             this.newParamsetDescriptionCount += 1;
@@ -2944,7 +2965,31 @@ module.exports = function (RED) {
                                 this.saveParamsets();
                             }
                         })
-                        .catch((error) => this.logger.error(error))
+                        .catch((error) => {
+                            // B-36: one line naming the address and the paramset; a
+                            // fault is remembered, a transport error may be retried
+                            if (error && error.faultCode !== undefined) {
+                                this.paramsetFailed.add(iface + '/' + address + '/' + paramset);
+                                this.logger.warn(
+                                    'getParamsetDescription',
+                                    iface,
+                                    address,
+                                    paramset,
+                                    'fault',
+                                    error.faultCode,
+                                    error.faultString || error.message,
+                                    '- not asked again until the device is added anew',
+                                );
+                            } else {
+                                this.logger.error(
+                                    'getParamsetDescription',
+                                    iface,
+                                    address,
+                                    paramset,
+                                    error && error.message ? error.message : error,
+                                );
+                            }
+                        })
                         .then(() => {
                             this.paramsetPending = false;
                             clearTimeout(this.getParamsetTimeout);
@@ -3029,6 +3074,11 @@ module.exports = function (RED) {
                 this.logger.debug('newDevice', iface, device.ADDRESS);
             }
 
+            if (!known || deviceChanged(known, device)) {
+                // B-36: a device added anew (re-paired, or its data changed) is asked again
+                this.forgetParamsetFailures(iface, device.ADDRESS);
+            }
+
             this.metadata.devices[iface][device.ADDRESS] = device;
 
             if (!device.TYPE) {
@@ -3036,13 +3086,12 @@ module.exports = function (RED) {
                 throw new Error('device type undefined: ' + JSON.stringify(device));
             }
 
-            if (
-                this.metadata.types[iface][device.TYPE] &&
-                !this.metadata.types[iface][device.TYPE].includes(device.ADDRESS)
-            ) {
-                this.metadata.types[iface][device.TYPE].push(device.ADDRESS);
-            } else {
+            if (!this.metadata.types[iface][device.TYPE]) {
                 this.metadata.types[iface][device.TYPE] = [device.ADDRESS];
+            } else if (!this.metadata.types[iface][device.TYPE].includes(device.ADDRESS)) {
+                // an address already listed stays listed with the others (the old
+                // else branch replaced the whole list with it)
+                this.metadata.types[iface][device.TYPE].push(device.ADDRESS);
             }
 
             if (device.TYPE === 'MULTI_MODE_INPUT_TRANSMITTER') {
@@ -3059,7 +3108,116 @@ module.exports = function (RED) {
          */
         deleteDevice(iface, device) {
             this.logger.debug('deleteDevice', iface, device);
-            delete this.metadata.devices[iface][device];
+            const known = this.metadata.devices[iface] && this.metadata.devices[iface][device];
+            if (this.metadata.devices[iface]) {
+                delete this.metadata.devices[iface][device];
+            }
+
+            // B-36: nothing of a deleted device is fetched or listed by type any more -
+            // its queued descriptions (with those of its channels) and its address in
+            // metadata.types go with it. Its cached values go with the next
+            // scheduleValuesPrune(): hmipserver has been seen to answer an init with
+            // deleteDevices and newDevices for every device it has (eq-3/occu#45), so
+            // a value dropped here could belong to a device that is back a moment later.
+            const ofDevice = (address) => address === device || address.startsWith(device + ':');
+            this.paramsetQueue = this.paramsetQueue.filter((item) => item.iface !== iface || !ofDevice(item.address));
+            this.paramsQueue = this.paramsQueue.filter((item) => item.iface !== iface || !ofDevice(item.address));
+
+            const types = this.metadata.types && this.metadata.types[iface];
+            if (types) {
+                const typeNames = known && known.TYPE ? [known.TYPE] : Object.keys(types);
+                typeNames.forEach((type) => {
+                    if (Array.isArray(types[type])) {
+                        types[type] = types[type].filter((addr) => addr !== device);
+                        if (types[type].length === 0) {
+                            delete types[type];
+                        }
+                    }
+                });
+            }
+        }
+
+        /**
+         * B-36: the device table decides which cached values and type lists are
+         * kept - at the start the cache files may still hold a device that was
+         * deleted while Node-RED was not running.
+         */
+        pruneCaches() {
+            const types = (this.metadata && this.metadata.types) || {};
+            Object.keys(types).forEach((iface) => {
+                const devices = this.metadata.devices && this.metadata.devices[iface];
+                if (!devices) {
+                    return;
+                }
+
+                Object.keys(types[iface]).forEach((type) => {
+                    if (!Array.isArray(types[iface][type])) {
+                        return;
+                    }
+
+                    types[iface][type] = types[iface][type].filter((addr) => devices[addr]);
+                    if (types[iface][type].length === 0) {
+                        delete types[iface][type];
+                    }
+                });
+            });
+
+            const pruned = this.pruneValues();
+            if (pruned) {
+                this.logger.info('values cache: dropped', pruned, 'values of devices not in the device table');
+                this.saveValues();
+            }
+        }
+
+        /**
+         * B-36: prune the values cache against the device table a few seconds after
+         * the last deleteDevices or ReGa getValues - once hmipserver's
+         * deleteDevices/newDevices pair of an init has settled, and after ReGa
+         * reported the datapoints it keeps of a deleted device again.
+         */
+        scheduleValuesPrune() {
+            clearTimeout(this.valuesPruneTimer);
+            this.valuesPruneTimer = setTimeout(() => {
+                this.valuesPruneTimer = null;
+                const pruned = this.pruneValues();
+                if (pruned) {
+                    this.logger.info('values cache: dropped', pruned, 'values of devices not in the device table');
+                    this.saveValues();
+                }
+            }, this.valuesPruneDelay);
+        }
+
+        /**
+         * B-36: drop cached values whose channel is not in its interface's device
+         * table. An interface without a table (not read yet) keeps its values.
+         * @returns {number} how many were dropped
+         */
+        pruneValues() {
+            let pruned = 0;
+            const tables = (this.metadata && this.metadata.devices) || {};
+            Object.keys(this.values).forEach((datapointName) => {
+                const [iface, channel] = datapointName.split('.');
+                const devices = tables[iface];
+                if (channel && devices && Object.keys(devices).length > 0 && !devices[channel]) {
+                    delete this.values[datapointName];
+                    pruned += 1;
+                }
+            });
+            return pruned;
+        }
+
+        /**
+         * B-36: a device added anew is asked for its descriptions again.
+         * @param iface
+         * @param address device or channel address
+         */
+        forgetParamsetFailures(iface, address) {
+            const prefix = iface + '/' + address;
+            for (const key of this.paramsetFailed) {
+                if (key.startsWith(prefix + '/') || key.startsWith(prefix + ':')) {
+                    this.paramsetFailed.delete(key);
+                }
+            }
         }
 
         /**
@@ -3322,6 +3480,7 @@ module.exports = function (RED) {
 
                     if (changed) {
                         this.saveMetadata();
+                        this.scheduleValuesPrune();
                     }
 
                     if (iface) {
@@ -3907,7 +4066,25 @@ module.exports = function (RED) {
                 if (this.clients[iface]) {
                     this.logger.debug('rpc >', iface, method, JSON.stringify(parameters));
                     this.clients[iface].methodCall(method, parameters, (err, res) => {
-                        if (err) {
+                        if (err && err.faultCode !== undefined) {
+                            // B-36: homematic-xmlrpc delivers a fault as an Error with
+                            // faultCode/faultString. The process answered - the client is
+                            // fine and stays; one line, with the arguments that were refused.
+                            this.logger[quiet ? 'debug' : 'error'](
+                                '    <',
+                                iface,
+                                method,
+                                JSON.stringify(parameters),
+                                'fault',
+                                err.faultCode,
+                                err.faultString,
+                            );
+                            if (err.faultString === undefined) {
+                                err.faultString = err.message;
+                            }
+
+                            reject(err);
+                        } else if (err) {
                             this.logger[quiet ? 'debug' : 'error']('    <', iface, method, err);
                             this.closeClient(iface);
                             // a closed node creates no new client (it would reconnect forever)
@@ -3917,7 +4094,15 @@ module.exports = function (RED) {
 
                             reject(err);
                         } else if (res && res.faultCode) {
-                            this.logger[quiet ? 'debug' : 'error']('    <', iface, method, JSON.stringify(res));
+                            this.logger[quiet ? 'debug' : 'error'](
+                                '    <',
+                                iface,
+                                method,
+                                JSON.stringify(parameters),
+                                'fault',
+                                res.faultCode,
+                                res.faultString,
+                            );
                             const fault = new Error(res.faultString);
                             fault.faultCode = res.faultCode;
                             fault.faultString = res.faultString;

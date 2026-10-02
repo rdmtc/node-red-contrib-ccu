@@ -5,6 +5,31 @@ Notable changes to node-red-contrib-ccu. Format follows
 user-visible symptom and the cause, not the commit list (the release notes
 append commits automatically).
 
+## Unreleased
+
+### Fixed
+
+- **A burst of `getParamsetDescription Error: XML-RPC fault: Invalid device`
+  at the first start after an update** (B-36). A device deleted from the CCU
+  while Node-RED was not running stayed in the cached device table
+  (`ccu_<host>.json`) and in the values cache (`ccu_values_<host>.json`).
+  At the start its paramset descriptions were queued from the cached table;
+  hmipserver answered `-2 Invalid device`, a failed description was never
+  remembered, so every lookup queued it again (one item per channel and
+  paramset, duplicates included), each fault was logged twice without the
+  address, and each one threw away and rebuilt the interface's RPC client.
+  Seen on a CCU3 after a remote had been replaced: 150 failed calls in 40 s.
+  Now a description the interface refuses with a fault is asked for once
+  per address and paramset in a run, with one warning that names the
+  address, the paramset and the fault (a device paired anew is asked
+  again); the queue holds each description key once; `deleteDevices` drops
+  the device's queued fetches and its address from the type lists, and the
+  values cache is pruned against the device table at the start and a few
+  seconds after a `deleteDevices` or the ReGa's value read (the ReGa keeps
+  reporting the datapoints of a deleted device). An XML-RPC fault no longer
+  closes and recreates the RPC client: only a transport error does; the
+  fault is logged once, with the arguments of the call.
+
 ## 4.5.0 (2026-09-29)
 
 ### Added
