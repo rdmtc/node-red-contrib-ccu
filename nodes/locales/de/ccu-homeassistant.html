@@ -16,8 +16,16 @@
     Option <i>weitere Datenpunkte</i> werden alle übrigen Datenpunkte als standardmäßig deaktivierte
     Entitäten mitgeliefert.</p>
     <h3>Eingang</h3>
-    <p>Jede eingehende Nachricht veröffentlicht die Discovery-Konfigurationen erneut.</p>
+    <p>Jede eingehende Nachricht veröffentlicht die Discovery-Konfigurationen und die Verfügbarkeit
+    erneut. Wer einen <b>mqtt in</b>-Node auf <code>homeassistant/status</code> (bzw.
+    <code>&lt;Präfix&gt;/status</code>) anschließt, bekommt beides nach jedem Neustart von Home Assistant
+    neu; dessen <code>offline</code> auf diesem Topic wird ignoriert.</p>
     <h3>Voraussetzungen</h3>
-    <p>Home Assistant ≥ 2024.11 (gerätebasierte Discovery). Die Verfügbarkeit der Geräte wird aus dem
-    UNREACH-Datenpunkt des Wartungskanals abgeleitet.</p>
+    <p>Home Assistant ≥ 2024.11 (gerätebasierte Discovery).</p>
+    <h3>Verfügbarkeit</h3>
+    <p>Die Verfügbarkeit der Geräte wird aus dem UNREACH-Datenpunkt des Wartungskanals abgeleitet
+    (<code>…:0/UNREACH</code>). Home Assistant zeigt alle Entitäten eines Geräts als „nicht verfügbar“,
+    bis auf diesem Topic ein Wert ankommt. Deshalb veröffentlicht der Node direkt nach den
+    Discovery-Konfigurationen den aktuellen UNREACH-Wert jedes Geräts (retained), fragt ihn dazu bei der
+    CCU ab und sendet jede Änderung. Ein Gerät, das nie unerreichbar war, ist so trotzdem verfügbar.</p>
 </script>

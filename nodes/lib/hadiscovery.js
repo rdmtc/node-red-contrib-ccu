@@ -176,11 +176,20 @@ function resolveVirtualReceivers(channels) {
 }
 
 /**
+ * The datapoint behind a device's availability topic (the maintenance channel's UNREACH).
+ * @typedef {object} Availability
+ * @property {string} iface
+ * @property {string} channel address of the maintenance channel (…:0)
+ * @property {string} datapoint always UNREACH
+ * @property {string} topic the status topic the discovery config names in `avty`
+ */
+
+/**
  * Builds the discovery block of one device.
  * @param {DiscoveryContext} ctx
  * @param {string} iface
  * @param {object} device device metadata (ADDRESS, TYPE, CHILDREN, FIRMWARE)
- * @returns {{id: string, device: object, components: object, availability: object[]} | null}
+ * @returns {{id: string, device: object, components: object, availability: object[], unreach?: Availability} | null}
  *          null when the device yields no entity
  */
 function deviceBlock(ctx, iface, device) {
@@ -752,13 +761,19 @@ function deviceBlock(ctx, iface, device) {
         return null;
     }
 
-    // availability: the device's UNREACH (retained by ccu-mqtt) — there is no
-    // bridge "connected" topic in the ccu-mqtt topic scheme
+    // availability: the device's UNREACH — there is no bridge "connected" topic in the
+    // ccu-mqtt topic scheme. HA shows every entity "unavailable" until this topic delivers
+    // a value, and ccu-mqtt publishes UNREACH only on a change or in its start-up cache
+    // burst, so the ccu-homeassistant node publishes the current value itself (B-38):
+    // `unreach` tells it which datapoint and topic.
     // (an entry of the availability list takes `val_tpl`; `avty_tpl` is only valid at
     // the top level next to `avty_t` — HA rejects the whole device payload otherwise)
     const availability = [];
+    let unreach;
     if (maintenance && maintenance.description.UNREACH) {
-        availability.push({t: st(iface, maintenance.ADDRESS, 'UNREACH'), val_tpl: t.bool('offline', 'online')});
+        const topic = st(iface, maintenance.ADDRESS, 'UNREACH');
+        availability.push({t: topic, val_tpl: t.bool('offline', 'online')});
+        unreach = {iface, channel: maintenance.ADDRESS, datapoint: 'UNREACH', topic};
     }
 
     return {
@@ -772,6 +787,7 @@ function deviceBlock(ctx, iface, device) {
         }),
         components,
         availability,
+        unreach,
     };
 }
 
@@ -807,11 +823,13 @@ function removalMessage(prefix, address) {
 /**
  * Discovery messages for the selected devices.
  * @param {DiscoveryContext} ctx
- * @returns {{messages: Array<{topic: string, payload: object}>, missing: string[], empty: string[]}}
+ * @returns {{messages: Array<{topic: string, payload: object}>, availability: Availability[], missing: string[], empty: string[]}}
+ *          availability: the UNREACH datapoints the configs use as availability (B-38);
  *          missing: selected addresses not found in the metadata; empty: devices without entities
  */
 function discoveryMessages(ctx) {
     const messages = [];
+    const availability = [];
     const missing = [];
     const empty = [];
     for (const address of ctx.selected || []) {
@@ -829,9 +847,12 @@ function discoveryMessages(ctx) {
         }
 
         messages.push(devicePayload(ctx, block));
+        if (block.unreach) {
+            availability.push(block.unreach);
+        }
     }
 
-    return {messages, missing, empty};
+    return {messages, availability, missing, empty};
 }
 
 module.exports = {

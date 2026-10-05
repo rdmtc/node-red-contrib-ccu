@@ -16,8 +16,16 @@
     <i>other datapoints</i> option every remaining datapoint is included as an entity that is
     disabled by default.</p>
     <h3>Input</h3>
-    <p>Any incoming message republishes the discovery configs.</p>
+    <p>Any incoming message republishes the discovery configs and the availability. Wire an
+    <b>mqtt in</b> node on <code>homeassistant/status</code> (or <code>&lt;prefix&gt;/status</code>) to
+    the input to get both again after every Home Assistant restart; its <code>offline</code> on that
+    topic is ignored.</p>
     <h3>Requirements</h3>
-    <p>Home Assistant ≥ 2024.11 (device-based discovery). Device availability is derived from the
-    UNREACH datapoint of the maintenance channel.</p>
+    <p>Home Assistant ≥ 2024.11 (device-based discovery).</p>
+    <h3>Availability</h3>
+    <p>Device availability is derived from the UNREACH datapoint of the maintenance channel
+    (<code>…:0/UNREACH</code>). Home Assistant shows every entity of a device as "unavailable" until
+    a value arrives on that topic. So right after the discovery configs the node publishes each
+    device's current UNREACH (retained), asking the CCU for it, and sends every change. A device that
+    was never unreachable is available all the same.</p>
 </script>

@@ -82,6 +82,22 @@
     "wires": [["ccu-ha-example"]]
   },
   {
+    "id": "mqtt-in-ha-status",
+    "type": "mqtt in",
+    "name": "homeassistant/status",
+    "topic": "homeassistant/status",
+    "qos": "0",
+    "datatype": "utf8",
+    "broker": "mqtt-broker-example",
+    "nl": false,
+    "rap": true,
+    "rh": 0,
+    "inputs": 0,
+    "x": 170,
+    "y": 220,
+    "wires": [["ccu-ha-example"]]
+  },
+  {
     "id": "comment-ha",
     "type": "comment",
     "name": "Tick the devices to publish in the Home Assistant node's config dialog, then deploy",

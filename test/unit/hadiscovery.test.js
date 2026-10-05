@@ -371,9 +371,13 @@ test('discoveryMessages: selected devices, missing addresses, devices without en
     const description = fx.description;
     fx.description = (iface, address) => (address.startsWith('EMPTY01') ? {} : description(iface, address));
     const ctx = ctxFor(fx, {selected: ['ABC0001', 'EMPTY01', 'GONE01', 'ABC0001:4']});
-    const {messages, missing, empty} = discoveryMessages(ctx);
+    const {messages, availability, missing, empty} = discoveryMessages(ctx);
     assert.equal(messages.length, 1);
     assert.equal(messages[0].topic, 'homeassistant/device/ccu_ABC0001/config');
+    // B-38: the datapoint behind each config's availability topic, for the node to publish
+    assert.deepEqual(availability, [
+        {iface: 'HmIP-RF', channel: 'ABC0001:0', datapoint: 'UNREACH', topic: messages[0].payload.avty[0].t},
+    ]);
     assert.deepEqual(missing, ['GONE01', 'ABC0001:4'], 'channels are not devices');
     assert.deepEqual(empty, ['EMPTY01']);
 });

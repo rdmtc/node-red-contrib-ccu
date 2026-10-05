@@ -15,8 +15,13 @@ const READY_ATTEMPTS = 60;
  * Companion to a ccu-mqtt node: reuses its topic templates and payload format, so
  * the discovery configs point at the topics ccu-mqtt already publishes/consumes.
  * The node itself only emits (a) the retained discovery configs — wire its output
- * to the same mqtt-out node as the ccu-mqtt node — and (b) the aggregate PRESS
- * event Home Assistant's event entities need.
+ * to the same mqtt-out node as the ccu-mqtt node —, (b) the aggregate PRESS
+ * event Home Assistant's event entities need and (c) the devices' UNREACH on the
+ * availability topics the configs name (B-38): Home Assistant shows an entity
+ * "unavailable" until its availability topic delivers a value, and ccu-mqtt
+ * publishes UNREACH only when it changes or in its start-up cache burst (which
+ * is off by default and lost when the broker is not connected yet), so a device
+ * that never went unreachable would stay unavailable for good.
  */
 module.exports = function (RED) {
     class CcuHomeAssistantNode {
@@ -43,9 +48,18 @@ module.exports = function (RED) {
 
             this.ccu.register(this);
 
+            /** datapointName → {iface, channel, datapoint, topic} of the published availability topics */
+            this.availability = new Map();
+            /** datapointName → the UNREACH value last published on its topic */
+            this.availabilitySent = new Map();
+
             this.on('input', (message, send, done) => {
-                // any message republishes the discovery configs
-                this.publish(true);
+                // any message republishes the discovery configs - except Home Assistant's
+                // own "offline" (its last will) when <prefix>/status is wired in
+                if (!this.isHomeAssistantOffline(message)) {
+                    this.publish(true);
+                }
+
                 if (done) {
                     done();
                 }
@@ -53,6 +67,11 @@ module.exports = function (RED) {
 
             this.idEventSubscription = this.ccu.subscribe({cache: false}, (message) => {
                 this.event(message);
+            });
+
+            // B-38: UNREACH from the ReGa's values (cache) and every later event
+            this.idUnreachSubscription = this.ccu.subscribe({cache: true, datapoint: 'UNREACH'}, (message) => {
+                this.unreach(message);
             });
 
             this.on('close', (done) => {
@@ -66,8 +85,10 @@ module.exports = function (RED) {
 
         _destructor(done) {
             this.trace('ccu-homeassistant close');
+            this.closed = true;
             clearTimeout(this.readyTimer);
             this.ccu.unsubscribe(this.idEventSubscription);
+            this.ccu.unsubscribe(this.idUnreachSubscription);
             this.ccu.deregister(this, done);
         }
 
@@ -207,7 +228,7 @@ module.exports = function (RED) {
                     topicReplace(mqtt.topicInputSetValue, this.topicMessage(iface, address, dp)),
             };
 
-            const {messages, missing, empty} = discoveryMessages(ctx);
+            const {messages, availability, missing, empty} = discoveryMessages(ctx);
 
             for (const address of this.removed) {
                 const {topic, payload} = removalMessage(this.prefix, address);
@@ -217,6 +238,8 @@ module.exports = function (RED) {
             for (const {topic, payload} of messages) {
                 this.send({topic, payload, retain: true});
             }
+
+            this.publishAvailability(availability);
 
             if (missing.length > 0) {
                 this.warn('selected devices not found on the CCU: ' + missing.join(', '));
@@ -238,6 +261,88 @@ module.exports = function (RED) {
                 shape: 'dot',
                 text: messages.length + ' devices' + (missing.length > 0 ? ', ' + missing.length + ' missing' : ''),
             });
+        }
+
+        /** Home Assistant's last will on `<prefix>/status` - not a reason to republish */
+        isHomeAssistantOffline(message) {
+            return (
+                message &&
+                message.topic === this.prefix + '/status' &&
+                String(message.payload).trim().toLowerCase() !== 'online'
+            );
+        }
+
+        /**
+         * B-38: put the current UNREACH of every published device on its availability
+         * topic, retained, right after the discovery configs - from the values the
+         * connection holds when they are certain, and from the interface process
+         * (getValue, deferred by the connection until the interface is up) in any case.
+         * @param {Array<{iface: string, channel: string, datapoint: string, topic: string}>} availability
+         */
+        publishAvailability(availability) {
+            this.availability = new Map();
+            this.availabilitySent = new Map();
+            for (const source of availability) {
+                const datapointName = source.iface + '.' + source.channel + '.' + source.datapoint;
+                this.availability.set(datapointName, source);
+
+                const cached = this.ccu.values && this.ccu.values[datapointName];
+                if (cached && !cached.uncertain && typeof cached.value === 'boolean') {
+                    this.sendAvailability(datapointName, cached.value, cached);
+                }
+
+                const known = this.availability;
+                this.ccu
+                    .methodCall(source.iface, 'getValue', [source.channel, source.datapoint], {quiet: true})
+                    .then((value) => {
+                        // a republish in between started a new round
+                        if (this.availability === known) {
+                            this.sendAvailability(datapointName, Boolean(value));
+                        }
+                    })
+                    .catch((error) => {
+                        this.debug('getValue ' + datapointName + ': ' + error.message);
+                    });
+            }
+        }
+
+        /** an UNREACH message of the connection (cache or event) */
+        unreach(message) {
+            if (message && this.availability.has(message.datapointName) && typeof message.value === 'boolean') {
+                this.sendAvailability(message.datapointName, message.value, message);
+            }
+        }
+
+        /**
+         * One retained UNREACH on an availability topic, in the ccu-mqtt node's payload
+         * format; skipped when the topic already carries that value from this node.
+         * @param {string} datapointName
+         * @param {boolean} value
+         * @param {object} [message] the connection's message for the datapoint, if there is one
+         */
+        sendAvailability(datapointName, value, message) {
+            const source = this.availability.get(datapointName);
+            if (this.closed || !source || this.availabilitySent.get(datapointName) === value) {
+                return;
+            }
+
+            const mqtt = this.mqttNodeId && RED.nodes.getNode(this.mqttNodeId);
+            if (!mqtt || typeof mqtt.output !== 'function') {
+                return;
+            }
+
+            const now = Date.now();
+            const out = {
+                ts: now,
+                lc: now,
+                ...message,
+                ...this.topicMessage(source.iface, source.channel, source.datapoint),
+                payload: value,
+                value,
+            };
+            delete out.topic;
+            this.availabilitySent.set(datapointName, value);
+            this.send({topic: source.topic, payload: mqtt.output(out), retain: true});
         }
 
         /** key presses: Home Assistant's event entity wants one topic per key → <channel>/PRESS */

@@ -76,6 +76,11 @@ device with switch, light, cover, climate, binary_sensor, event, lock and sensor
 optionally be included as a disabled-by-default entity. Unticking a device removes it from Home Assistant on the
 next deploy.
 
+A device's availability in Home Assistant follows the `UNREACH` datapoint of its maintenance channel. The node
+publishes its current value (retained) right after the discovery configs and every change after that, so a device
+is available without ever having been unreachable. Any message on the node's input republishes both; the example
+wires Home Assistant's birth message (`homeassistant/status`) to it, so a Home Assistant restart gets them again.
+
 ## Dynamic configuration
 
 Most nodes can be reconfigured per message: put an object in `msg.config` and its

@@ -5,6 +5,27 @@ Notable changes to node-red-contrib-ccu. Format follows
 user-visible symptom and the cause, not the commit list (the release notes
 append commits automatically).
 
+## Unreleased
+
+### Fixed
+
+- **Home Assistant showed every entity of a device as "unavailable" for
+  good** (B-38, reported by mail). The discovery configs name the device's
+  `…:0/UNREACH` topic as its availability, and Home Assistant treats an
+  entity as unavailable until that topic delivers a value. Only `ccu-mqtt`
+  published UNREACH: when it changed, or once in its start-up burst of
+  cached values - which is off unless the node's _Cache_ option is ticked,
+  and lost when the MQTT broker is not connected yet at that moment (Node-RED's
+  `mqtt out` drops what it gets while disconnected). A device that never went
+  unreachable therefore never got a value on that topic, while its state
+  updates arrived normally. The `ccu-homeassistant` node now publishes each
+  device's current UNREACH itself, retained, right after the discovery
+  configs (asking the CCU for it) and every change after that; _republish
+  discovery_ sends it again. The example flow also wires Home Assistant's
+  birth message (`homeassistant/status`) to the node, so a Home Assistant
+  restart republishes discovery and availability; an `offline` there is
+  ignored.
+
 ## 4.5.2 (2026-10-02)
 
 ### Fixed
