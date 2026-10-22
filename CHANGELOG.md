@@ -13,8 +13,7 @@ append commits automatically).
   maintenance channel's `STICKY_UNREACH`** went out as a `switch` with
   `device_class: problem`, a class only `binary_sensor` knows, and Home
   Assistant refused that component ("expected SwitchDeviceClass or one of
-  'outlet', 'switch'") while it created the device and its other entities
-  (B-39). `STICKY_UNREACH` is no longer announced at all
+  'outlet', 'switch'") while it created the device and its other entities. `STICKY_UNREACH` is no longer announced at all
   (UNREACH covers it), and a device class a platform does not
   accept is dropped from any component before it goes out. A test now checks
   every component of every device the shipped paramsets know against Home
@@ -44,7 +43,7 @@ append commits automatically).
 ### Fixed
 
 - **Home Assistant showed every entity of a device as "unavailable" for
-  good** (B-38, reported by mail). The discovery configs name the device's
+  good** (reported by mail). The discovery configs name the device's
   `…:0/UNREACH` topic as its availability, and Home Assistant treats an
   entity as unavailable until that topic delivers a value. Only `ccu-mqtt`
   published UNREACH: when it changed, or once in its start-up burst of
@@ -64,8 +63,7 @@ append commits automatically).
 
 ### Fixed
 
-- **No HmIP-RF events for up to 10 minutes after hmipserver restarted**
-  (B-37). hmipserver keeps its subscribers over a restart: it calls
+- **No HmIP-RF events for up to 10 minutes after hmipserver restarted**. hmipserver keeps its subscribers over a restart: it calls
   `listDevices` and `newDevices` on them and answers their pings, but
   delivers no event to such a kept subscription until it is subscribed
   afresh. The liveness ping saw its PONG and was content, so the
@@ -80,7 +78,7 @@ append commits automatically).
 ### Fixed
 
 - **A burst of `getParamsetDescription Error: XML-RPC fault: Invalid device`
-  at the first start after an update** (B-36). A device deleted from the CCU
+  at the first start after an update**. A device deleted from the CCU
   while Node-RED was not running stayed in the cached device table
   (`ccu_<host>.json`) and in the values cache (`ccu_values_<host>.json`).
   At the start its paramset descriptions were queued from the cached table;
@@ -105,7 +103,7 @@ append commits automatically).
 ### Added
 
 - **TLS and authentication for every connection to a CCU on the network**
-  (task 5, #27). With _TLS/SSL_ on, all XML-RPC interfaces are reached over
+  (#27). With _TLS/SSL_ on, all XML-RPC interfaces are reached over
   the CCU's TLS ports (42000, 42001, 42010, 49292; CCU-Jack 2122), the ReGaHSS
   over 48181 and openccu-lite's metadata api over 443; with _Authentication_
   on, the username and password go out as HTTP basic auth on every call, the
@@ -126,7 +124,7 @@ append commits automatically).
   certificates_, the CCU's self-signed certificate is refused, as before.
 
 - **One topic template in every node that emits, the value node's input
-  takes the emitted shape** (task 6, #39 @psi-4ward). The `get value` node has a _Topic_
+  takes the emitted shape** (#39 @psi-4ward). The `get value` node has a _Topic_
   field now, the same `${…}` template as rpc-event, value, sysvar, program,
   rpc and script; empty (the default, and every existing flow) leaves
   `msg.topic` as it came in. The value node's input accepts a datapoint
@@ -140,7 +138,7 @@ append commits automatically).
   rpc-event, value and get value the placeholders.
 
 - **Help texts for every node in German and English, as locale files**
-  (task 7, #58). The help moved from inline blocks in the node files into
+  (#58). The help moved from inline blocks in the node files into
   `nodes/locales/de/` and `nodes/locales/en-US/`, the layout Node-RED
   documents for node help: the runtime serves one language's text per
   request through the same lookup as its own nodes (`de` and `de-DE` both
@@ -158,7 +156,7 @@ append commits automatically).
 ### Fixed
 
 - **Writing one party-mode datapoint of an HmIP thermostat reset the other
-  two** (task 2, #156 @ben-5555, #161 @lolli78). An HmIP eTRV/WTH takes
+  two** (#156 @ben-5555, #161 @lolli78). An HmIP eTRV/WTH takes
   `PARTY_TIME_START`, `PARTY_TIME_END` and `PARTY_SET_POINT_TEMPERATURE` only
   together: a `setValue` of one of them put the others back to
   `1999_11_30 00:00`, so party or holiday mode could not be set from the
@@ -170,7 +168,7 @@ append commits automatically).
   Date, an ISO string or epoch milliseconds; they are formatted for the device
   in local time. Any other datapoint of the channel is written as before. The
   older HM thermostats (`PARTY_MODE_SUBMIT`) are not covered.
-- **A callback call with an unknown interface id ended Node-RED** (B-32).
+- **A callback call with an unknown interface id ended Node-RED**.
   Anything on the system can connect to the connection's callback ports on
   the loopback; a `system.listMethods` without parameters, an `event` with an
   id that is not one of ours, or a `newDevices` list with a malformed entry
@@ -180,7 +178,7 @@ append commits automatically).
   `system.listMethods`) and logged at debug; a throw inside a handler is
   logged as an error and answered instead of ending the process.
 - **A metadata api detection that timed out at start left the connection in
-  ReGa mode for good** (B-28). On openccu-lite the connection asks
+  ReGa mode for good**. On openccu-lite the connection asks
   `GET /api/meta/v1/version` once at start; when that probe ran into its 5 s
   timeout - on a Raspberry Pi 3 Node-RED's own start blocks the event loop
   long enough for that at every start, on a busy system now and then - the
@@ -191,8 +189,7 @@ append commits automatically).
   the detection is repeated after 1, 2, 4, 8 s and then every 15 s (up to 20
   times, then the five-minute rule again), and the failing ReGa poll asks for
   a re-detection too. A CCU's 404 is still a conclusive "no".
-- **After an hmipserver restart HmIP-RF events stopped for up to ten minutes**
-  (B-29). hmipserver forgets its clients when it restarts and does not tell
+- **After an hmipserver restart HmIP-RF events stopped for up to ten minutes**. hmipserver forgets its clients when it restarts and does not tell
   them: the `init` had succeeded, nothing failed, and the events simply stopped
   until the 600 s silence timeout called `init` again. The connection now
   pings HmIP-RF after 30 s without an event and, when no event (the PONG)
@@ -203,7 +200,7 @@ append commits automatically).
   events are back well within a minute. An interface that never delivered an
   event since its `init` is not re-subscribed on a missing PONG alone.
 - **A queued write of the same set point was dropped after the actuator had
-  been operated by hand** (B-19, #151 @vigeland). The value node's _Queue_ compared the
+  been operated by hand** (#151 @vigeland). The value node's _Queue_ compared the
   new value with the value cache, and the cache of a control channel
   (HmIP-FROLL/BROLL `:4`, the status lives in `:3`) holds the echo of our own
   last write for good - a blind moved by hand reports no new set point there,
@@ -217,7 +214,7 @@ append commits automatically).
 ### Security
 
 - **The CCU password and the openccu-lite token were stored in plain text in
-  `flows.json`** and went out with every exported flow (B-31). Both are
+  `flows.json`** and went out with every exported flow. Both are
   Node-RED credentials now (`flows_cred.json`, encrypted, never exported).
   A flow written before this version still carries them as plain properties:
   the connection uses them once, moves them into the credentials and warns;
@@ -226,8 +223,7 @@ append commits automatically).
 
 ### Changed
 
-- **The device table follows the CCU, and can be re-read by hand** (task 9,
-  #146 @guny74, #181 @vore). A device or channel the CCU reports with another TYPE,
+- **The device table follows the CCU, and can be re-read by hand** (#146 @guny74, #181 @vore). A device or channel the CCU reports with another TYPE,
   VERSION or FIRMWARE than the cache holds replaces the cached entry, leaves
   its old type list and gets its datapoints fetched again - a channel whose
   type changed in place kept its old datapoints before, until the cache file
@@ -237,14 +233,14 @@ append commits automatically).
   reports what changed. The editor's channel pickers no longer empty the
   configured channel when the connection is still initialising: they show
   _loading device data_ and ask again.
-- **An interface without devices is watched too** (task 9, old B-11). The
+- **An interface without devices is watched too**. The
   ping watchdog returned early for an interface with no devices in the
   cache, so such an interface never pinged and never re-initialised after a
   CCU reboot. It pings now, and re-initialises after the ping timeout once
   it has ever delivered an event (a PONG counts) - a process that answers no
   ping at all is not asked to `init` every timeout.
 - **The `listDevices` answer to hmipserver lists the CCU's virtual remote
-  control (HmIP-RCV-1) again** (task 13). It was left out since CCU3 firmware
+  control (HmIP-RCV-1) again**. It was left out since CCU3 firmware
   3.43.15 (2019), whose hmipserver failed on an answer that held it; current
   hmipservers take it, and without it every `init` made hmipserver log a
   _handleIDMigration_ warning and send the whole virtual remote (52
@@ -262,8 +258,7 @@ append commits automatically).
   proxy ports (XML-RPC instead of BIN-RPC for BidCos) until the next restart.
   A loopback host on a system that has the CCU's interface list
   (`/etc/config/InterfacesList.xml`) is now taken as local as well.
-- **Waiting for an interface process that is still starting is no warning**
-  (task 12). Before the interface was ever connected, a refused connection
+- **Waiting for an interface process that is still starting is no warning**. Before the interface was ever connected, a refused connection
   is one info line (_"HmIP-RF not listening yet (connect ECONNREFUSED),
   waiting for it - retrying in 1 s"_); another transport error, or a refused
   connection after the interface had been connected, is still a warning, and
@@ -272,7 +267,7 @@ append commits automatically).
 ### Changed
 
 - **A failed `init` is retried after 1 s, 2 s, 4 s and 8 s, then every 15 s**
-  (task 12; was 2, 4, 8, 16 s, then every 30 s), the schedule of hm2mqtt.js and
+  (was 2, 4, 8, 16 s, then every 30 s), the schedule of hm2mqtt.js and
   the Homematic Manager.
 
 ## 4.4.4 (2026-09-17)
@@ -280,7 +275,7 @@ append commits automatically).
 ### Fixed
 
 - **An interface stayed without events for minutes, or for good, when its
-  process did not answer the first `init`** (task 11). A failed `init` at
+  process did not answer the first `init`**. A failed `init` at
   start (connection refused, timeout) was only retried by the ping
   supervision, which does nothing without cached devices and waits the ping
   timeout otherwise: 60 s, and 600 s for HmIP-RF. A Node-RED that starts
@@ -298,8 +293,7 @@ append commits automatically).
 
 ### Fixed
 
-- **Node-RED at 100 % CPU and unresponsive while ReGaHSS is unreachable**
-  (B-27). binrpc up to 4.2.0 armed a new reconnect timer for both the `error`
+- **Node-RED at 100 % CPU and unresponsive while ReGaHSS is unreachable**. binrpc up to 4.2.0 armed a new reconnect timer for both the `error`
   and the `close` event of every refused connect, so the number of attempts to
   the ReGaHSS port 31999 doubled every 2.5 s without bound: about 7,000 refused
   connects per second, 30,000 pending timers and 68 million connects in under
@@ -317,7 +311,7 @@ append commits automatically).
 ### Fixed
 
 - **`getRegaVariables Error: socket hang up` every few minutes on a CCU**
-  (B-18, [RedMatic #601](https://github.com/rdmtc/RedMatic/issues/601)
+  ([RedMatic #601](https://github.com/rdmtc/RedMatic/issues/601)
   follow-up). Since 4.3.0 a local install talks to ReGaHSS itself on port 8183. ReGaHSS answers HTTP/1.1 without `Connection: close` — and then
   closes the connection 0.4–7 ms after every response (measured on a
   CCU3 3.89.8, median 0.55 ms). `homematic-rega` 2.0 (since 4.0.0) sent
@@ -374,7 +368,7 @@ hang up` — became an **unhandled rejection**, which Node >= 15 turns
 
 ### Added
 
-- **Dynamic node configuration through `msg.config`** (roadmap B-2). Put
+- **Dynamic node configuration through `msg.config`**. Put
   an object in `msg.config` and its properties override that node's own
   configuration for that one message; the stored configuration is never
   modified, so the next message starts from the dialog settings again.
@@ -449,7 +443,6 @@ hang up` — became an **unhandled rejection**, which Node >= 15 turns
   `/etc/lighttpd/conf.d/proxy.conf` for a port number; on current
   firmware that file is a one-line include and the port markers live two
   levels down. It now looks for a listener on the direct port instead.
-  (Roadmap B-4)
 - Writing several system variables at once left all but the first
   invisible until the next scheduled ReGa poll (30 s by default): the
   immediate re-poll each write triggers was dropped while another poll
@@ -481,7 +474,7 @@ hang up` — became an **unhandled rejection**, which Node >= 15 turns
   presence, smoke, water), event (keys), lock (KeyMatic), sensor (energy,
   weather, maintenance) plus, optionally, disabled-by-default entities for
   every other datapoint. Unchecking a device removes it from Home
-  Assistant on the next deploy. (Roadmap B-16)
+  Assistant on the next deploy.
 - ccu-mqtt: the setValue topic accepts Home Assistant's command words —
   `OPEN`, `CLOSE`, `STOP`, `ON`, `OFF` on LEVEL and `AUTO-MODE`,
   `MANU-MODE`, `BOOST-MODE`, `COMFORT-MODE`, `LOWERING-MODE` on the
