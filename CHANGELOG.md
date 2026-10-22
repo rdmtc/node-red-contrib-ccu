@@ -14,8 +14,8 @@ append commits automatically).
   `device_class: problem`, a class only `binary_sensor` knows, and Home
   Assistant refused that component ("expected SwitchDeviceClass or one of
   'outlet', 'switch'") while it created the device and its other entities
-  (B-39). `STICKY_UNREACH` is no longer announced at all - the maintainer's
-  decision: "UNREACH is enough" -, and a device class a platform does not
+  (B-39). `STICKY_UNREACH` is no longer announced at all
+  (UNREACH covers it), and a device class a platform does not
   accept is dropped from any component before it goes out. A test now checks
   every component of every device the shipped paramsets know against Home
   Assistant's device classes per platform.
