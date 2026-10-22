@@ -5,6 +5,21 @@ Notable changes to node-red-contrib-ccu. Format follows
 user-visible symptom and the cause, not the commit list (the release notes
 append commits automatically).
 
+## 4.6.1 (2026-10-22)
+
+### Fixed
+
+- **Home Assistant logged an error for every published device: the
+  maintenance channel's `STICKY_UNREACH`** went out as a `switch` with
+  `device_class: problem`, a class only `binary_sensor` knows, and Home
+  Assistant refused that component ("expected SwitchDeviceClass or one of
+  'outlet', 'switch'") while it created the device and its other entities
+  (B-39). `STICKY_UNREACH` is no longer announced at all - the maintainer's
+  decision: "UNREACH is enough" -, and a device class a platform does not
+  accept is dropped from any component before it goes out. A test now checks
+  every component of every device the shipped paramsets know against Home
+  Assistant's device classes per platform.
+
 ## 4.6.0 (2026-10-22)
 
 ### Added

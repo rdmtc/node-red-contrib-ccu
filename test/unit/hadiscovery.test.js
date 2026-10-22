@@ -3,6 +3,9 @@ const assert = require('node:assert/strict');
 
 const paramsets = require('../../paramsets.json');
 const {
+    DEVICE_CLASSES,
+    NOT_ANNOUNCED,
+    validDeviceClass,
     discoveryId,
     discoveryTopic,
     ifaceOf,
@@ -378,6 +381,89 @@ test('the suggested area in the device block, and the option that drops it', () 
     assert.equal(block(bsm(), {rooms: () => undefined}).device.sa, undefined, 'no rooms known (no ReGa yet)');
     const two = (address) => (address === 'ABC0001:4' ? ['Küche'] : ['Flur']);
     assert.equal(block(bsm(), {rooms: two}).device.sa, 'Flur', "several rooms → the first roomed address's");
+});
+
+/* B-39: every component of every device paramsets.json knows, built as a synthetic device with one
+   channel per channel type, must carry a device class its platform accepts - Home Assistant refuses
+   the component otherwise and logs an error for it. */
+function allKnownBlocks() {
+    const groups = new Map();
+    for (const key of Object.keys(paramsets)) {
+        const [iface, type, firmware, version, chType, paramset] = key.split('/');
+        if (paramset !== 'VALUES' || !iface || !type || !chType) {
+            continue;
+        }
+
+        const gkey = [iface, type, firmware, version].join('/');
+        if (!groups.has(gkey)) {
+            groups.set(gkey, {iface, type, firmware, version: Number(version), channelTypes: []});
+        }
+
+        const g = groups.get(gkey);
+        if (!g.channelTypes.includes(chType)) {
+            g.channelTypes.push(chType);
+        }
+    }
+
+    const blocks = [];
+    for (const g of groups.values()) {
+        // the maintenance channel is :0 on every device; the others follow in the order found
+        const channelTypes = [
+            ...g.channelTypes.filter((t) => t === 'MAINTENANCE'),
+            ...g.channelTypes.filter((t) => t !== 'MAINTENANCE'),
+        ];
+        const address = 'SYN' + String(blocks.length).padStart(7, '0');
+        const fx = fixture(g.iface, address, g.type, g.firmware, g.version, channelTypes);
+        const b = block(fx, {generic: true});
+        if (b) {
+            blocks.push({group: `${g.iface}/${g.type}/${g.firmware}/${g.version}`, block: b});
+        }
+    }
+
+    return blocks;
+}
+
+test('B-39: every announced component carries a device class its platform accepts', () => {
+    const blocks = allKnownBlocks();
+    assert.ok(blocks.length > 50, 'the shipped paramsets yield many devices');
+    const wrong = [];
+    let classed = 0;
+    for (const {group, block: b} of blocks) {
+        for (const [key, c] of Object.entries(b.components)) {
+            if (c.dev_cla === undefined) {
+                continue;
+            }
+
+            classed += 1;
+            if (!validDeviceClass(c.p, c.dev_cla)) {
+                wrong.push(`${group} ${key}: ${c.p} with ${c.dev_cla}`);
+            }
+        }
+    }
+
+    assert.deepEqual(wrong, []);
+    assert.ok(classed > 100, 'the check saw many classed components');
+    assert.equal(validDeviceClass('switch', 'problem'), false);
+    assert.equal(validDeviceClass('switch', 'outlet'), true);
+    assert.equal(validDeviceClass('sensor', 'running'), false);
+    assert.equal(validDeviceClass('binary_sensor', 'running'), true);
+    assert.equal(validDeviceClass('light', 'anything'), false, 'platforms without classes accept none');
+    assert.ok(DEVICE_CLASSES.number.size < DEVICE_CLASSES.sensor.size, 'number lacks date/enum/timestamp/uptime');
+});
+
+test('B-39: STICKY_UNREACH is not announced, UNREACH is (the maintainer, 2026-10-22)', () => {
+    assert.ok(NOT_ANNOUNCED.has('STICKY_UNREACH'));
+    const b = block(bsm(), {generic: true});
+    const keys = Object.keys(b.components);
+    assert.ok(keys.includes('0_UNREACH'), 'UNREACH stays: ' + keys.join(','));
+    assert.equal(keys.includes('0_STICKY_UNREACH'), false, 'STICKY_UNREACH gone');
+    assert.equal(b.components['0_UNREACH'].p, 'binary_sensor');
+    assert.equal(b.components['0_UNREACH'].dev_cla, 'connectivity');
+    for (const {block: any} of allKnownBlocks()) {
+        for (const key of Object.keys(any.components)) {
+            assert.equal(key.endsWith('_STICKY_UNREACH'), false, key);
+        }
+    }
 });
 
 test('devicePayload: HA device discovery structure', () => {

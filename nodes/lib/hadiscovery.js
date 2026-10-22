@@ -19,6 +19,122 @@ const TILT_TYPES = /BLIND/;
 /** Platforms without a state topic. */
 const STATELESS = new Set(['button', 'notify', 'scene', 'tag']);
 
+/**
+ * The device classes Home Assistant accepts per platform (B-39). A component whose class is not in
+ * its platform's list is refused by Home Assistant together with its error log line, so `e()` drops
+ * such a class and the unit tests check every component of every known device against this table.
+ * Platforms missing here (light, climate, lock, select) take no device class at all.
+ */
+const SENSOR_CLASSES = [
+    'absolute_humidity',
+    'apparent_power',
+    'aqi',
+    'area',
+    'atmospheric_pressure',
+    'battery',
+    'blood_glucose_concentration',
+    'carbon_dioxide',
+    'carbon_monoxide',
+    'conductivity',
+    'current',
+    'data_rate',
+    'data_size',
+    'distance',
+    'duration',
+    'energy',
+    'energy_distance',
+    'energy_storage',
+    'frequency',
+    'gas',
+    'humidity',
+    'illuminance',
+    'irradiance',
+    'moisture',
+    'monetary',
+    'nitrogen_dioxide',
+    'nitrogen_monoxide',
+    'nitrous_oxide',
+    'ozone',
+    'ph',
+    'pm1',
+    'pm10',
+    'pm25',
+    'pm4',
+    'power',
+    'power_factor',
+    'precipitation',
+    'precipitation_intensity',
+    'pressure',
+    'radon',
+    'reactive_energy',
+    'reactive_power',
+    'signal_strength',
+    'sound_pressure',
+    'speed',
+    'sulphur_dioxide',
+    'temperature',
+    'temperature_delta',
+    'volatile_organic_compounds',
+    'volatile_organic_compounds_parts',
+    'voltage',
+    'volume',
+    'volume_flow_rate',
+    'volume_storage',
+    'water',
+    'weight',
+    'wind_direction',
+    'wind_speed',
+];
+const DEVICE_CLASSES = {
+    binary_sensor: new Set([
+        'battery',
+        'battery_charging',
+        'carbon_monoxide',
+        'cold',
+        'connectivity',
+        'door',
+        'garage_door',
+        'gas',
+        'heat',
+        'light',
+        'lock',
+        'moisture',
+        'motion',
+        'moving',
+        'occupancy',
+        'opening',
+        'plug',
+        'power',
+        'presence',
+        'problem',
+        'running',
+        'safety',
+        'smoke',
+        'sound',
+        'tamper',
+        'update',
+        'vibration',
+        'window',
+    ]),
+    sensor: new Set([...SENSOR_CLASSES, 'date', 'enum', 'timestamp', 'uptime']),
+    number: new Set(SENSOR_CLASSES),
+    switch: new Set(['outlet', 'switch']),
+    button: new Set(['identify', 'restart', 'update']),
+    cover: new Set(['awning', 'blind', 'curtain', 'damper', 'door', 'garage', 'gate', 'shade', 'shutter', 'window']),
+    event: new Set(['button', 'doorbell', 'motion']),
+};
+
+/** true when Home Assistant accepts `deviceClass` on `platform` */
+function validDeviceClass(platform, deviceClass) {
+    return Boolean(DEVICE_CLASSES[platform] && DEVICE_CLASSES[platform].has(deviceClass));
+}
+
+/**
+ * Datapoints that are never announced (B-39; the maintainer, 2026-10-22: "don't publish
+ * STICKY_UNREACH to home assistant auto discovery. UNREACH is enough.").
+ */
+const NOT_ANNOUNCED = new Set(['STICKY_UNREACH']);
+
 /** device classes that only binary_sensor knows — a sensor/number with one of them is rejected by HA */
 const BINARY_ONLY_CLASSES = new Set([
     'running',
@@ -267,7 +383,7 @@ function deviceBlock(ctx, iface, device) {
         const e = (dp, platform, label, more = {}) => {
             const stateless = STATELESS.has(platform);
             const uid = more.uid || `${ch.index}_${dp}`;
-            return compact({
+            const component = compact({
                 p: platform,
                 uniq_id: `${id}_${uid}`,
                 name: label,
@@ -276,6 +392,12 @@ function deviceBlock(ctx, iface, device) {
                 ...(more.command && {cmd_t: scmd(dp)}),
                 ...(more.extra || {}),
             });
+            // a class the platform does not know makes HA refuse the component (B-39)
+            if (component.dev_cla !== undefined && !validDeviceClass(platform, component.dev_cla)) {
+                delete component.dev_cla;
+            }
+
+            return component;
         };
 
         const fallback = ch.index === 0 ? 'Maintenance' : `Channel ${ch.index}`;
@@ -659,7 +781,7 @@ function deviceBlock(ctx, iface, device) {
 
         // generic layer: everything else in the channel's VALUES description
         for (const [dp, d] of Object.entries(ch.description)) {
-            if (consumed.has(dp) || !d || typeof d !== 'object') {
+            if (consumed.has(dp) || NOT_ANNOUNCED.has(dp) || !d || typeof d !== 'object') {
                 continue;
             }
 
@@ -879,6 +1001,9 @@ function discoveryMessages(ctx) {
 }
 
 module.exports = {
+    DEVICE_CLASSES,
+    NOT_ANNOUNCED,
+    validDeviceClass,
     discoveryId,
     discoveryTopic,
     ifaceOf,
