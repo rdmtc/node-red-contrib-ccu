@@ -28,4 +28,15 @@
     a value arrives on that topic. So right after the discovery configs the node publishes each
     device's current UNREACH (retained), asking the CCU for it, and sends every change. A device that
     was never unreachable is available all the same.</p>
+    <h3>Room and area</h3>
+    <p>Home Assistant assigns devices to areas, the CCU assigns channels to rooms. The node suggests the
+    channels' room as the device's area (<code>suggested_area</code>): the room shared by all channels of
+    the device that lie in a room, otherwise the room of the lowest-numbered channel that lies in one. A
+    channel in several rooms counts with its first; on openccu-lite, where rooms can be nested, with the most
+    specific one (the room before the floor), and a room of the device itself comes first. The rooms come
+    from the ReGaHSS on a CCU and from the system's metadata on openccu-lite.</p>
+    <p>Home Assistant applies the suggestion only when it creates the device. A room changed later on the
+    CCU stays as assigned in Home Assistant: change it there, or delete the device in Home Assistant and
+    republish the discovery. The option <i>Suggest the channel's room as the device's area</i> switches the
+    suggestion off.</p>
 </script>

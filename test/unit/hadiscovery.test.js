@@ -6,6 +6,7 @@ const {
     discoveryId,
     discoveryTopic,
     ifaceOf,
+    suggestedArea,
     deviceBlock,
     devicePayload,
     removalMessage,
@@ -329,11 +330,54 @@ test('plain payloads: templates read `value` and parse 0/1/true/on', () => {
     );
 });
 
-test('a single room becomes the suggested area', () => {
-    const b = block(bsm(), {rooms: (address) => (address === 'ABC0001:4' ? ['Küche'] : [])});
-    assert.equal(b.device.sa, 'Küche');
-    const b2 = block(bsm(), {rooms: (address) => (address === 'ABC0001:4' ? ['Küche'] : ['Flur'])});
-    assert.equal(b2.device.sa, undefined, 'channels in several rooms → no area');
+test("suggestedArea: the room the roomed channels share, else the lowest-numbered roomed channel's first (task 18)", () => {
+    const chs = (...addresses) => addresses.map((ADDRESS) => ({ADDRESS}));
+    const by = (map) => (address) => map[address];
+    const three = chs('D:0', 'D:1', 'D:2');
+    assert.equal(suggestedArea(by({}), 'D', three), undefined, 'no room anywhere');
+    assert.equal(suggestedArea(by({'D:1': []}), 'D', three), undefined, 'empty lists count as no room');
+    assert.equal(suggestedArea(by({'D:1': ['Küche']}), 'D', three), 'Küche', 'one channel in one room');
+    assert.equal(suggestedArea(by({'D:2': ['Flur']}), 'D', three), 'Flur', 'the maintenance channel needs no room');
+    assert.equal(
+        suggestedArea(by({'D:1': ['Küche'], 'D:2': ['Flur']}), 'D', three),
+        'Küche',
+        "different rooms → the lowest-numbered channel's",
+    );
+    assert.equal(
+        suggestedArea(by({'D:1': ['Küche', 'Flur'], 'D:2': ['Flur']}), 'D', three),
+        'Flur',
+        "a room all roomed channels share wins over the first channel's first room",
+    );
+    assert.equal(
+        suggestedArea(by({'D:1': ['Küche', 'Erdgeschoss'], 'D:2': ['Flur', 'Erdgeschoss']}), 'D', three),
+        'Erdgeschoss',
+        'nested rooms (most specific first): the parent they share',
+    );
+    assert.equal(
+        suggestedArea(by({'D:1': ['Küche', 'Erdgeschoss'], 'D:2': ['Küche', 'Erdgeschoss']}), 'D', three),
+        'Küche',
+        'nested rooms: the most specific shared one',
+    );
+    assert.equal(
+        suggestedArea(by({'D:1': ['Küche', 'Erdgeschoss']}), 'D', three),
+        'Küche',
+        'one nested room: the leaf',
+    );
+    assert.equal(
+        suggestedArea(by({D: ['Keller'], 'D:1': ['Küche']}), 'D', three),
+        'Keller',
+        'a room of the device itself comes first',
+    );
+});
+
+test('the suggested area in the device block, and the option that drops it', () => {
+    const rooms = (address) => (address === 'ABC0001:4' ? ['Küche'] : []);
+    assert.equal(block(bsm(), {rooms}).device.sa, 'Küche');
+    assert.equal(block(bsm(), {rooms, area: true}).device.sa, 'Küche');
+    assert.equal(block(bsm(), {rooms, area: false}).device.sa, undefined, 'area off → no suggested_area');
+    assert.equal(block(bsm(), {rooms: () => undefined}).device.sa, undefined, 'no rooms known (no ReGa yet)');
+    const two = (address) => (address === 'ABC0001:4' ? ['Küche'] : ['Flur']);
+    assert.equal(block(bsm(), {rooms: two}).device.sa, 'Flur', "several rooms → the first roomed address's");
 });
 
 test('devicePayload: HA device discovery structure', () => {

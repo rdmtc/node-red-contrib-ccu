@@ -51,7 +51,9 @@ const BINARY_ONLY_CLASSES = new Set([
  * @property {string[]} selected device addresses to publish
  * @property {(iface: string, address: string) => object | undefined} description VALUES description of a channel
  * @property {(address: string) => string | undefined} channelName
- * @property {(address: string) => string[] | undefined} [rooms]
+ * @property {(address: string) => string[] | undefined} [rooms] the rooms of a channel (or device), the
+ *           most specific first where rooms are nested (openccu-lite)
+ * @property {boolean} [area] the room becomes the device's `suggested_area` (default true, task 18)
  * @property {(iface: string, address: string, datapoint: string) => string} statusTopicFor
  * @property {(iface: string, address: string, datapoint: string) => string} setTopicFor
  */
@@ -185,6 +187,32 @@ function resolveVirtualReceivers(channels) {
  */
 
 /**
+ * The room Home Assistant is to suggest as the device's area (task 18). Home
+ * Assistant's area is per device, the CCU's rooms are per channel, so: a room
+ * every channel that lies in a room shares - the first one in the order of the
+ * lowest-numbered such channel - or, when they share none, the first room of
+ * the lowest-numbered channel that has one. A room of the device itself (an
+ * openccu-lite device may be in a room as a whole) comes first. Home Assistant
+ * applies `suggested_area` only when it creates the device; a room changed
+ * later stays as assigned in Home Assistant.
+ * @param {(address: string) => string[] | undefined} roomsOf
+ * @param {string} deviceAddress
+ * @param {Array<{ADDRESS: string}>} channels sorted by channel index
+ * @returns {string | undefined}
+ */
+function suggestedArea(roomsOf, deviceAddress, channels) {
+    const lists = [deviceAddress, ...channels.map((ch) => ch.ADDRESS)]
+        .map((address) => roomsOf(address))
+        .filter((rooms) => Array.isArray(rooms) && rooms.length > 0);
+    if (lists.length === 0) {
+        return undefined;
+    }
+
+    const [first, ...rest] = lists;
+    return first.find((room) => rest.every((rooms) => rooms.includes(room))) || first[0];
+}
+
+/**
  * Builds the discovery block of one device.
  * @param {DiscoveryContext} ctx
  * @param {string} iface
@@ -224,12 +252,7 @@ function deviceBlock(ctx, iface, device) {
         components[key] = e;
     };
 
-    const rooms = new Set();
-    for (const ch of channels) {
-        for (const r of roomsOf(ch.ADDRESS) || []) {
-            rooms.add(r);
-        }
-    }
+    const area = ctx.area === false ? undefined : suggestedArea(roomsOf, device.ADDRESS, channels);
 
     const maintenance = channels.find((ch) => ch.index === 0);
 
@@ -783,7 +806,7 @@ function deviceBlock(ctx, iface, device) {
             mf: 'eQ-3',
             mdl: device.TYPE,
             sw: device.FIRMWARE ? String(device.FIRMWARE) : undefined,
-            sa: rooms.size === 1 ? [...rooms][0] : undefined,
+            sa: area,
         }),
         components,
         availability,
@@ -860,6 +883,7 @@ module.exports = {
     discoveryTopic,
     ifaceOf,
     resolveVirtualReceivers,
+    suggestedArea,
     deviceBlock,
     devicePayload,
     removalMessage,

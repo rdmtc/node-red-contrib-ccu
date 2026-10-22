@@ -5,6 +5,25 @@ Notable changes to node-red-contrib-ccu. Format follows
 user-visible symptom and the cause, not the commit list (the release notes
 append commits automatically).
 
+## 4.6.0 (2026-10-22)
+
+### Added
+
+- **A device is created in Home Assistant in the room of its channels.** The
+  discovery config carries the room as the device's `suggested_area` (task
+  18). It did so before only when every channel of the device lay in one and
+  the same room: a device with channels in two rooms got no area, and on
+  openccu-lite, whose rooms can be nested and whose room list of a channel
+  names the parents too (`Küche`, `Erdgeschoss`), no device got one at all.
+  Now the area is the room shared by all channels of the device that lie in a
+  room, otherwise the room of the lowest-numbered channel that lies in one; a
+  channel in several rooms counts with its first (on openccu-lite the most
+  specific), and a room of the device itself comes first. The rooms are the
+  ReGaHSS's on a CCU and the system's metadata's on openccu-lite. New option
+  _Suggest the channel's room as the device's area_ on the node, on by
+  default. Home Assistant applies the suggestion only when it first creates
+  the device; a room changed later stays as assigned in Home Assistant.
+
 ## 4.5.3 (2026-10-05)
 
 ### Fixed

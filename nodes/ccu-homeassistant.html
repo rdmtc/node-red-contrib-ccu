@@ -7,6 +7,7 @@
             mqttNode: {value: '', required: true},
             prefix: {value: 'homeassistant'},
             generic: {value: true},
+            area: {value: true},
             devices: {value: {}},
         },
         inputs: 1,
@@ -264,6 +265,15 @@
             <label class="ccu-checkbox">
                 <input type="checkbox" id="node-input-generic">
                 <span>Also create (disabled) entities for all other datapoints</span>
+            </label>
+        </div>
+    </div>
+    <div class="form-row">
+        <label for="node-input-area"></label>
+        <div style="width: 70%; display: inline-block; vertical-align: text-top;">
+            <label class="ccu-checkbox">
+                <input type="checkbox" id="node-input-area">
+                <span>Suggest the channel's room as the device's area</span>
             </label>
         </div>
     </div>

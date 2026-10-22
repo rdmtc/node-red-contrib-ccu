@@ -81,6 +81,15 @@ publishes its current value (retained) right after the discovery configs and eve
 is available without ever having been unreachable. Any message on the node's input republishes both; the example
 wires Home Assistant's birth message (`homeassistant/status`) to it, so a Home Assistant restart gets them again.
 
+The device is created in the room of its channels: the discovery config carries it as the device's `suggested_area`
+(Home Assistant's areas are per device, the CCU's rooms per channel). The rule: the room shared by all channels of the
+device that lie in a room, otherwise the room of the lowest-numbered channel that lies in one; a channel in several
+rooms counts with its first - on openccu-lite, where rooms can be nested, with the most specific one - and a room of
+the device itself comes first. The rooms come from the ReGaHSS on a CCU and from the system's metadata on openccu-lite.
+Home Assistant applies the suggestion only when it first creates the device; a room changed later on the CCU stays as
+assigned in Home Assistant (change it there, or delete the device in Home Assistant and republish the discovery). The
+node's option _Suggest the channel's room as the device's area_ (on by default) switches it off.
+
 ## Dynamic configuration
 
 Most nodes can be reconfigured per message: put an object in `msg.config` and its

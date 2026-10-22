@@ -28,4 +28,15 @@
     bis auf diesem Topic ein Wert ankommt. Deshalb veröffentlicht der Node direkt nach den
     Discovery-Konfigurationen den aktuellen UNREACH-Wert jedes Geräts (retained), fragt ihn dazu bei der
     CCU ab und sendet jede Änderung. Ein Gerät, das nie unerreichbar war, ist so trotzdem verfügbar.</p>
+    <h3>Raum und Bereich</h3>
+    <p>Home Assistant ordnet Geräte Bereichen zu, die CCU Kanäle Räumen. Der Node schlägt Home Assistant den
+    Raum der Kanäle als Bereich des Geräts vor (<code>suggested_area</code>): den Raum, den alle Kanäle des
+    Geräts teilen, die in einem Raum liegen, sonst den Raum des Kanals mit der niedrigsten Nummer, der in
+    einem liegt. Liegt ein Kanal in mehreren Räumen, zählt der erste; auf openccu-lite, wo Räume verschachtelt
+    sein können, der speziellste (das Zimmer vor dem Stockwerk), und ein Raum des Geräts selbst geht vor. Die
+    Räume kommen auf einer CCU aus der ReGaHSS, auf openccu-lite aus den Metadaten des Systems.</p>
+    <p>Home Assistant übernimmt den Vorschlag nur, wenn es das Gerät neu anlegt. Ein später auf der CCU
+    geänderter Raum bleibt in Home Assistant, wie er dort zugeordnet ist: dort ändern, oder das Gerät in Home
+    Assistant löschen und die Discovery erneut veröffentlichen. Die Option <i>Raum als Bereich vorschlagen</i>
+    schaltet den Vorschlag ab.</p>
 </script>

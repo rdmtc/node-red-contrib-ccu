@@ -37,6 +37,7 @@ module.exports = function (RED) {
             this.mqttNodeId = config.mqttNode;
             this.prefix = String(config.prefix || 'homeassistant').replace(/\/+$/, '');
             this.generic = config.generic !== false;
+            this.area = config.area !== false;
             this.devices = config.devices || {};
             this.selected = Object.keys(this.devices).filter(
                 (a) => this.devices[a] && this.devices[a].enabled === true,
@@ -214,6 +215,7 @@ module.exports = function (RED) {
                 origin: {name: pkg.name, sw: pkg.version, url: pkg.homepage},
                 jsonPayloads: mqtt.payloadOutput !== 'plain',
                 generic: this.generic,
+                area: this.area,
                 devices: ccu.metadata.devices,
                 selected: this.selected,
                 description: (iface, address) => {
