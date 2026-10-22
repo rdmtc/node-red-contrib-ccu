@@ -5,6 +5,19 @@ Notable changes to node-red-contrib-ccu. Format follows
 user-visible symptom and the cause, not the commit list (the release notes
 append commits automatically).
 
+## Unreleased
+
+### Fixed
+
+- **One event a few times a day was lost on the way from hmipserver, which
+  logged a `RpcIOException … Connection reset` for it.** hmipserver delivers
+  its events through a pooled HTTP keep-alive client whose idle timeout is
+  1200 s and sends the next event on a pooled connection without checking it;
+  the XML-RPC callback server closed an idle connection after Node's default
+  5 s, so at the idle boundary the event went out onto a socket this side was
+  closing. The callback server now keeps an idle connection open for 1300 s,
+  longer than the client pool does, so it is always the client that lets go.
+
 ## 4.6.1 (2026-10-22)
 
 ### Fixed

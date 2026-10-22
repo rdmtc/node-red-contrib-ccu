@@ -21,6 +21,10 @@ const {InitRetry, retryDelay} = require('./lib/initretry.js');
 const xmlrpc = require('homematic-xmlrpc');
 const binrpc = require('binrpc');
 
+/** how long the XML-RPC callback server keeps an idle keep-alive connection open: longer than
+ * hmipserver's HTTP client pool (1200 s), so the pool never reuses a connection this side closed */
+const KEEP_ALIVE_TIMEOUT_MS = 1300 * 1000;
+
 const pkg = require(path.join(__dirname, '..', 'package.json'));
 
 // B-37: how long after our init the process's listDevices/newDevices still belong to it -
@@ -2862,6 +2866,17 @@ module.exports = function (RED) {
                     this.logger.info(protocol === 'binrpc' ? 'binrpc' : 'xmlrpc', 'server listening on', url);
                     this.serverError[iface] = null;
                 });
+                if (this.servers[protocol].httpServer) {
+                    // hmipserver delivers its events through a pooled HTTP keep-alive client whose idle
+                    // timeout is 1200 s, and sends the next event on a pooled connection without
+                    // checking it. Node closes an idle keep-alive connection after 5 s by default, so
+                    // at the idle boundary the two raced: the event went out onto a socket this side was
+                    // closing, hmipserver logged "Connection reset" and the event was lost, a few times a
+                    // day. The callback server keeps an idle connection longer than the client pool
+                    // does, so it is always the client that lets go.
+                    this.servers[protocol].httpServer.keepAliveTimeout = KEEP_ALIVE_TIMEOUT_MS;
+                    this.servers[protocol].httpServer.headersTimeout = KEEP_ALIVE_TIMEOUT_MS + 5000;
+                }
 
                 // Todo binrpc module: emit error event on server object to eliminate the reach-in
                 const errorEmitter = protocol === 'binrpc' ? this.servers[protocol].server : this.servers[protocol];
