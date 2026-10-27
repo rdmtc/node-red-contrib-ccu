@@ -115,6 +115,42 @@ function translateError(error) {
     return error instanceof Error ? error : new Error(String(error));
 }
 
+const RPC_TIERS = ['rpc:operate', 'rpc:configure', 'rpc:admin'];
+
+/**
+ * occulite-client B-3: the client decides "names only" from the literal `rpc:read` in
+ * GET /api/auth/v1/state, but a token made with a higher tier (rpc:admin, say) carries that tier
+ * alone - the system includes the lower ones. The transport spells `rpc:read` out for the client
+ * where a tier implies it. Goes once the package fixes it.
+ * @param {object} transport occulite-client's Transport
+ * @returns {object} the same transport
+ */
+function tierAwareTransport(transport) {
+    return {
+        request: (method, url, headers, body, signal) =>
+            transport.request(method, url, headers, body, signal).then((response) => {
+                if (response.status !== 200 || !/\/api\/auth\/v1\/state(\?|$)/.test(String(url))) {
+                    return response;
+                }
+
+                let parsed;
+                try {
+                    parsed = JSON.parse(response.body);
+                } catch {
+                    return response;
+                }
+
+                const scopes = Array.isArray(parsed && parsed.scopes) ? parsed.scopes : [];
+                if (scopes.includes('rpc:read') || !scopes.some((scope) => RPC_TIERS.includes(scope))) {
+                    return response;
+                }
+
+                return {...response, body: JSON.stringify({...parsed, scopes: [...scopes, 'rpc:read']})};
+            }),
+        stream: (url, headers, signal) => transport.stream(url, headers, signal),
+    };
+}
+
 class LiteConnection {
     /**
      * @param {object} options
@@ -161,7 +197,7 @@ class LiteConnection {
         const clientOptions = {
             url: this.options.url,
             auth: {token: this.options.token},
-            transport: nodeTransport(this.options.insecure ? {insecure: true} : {}),
+            transport: tierAwareTransport(nodeTransport(this.options.insecure ? {insecure: true} : {})),
             interfaces: this.interfaces,
             values: true,
             meta: false,
@@ -266,6 +302,7 @@ module.exports = {
     ADDON_TOKEN_FILE,
     CALLBACK_METHODS,
     readAddonToken,
+    tierAwareTransport,
     translateError,
     isFault,
     load,
