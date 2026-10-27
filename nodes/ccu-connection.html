@@ -13,6 +13,12 @@
             cuxdEnabled: {value: false},
             jackEnabled: {value: false},
             jackPort: {value: 2121},
+            regaPort: {value: ''},
+            bcrfPort: {value: ''},
+            bcwiPort: {value: ''},
+            iprfPort: {value: ''},
+            virtPort: {value: ''},
+            cuxdPort: {value: ''},
 
             regaPoll: {value: true},
             regaInterval: {value: 30},
@@ -223,12 +229,18 @@
     <div class="form-row">
         <label for="node-input-rfdEnabled"><i class="icon-tag"></i> Interfaces</label>
         <div style="width: 70%; display: inline-block; vertical-align: text-top;">
-            <label class="ccu-checkbox"><input type="checkbox" id="node-config-input-regaEnabled"> ReGaHSS</label><br>
-            <label class="ccu-checkbox"><input type="checkbox" id="node-config-input-bcrfEnabled"> BidCos-RF</label><br>
-            <label class="ccu-checkbox"><input type="checkbox" id="node-config-input-bcwiEnabled"> BidCos-Wired</label><br>
-            <label class="ccu-checkbox"><input type="checkbox" id="node-config-input-iprfEnabled"> HmIP-RF</label><br>
-            <label class="ccu-checkbox"><input type="checkbox" id="node-config-input-virtEnabled"> VirtualDevices</label><br>
-            <label class="ccu-checkbox"><input type="checkbox" id="node-config-input-cuxdEnabled"> CUxD</label><br>
+            <label class="ccu-checkbox"><input type="checkbox" id="node-config-input-regaEnabled"> ReGaHSS</label>
+            <input type="text" id="node-config-input-regaPort" class="ccu-port" style="width: 70px;" placeholder="8181"><br>
+            <label class="ccu-checkbox"><input type="checkbox" id="node-config-input-bcrfEnabled"> BidCos-RF</label>
+            <input type="text" id="node-config-input-bcrfPort" class="ccu-port" style="width: 70px;" placeholder="2001"><br>
+            <label class="ccu-checkbox"><input type="checkbox" id="node-config-input-bcwiEnabled"> BidCos-Wired</label>
+            <input type="text" id="node-config-input-bcwiPort" class="ccu-port" style="width: 70px;" placeholder="2000"><br>
+            <label class="ccu-checkbox"><input type="checkbox" id="node-config-input-iprfEnabled"> HmIP-RF</label>
+            <input type="text" id="node-config-input-iprfPort" class="ccu-port" style="width: 70px;" placeholder="2010"><br>
+            <label class="ccu-checkbox"><input type="checkbox" id="node-config-input-virtEnabled"> VirtualDevices</label>
+            <input type="text" id="node-config-input-virtPort" class="ccu-port" style="width: 70px;" placeholder="9292"><br>
+            <label class="ccu-checkbox"><input type="checkbox" id="node-config-input-cuxdEnabled"> CUxD</label>
+            <input type="text" id="node-config-input-cuxdPort" class="ccu-port" style="width: 70px;" placeholder="8701"><br>
             <label class="ccu-checkbox"><input type="checkbox" id="node-config-input-jackEnabled"> CCU-Jack</label>
             <input type="text" id="node-config-input-jackPort" style="width: 70px;" placeholder="2121">
         </div>

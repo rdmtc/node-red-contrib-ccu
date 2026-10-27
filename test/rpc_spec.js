@@ -16,7 +16,7 @@ const nodeSignal = require('../nodes/ccu-signal.js');
 const nodeSwitch = require('../nodes/ccu-switch.js');
 const nodeMqtt = require('../nodes/ccu-mqtt.js');
 const nodeConnection = require('../nodes/ccu-connection.js');
-const {removeFiles, hmSimOptions} = require('./utils');
+const {removeFiles, hmSimOptions, simPorts, connectionNode} = require('./utils');
 
 helper.init(require.resolve('node-red'));
 
@@ -127,7 +127,9 @@ describe('rpc flow1', () => {
         removeFiles();
         this.timeout(7000);
         hmSim = new HmSim(hmSimOptions());
-        helper.startServer(() => {
+        helper.startServer(async () => {
+            await hmSim.whenReady();
+            Object.assign(connectionNode(flow1), simPorts(hmSim));
             helper.load([nodeConnection, nodeRpcEvent, nodeValue, nodeRpc], flow1, () => {
                 nc = helper.getNode('nc');
                 nh = helper.getNode('nh');
@@ -201,7 +203,7 @@ describe('rpc flow1', () => {
                 });
                 done();
             });
-            hmSim.api.emit('setValue', 'rfd', 'BidCoS-RF:1', 'PRESS_SHORT', true);
+            hmSim.setValue('rfd', 'BidCoS-RF:1', 'PRESS_SHORT', true, {internal: true});
         });
         it('should send msg on HmIP-RF/Test-WGC:1/PRESS_SHORT event', function (done) {
             this.timeout(10000);
@@ -237,7 +239,7 @@ describe('rpc flow1', () => {
                 });
                 done();
             });
-            hmSim.api.emit('setValue', 'hmip', '00131709AE37B4:1', 'PRESS_SHORT', true);
+            hmSim.setValue('hmip', '00131709AE37B4:1', 'PRESS_SHORT', true, {internal: true});
         });
     });
 

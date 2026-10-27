@@ -9,7 +9,7 @@ const HmSim = require('hm-simulator/sim');
 const nodeGetValue = require('../nodes/ccu-get-value.js');
 const nodeSwitch = require('../nodes/ccu-switch.js');
 const nodeConnection = require('../nodes/ccu-connection.js');
-const {removeFiles, hmSimOptions} = require('./utils');
+const {removeFiles, hmSimOptions, simPorts, connectionNode} = require('./utils');
 
 helper.init(require.resolve('node-red'));
 
@@ -108,7 +108,9 @@ describe('context flow1', () => {
         this.timeout(12000);
         removeFiles();
         hmSim = new HmSim(hmSimOptions());
-        helper.startServer(() => {
+        helper.startServer(async () => {
+            await hmSim.whenReady();
+            Object.assign(connectionNode(flow1), simPorts(hmSim));
             helper.load([nodeConnection, nodeSwitch, nodeGetValue], flow1, () => {
                 nc = helper.getNode('nc');
                 nhtrue = helper.getNode('nhtrue');
@@ -148,7 +150,7 @@ describe('context flow1', () => {
             nhtrue.once('input', () => {
                 done();
             });
-            hmSim.api.emit('setValue', 'hmip', '00131709AE37B4:3', 'STATE', true);
+            hmSim.setValue('hmip', '00131709AE37B4:3', 'STATE', true, {internal: true});
 
             setTimeout(() => {
                 ns.receive({});
@@ -163,7 +165,7 @@ describe('context flow1', () => {
                 message.payload.should.equal(false);
                 done();
             });
-            hmSim.api.emit('setValue', 'hmip', '00131709AE37B4:3', 'STATE', false);
+            hmSim.setValue('hmip', '00131709AE37B4:3', 'STATE', false, {internal: true});
 
             setTimeout(() => {
                 ng.receive({});
@@ -175,7 +177,7 @@ describe('context flow1', () => {
                 message.payload.should.equal(true);
                 done();
             });
-            hmSim.api.emit('setValue', 'hmip', '00131709AE37B4:3', 'STATE', true);
+            hmSim.setValue('hmip', '00131709AE37B4:3', 'STATE', true, {internal: true});
 
             setTimeout(() => {
                 ng.receive({});

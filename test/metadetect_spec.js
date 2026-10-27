@@ -186,8 +186,11 @@ describe('metadata api detection at start (B-28)', function () {
         infos('nc')
             .some((m) => /^Metadata stream connected$/.test(m))
             .should.be.true();
-        infos('nc')
-            .some((m) => /ReGaHSS connected/.test(m))
+        // the ReGaHSS line of the refused start is legitimate; none after the stream took over
+        const lines = infos('nc');
+        lines
+            .slice(lines.findIndex((m) => /^Metadata stream connected$/.test(m)))
+            .some((m) => /Interface ReGaHSS/.test(m))
             .should.be.false();
         // and the editors' interface list does not offer it
         const ifaces = await new Promise((resolve, reject) => {

@@ -11,7 +11,7 @@ const nodePoll = require('../nodes/ccu-poll.js');
 const nodeScript = require('../nodes/ccu-script.js');
 const nodeProgram = require('../nodes/ccu-program.js');
 const nodeConnection = require('../nodes/ccu-connection.js');
-const {removeFiles, hmSimOptions} = require('./utils');
+const {removeFiles, hmSimOptions, simPorts, connectionNode} = require('./utils');
 
 helper.init(require.resolve('node-red'));
 
@@ -174,7 +174,9 @@ describe('regahss flow1', () => {
         removeFiles();
         this.timeout(12000);
         hmSim = new HmSim(hmSimOptions());
-        helper.startServer(() => {
+        helper.startServer(async () => {
+            await hmSim.whenReady();
+            Object.assign(connectionNode(flow1), simPorts(hmSim));
             helper.load([nodeConnection, nodeSysvar, nodePoll], flow1, () => {
                 nh = helper.getNode('nh');
                 nv = helper.getNode('nv');
@@ -302,7 +304,9 @@ describe('regahss flow2', () => {
     before((done) => {
         removeFiles();
         hmSim = new HmSim(hmSimOptions());
-        helper.startServer(() => {
+        helper.startServer(async () => {
+            await hmSim.whenReady();
+            Object.assign(connectionNode(flow2), simPorts(hmSim));
             helper.load([nodeConnection, nodeSysvar, nodePoll], flow2, () => {
                 nh = helper.getNode('nh');
                 nv = helper.getNode('nv');
@@ -419,7 +423,9 @@ describe('regahss flow3', () => {
     before((done) => {
         removeFiles();
         hmSim = new HmSim(hmSimOptions());
-        helper.startServer(() => {
+        helper.startServer(async () => {
+            await hmSim.whenReady();
+            Object.assign(connectionNode(flow3), simPorts(hmSim));
             helper.load([nodeConnection, nodeSysvar, nodePoll, nodeScript, nodeProgram], flow3, () => {
                 nh = helper.getNode('nh');
                 nv = helper.getNode('nv');

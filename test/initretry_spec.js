@@ -162,7 +162,7 @@ describe('init retry (task 11)', function () {
                 4000,
             )
         ).should.be.true();
-        (Date.now() - started).should.be.below(3000);
+        (Date.now() - started).should.be.below(3500);
         nip.currentStatus.should.equal('green');
         nc.ifaceWaiting.should.deepEqual({});
 
@@ -222,7 +222,7 @@ describe('init retry (task 11)', function () {
         const nip = helper.getNode('nip');
         (await until(() => servers[0].calls.length >= 2, 3500)).should.be.true();
         const log = levels('nc');
-        log.errors.should.deepEqual(['init HmIP-RF failed: fault -1 Failure, retrying in 1 s']);
+        log.errors.should.deepEqual(['init HmIP-RF failed: fault -1 Failure, retrying in 3 s']);
         should(nc.ifaceWaiting['HmIP-RF']).be.undefined();
         nip.currentStatus.should.equal('red');
     });

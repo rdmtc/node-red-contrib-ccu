@@ -22,6 +22,7 @@ const HmSim = require('hm-simulator/sim.js');
 const lab = require('hm-simulator/data/fixtures/lab-2026-09.json');
 
 const nodeConnection = require('../nodes/ccu-connection.js');
+const {simPorts} = require('./utils');
 
 helper.init(require.resolve('node-red'));
 
@@ -86,13 +87,14 @@ function realTable() {
     return table;
 }
 
-function flow(regaEnabled) {
+function flow(regaEnabled, ports = {}) {
     return [
         {
             id: 'nc',
             type: 'ccu-connection',
             name: 'b36',
             host: HOST,
+            ...ports,
             regaEnabled,
             bcrfEnabled: false,
             iprfEnabled: true,
@@ -160,12 +162,12 @@ describe('stale cache entries and refused paramset descriptions (B-36)', functio
             devices: {hmip: {devices: Object.values(realTable())}},
             paramsetDescriptions: lab.paramsetDescriptions,
             behaviorPath: false,
-            rega: regaValues ? {port: 8181, values: regaValues} : undefined,
-            config: {listenAddress: HOST, xmlrpcListenPort: 2010},
+            rega: regaValues ? {port: 0, values: regaValues} : undefined,
+            config: {listenAddress: HOST, xmlrpcListenPort: 0},
         });
         await sim.whenReady();
 
-        await load([nodeConnection], flow(Boolean(regaValues)));
+        await load([nodeConnection], flow(Boolean(regaValues), simPorts(sim)));
         nc = helper.getNode('nc');
         nc.paramsetFile = PARAMSETS_SCRATCH;
         nc.valuesPruneDelay = 500;

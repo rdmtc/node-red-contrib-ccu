@@ -529,6 +529,8 @@ module.exports = function (RED) {
             const pass = auth ? config.password : undefined;
 
             this.ifaceTypes = {
+                // task 15: a port set in the dialog wins over the default of the transport (a CCU
+                // behind port forwarding, hm-simulator on a free port); blank is the default
                 ReGaHSS: {
                     conf: 'rega',
                     rpc: this.isLocal ? binrpc : xmlrpc,
@@ -540,7 +542,7 @@ module.exports = function (RED) {
                 'BidCos-RF': {
                     conf: 'bcrf',
                     rpc: this.isLocal || transport.bcrfBinRpc ? binrpc : xmlrpc,
-                    port: this.isLocal ? 32001 : tls ? 42001 : 2001,
+                    port: Number(config.bcrfPort) || (this.isLocal ? 32001 : tls ? 42001 : 2001),
                     protocol: this.isLocal || transport.bcrfBinRpc ? 'binrpc' : 'http',
                     auth,
                     user,
@@ -553,7 +555,7 @@ module.exports = function (RED) {
                 'BidCos-Wired': {
                     conf: 'bcwi',
                     rpc: this.isLocal ? binrpc : xmlrpc,
-                    port: this.isLocal ? 32000 : tls ? 42000 : 2000,
+                    port: Number(config.bcwiPort) || (this.isLocal ? 32000 : tls ? 42000 : 2000),
                     protocol: this.isLocal ? 'binrpc' : 'http',
                     auth,
                     user,
@@ -566,7 +568,7 @@ module.exports = function (RED) {
                 'HmIP-RF': {
                     conf: 'iprf',
                     rpc: xmlrpc,
-                    port: this.isLocal ? 32010 : tls ? 42010 : 2010,
+                    port: Number(config.iprfPort) || (this.isLocal ? 32010 : tls ? 42010 : 2010),
                     protocol: 'http',
                     auth,
                     user,
@@ -584,7 +586,7 @@ module.exports = function (RED) {
                 VirtualDevices: {
                     conf: 'virt',
                     rpc: xmlrpc,
-                    port: this.isLocal ? 39292 : tls ? 49292 : 9292,
+                    port: Number(config.virtPort) || (this.isLocal ? 39292 : tls ? 49292 : 9292),
                     path: 'groups',
                     protocol: 'http',
                     auth,
@@ -598,7 +600,7 @@ module.exports = function (RED) {
                 CUxD: {
                     conf: 'cuxd',
                     rpc: binrpc,
-                    port: 8701,
+                    port: Number(config.cuxdPort) || 8701,
                     protocol: 'binrpc',
                     init: true,
                     ping: true,
@@ -771,7 +773,7 @@ module.exports = function (RED) {
 
             this.rega = new Rega({
                 host: this.host,
-                port: this.isLocal ? 8183 : tls ? 48181 : 8181,
+                port: Number(config.regaPort) || (this.isLocal ? 8183 : tls ? 48181 : 8181),
                 tls,
                 insecure: inSecure,
                 username: user,

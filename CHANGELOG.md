@@ -18,6 +18,15 @@ append commits automatically).
   line that reports the connection says how long after the start (or after the
   outage) it came. The metadata API's re-detection on openccu-lite follows the
   same schedule.
+- **The port of each interface can be set in the connection node**, beside its
+  checkbox: blank is the CCU's port for the transport as before (2001/42001 and
+  so on, the 3xxxx ports on the CCU itself), a number replaces it - for a CCU
+  behind port forwarding, or a simulator on another port.
+- The test suite runs hm-simulator 1.4 on free ports, so it runs beside a CCU
+  or another suite, and drives the simulator's scenario API: devices paired
+  and removed while Node-RED runs, a ramp-time write, a service message, an
+  interface process that restarts and forgets its clients, TLS with basic
+  auth.
 - **On openccu-lite the metadata stream reports as `Metadata`, not as
   "Interface ReGaHSS".** The system has no ReGaHSS; the connection borrowed
   that slot for the stream's state, so the log said "Interface ReGaHSS

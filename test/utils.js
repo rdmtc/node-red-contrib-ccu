@@ -31,7 +31,9 @@ module.exports = {
                 hmip: {devices: Object.keys(devices['HmIP-RF']).map((addr) => devices['HmIP-RF'][addr])},
             },
             rega: {
-                port: 8181,
+                // task 15: free ports, so the suite runs beside a CCU or another suite; the
+                // connection node gets them through simPorts() once whenReady() resolved
+                port: 0,
                 variables: JSON.parse(fs.readFileSync(path.join(__dirname, 'simulator-data/variables.json'))),
                 programs: JSON.parse(fs.readFileSync(path.join(__dirname, 'simulator-data/programs.json'))),
                 rooms: JSON.parse(fs.readFileSync(path.join(__dirname, 'simulator-data/rooms.json'))),
@@ -40,10 +42,30 @@ module.exports = {
             },
             config: {
                 listenAddress: '127.0.0.1',
-                binrpcListenPort: 2001,
-                xmlrpcListenPort: 2010,
+                binrpcListenPort: 0,
+                xmlrpcListenPort: 0,
             },
             behaviorPath: path.join(__dirname, 'simulator-behaviors'),
         };
+    },
+    /**
+     * task 15: the ports hm-simulator picked, as the connection node's config fields.
+     * @param {object} sim a started HmSim (after whenReady())
+     * @returns {object} bcrfPort, iprfPort, regaPort (when the ReGa mock runs)
+     */
+    simPorts(sim) {
+        return {
+            bcrfPort: sim.ports.rfd,
+            iprfPort: sim.ports.hmip,
+            ...(sim.regaSim && sim.regaSim.port ? {regaPort: sim.regaSim.port} : {}),
+        };
+    },
+    /**
+     * task 15: the connection node of a flow, to hand it the simulator's ports.
+     * @param {Array} flow
+     * @returns {object}
+     */
+    connectionNode(flow) {
+        return flow.find((node) => node.type === 'ccu-connection');
     },
 };

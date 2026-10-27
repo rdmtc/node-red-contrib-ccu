@@ -18,6 +18,7 @@
                 <li>VirtualDevices: heating groups and systems the CCU integrates, such as Osram Lightify</li>
                 <li>CUxD</li>
                 <li>CCU-Jack: the XML-RPC interface of the <a href="https://github.com/mdzio/ccu-jack" target="_blank">CCU-Jack</a> addon (port configurable, 2121 by default, 2122 with TLS)</li>
+                <li>The port field beside each interface: blank is the CCU's port for the transport (2001/42001 and so on, the 3xxxx ports on the CCU itself); a number replaces it, for a CCU behind port forwarding or a simulator on another port.</li>
             </ul>
         </li>
         <li><b>RPC ping</b> and <b>RPC ping timeout (s)</b>: How often the connection to the interface processes is checked with a ping, and after how many seconds without an answer it subscribes again. Off means no pings and no timeout-triggered re-init for this connection.</li>

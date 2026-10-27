@@ -275,9 +275,12 @@ describe('HmIP-RF: hm-simulator restarts and keeps its clients (B-37)', function
         removeCache();
         sim = new HmSim({...hmSimOptions(), rega: undefined, behaviorPath: false});
         await sim.whenReady();
+        // task 15: the simulator on a free port; the fake above keeps the default
+        flow[0].iprfPort = sim.ports.hmip;
     });
 
     after(async () => {
+        delete flow[0].iprfPort;
         await sim.close();
         removeCache();
     });
