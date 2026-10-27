@@ -34,7 +34,7 @@
                 <li>TLS/SSL: Transport encryption. The interfaces are reached over the CCU's TLS ports (42000, 42001, 42010, 49292, ReGaHSS 48181, CCU-Jack 2122), openccu-lite's metadata API over 443. BIN-RPC has no TLS: with TLS on, BidCos-RF always goes over XML-RPC.</li>
                 <li>Ignore invalid TLS Certificates: Node-RED accepts an untrusted certificate too. Needed as long as the CCU uses its self-signed certificate.</li>
                 <li>Username: A user allowed to log in to the CCU.</li>
-                <li>Password: The user's password. It is kept in Node-RED's credentials (encrypted in <code>flows_cred.json</code>), not in the flow. A flow from a version before 4.4.6 that still carries it in plain text is taken over at the first start; the next deploy removes it from <code>flows.json</code>.</li>
+                <li>Password: The user's password. It is kept in Node-RED's credentials (encrypted in <code>flows_cred.json</code>), not in the flow. A flow from a version before 4.5.0 that still carries it in plain text is taken over at the first start; the next deploy removes it from <code>flows.json</code>.</li>
             </ul>
             The other direction stays unencrypted: the CCU sends its events to the XML-RPC or BIN-RPC server Node-RED opens for it (<i>Listen Address</i>, <i>BINRPC</i> and <i>XMLRPC listening port</i>) without TLS and without a login - it cannot log in there or verify our certificate. Those ports should be open in the Node-RED host's firewall for the CCU only.</li>
     </ul>

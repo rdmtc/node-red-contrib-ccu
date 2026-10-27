@@ -810,7 +810,7 @@ module.exports = function (RED) {
 
         /**
          * B-31: the password and the token, from the credentials or - once - from the
-         * plain properties of a flow written before 4.4.6.
+         * plain properties of a flow written before 4.5.0.
          * @param {object} config the node's configuration as deployed
          * @returns {{password: string, metaToken: string}}
          */

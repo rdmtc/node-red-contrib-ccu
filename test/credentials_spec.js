@@ -1,6 +1,6 @@
 /* B-31: the CCU password and the openccu-lite token are Node-RED credentials
    (flows_cred.json, encrypted, never exported), not properties of the config
-   node in flows.json. A flow written before 4.4.6 still carries them as
+   node in flows.json. A flow written before 4.5.0 still carries them as
    plain properties: they are used once, moved into the credentials, and the
    node warns; the editor's defaults no longer know them, so the next deploy
    drops them from flows.json. */
@@ -110,7 +110,7 @@ describe('password and token in the credentials (B-31)', function () {
         warns('nc').should.deepEqual([]);
     });
 
-    it('a flow from before 4.4.6 with both in plain text: used once, moved into the credentials, one warning', async () => {
+    it('a flow from before 4.5.0 with both in plain text: used once, moved into the credentials, one warning', async () => {
         await load([nodeConnection], flow({password: 'plain1', metaToken: 'olt_plain'}), {});
         const nc = helper.getNode('nc');
         nc.ifaceTypes['HmIP-RF'].pass.should.equal('plain1');
