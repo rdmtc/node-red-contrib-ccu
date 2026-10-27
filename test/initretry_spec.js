@@ -172,10 +172,15 @@ describe('init retry (task 11)', function () {
         log.warns.filter((m) => m.includes('not reachable yet')).length.should.equal(0);
         log.infos.filter((m) => m.includes('not listening yet')).length.should.equal(3);
         log.infos.should.containEql(
-            'HmIP-RF not listening yet (connect ECONNREFUSED), waiting for it - retrying in 1 s',
+            'HmIP-RF not listening yet (connect ECONNREFUSED), waiting for it - retrying in 3 s',
         );
-        log.infos.should.containEql('HmIP-RF connected after 2 attempts');
-        log.infos.should.containEql('VirtualDevices connected after 2 attempts');
+        // task 17: the line says how long after the start the process answered
+        log.infos
+            .some((m) => /^HmIP-RF connected after 2 attempts, [\d.]+ s after the start$/.test(m))
+            .should.be.true();
+        log.infos
+            .some((m) => /^VirtualDevices connected after 2 attempts, [\d.]+ s after the start$/.test(m))
+            .should.be.true();
         servers.forEach((s) => s.inits().should.equal(1));
     });
 
