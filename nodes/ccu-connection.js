@@ -56,6 +56,14 @@ function execToCallback(promise, callback) {
 }
 
 /**
+ * task 16: the pseudo-interface that carries the metadata stream's state on openccu-lite in
+ * ifaceTypes/ifaceStatus, where the ReGaHSS slot was borrowed before - the nodes' status logic
+ * works on those tables, and the system has no ReGaHSS to report. Never an RPC interface: no
+ * client, no init, not offered in the editors' interface lists (pseudo).
+ */
+const META_IFACE = 'Metadata';
+
+/**
  * B-28: how often an inconclusive metadata api detection is repeated on the init retry's schedule
  * (task 17: every 3 s for 90 s, then every 15 s - 41 attempts reach the same 255 s the 1/2/4/8/15 s
  * steps covered in 20)
@@ -171,6 +179,11 @@ module.exports = function (RED) {
             switch (request.query.type) {
                 case 'ifaces': {
                     Object.keys(config.ifaceTypes).forEach((iface) => {
+                        if (config.ifaceTypes[iface].pseudo) {
+                            // task 16: the metadata stream is not an interface a node could address
+                            return;
+                        }
+
                         object[iface] = {
                             enabled: Boolean(config.ifaceTypes[iface].enabled),
                             connected: Boolean(config.ifaceStatus[iface]),
@@ -973,7 +986,10 @@ module.exports = function (RED) {
             const waitingChanged = Boolean(this.ifaceWaiting[iface]) !== waiting;
             if (this.ifaceStatus[iface] !== connected || waitingChanged) {
                 if (this.ifaceStatus[iface] !== connected) {
-                    if (iface === 'ReGaHSS') {
+                    if (this.ifaceTypes[iface].pseudo) {
+                        // task 16: the stream of the system's metadata api, not an interface process
+                        this.logger.info(iface, 'stream', connected ? 'connected' : 'disconnected');
+                    } else if (iface === 'ReGaHSS') {
                         this.logger.info('Interface', iface, connected ? 'connected' : 'disconnected');
                     } else if (waiting) {
                         // task 11: the retry logs the one warn line, this stays quiet
@@ -999,11 +1015,7 @@ module.exports = function (RED) {
                     delete this.ifaceWaiting[iface];
                 }
 
-                Object.keys(this.users).forEach((id) => {
-                    if (typeof this.users[id].setStatus === 'function') {
-                        this.users[id].setStatus({ifaceStatus: this.ifaceStatus, ifaceWaiting: this.ifaceWaiting});
-                    }
-                });
+                this.pushStatus();
             }
         }
 
@@ -1031,6 +1043,15 @@ module.exports = function (RED) {
             }
 
             return this.initRetry[iface];
+        }
+
+        /** the interface tables as they are now, to every node of this connection */
+        pushStatus() {
+            Object.keys(this.users).forEach((id) => {
+                if (typeof this.users[id].setStatus === 'function') {
+                    this.users[id].setStatus({ifaceStatus: this.ifaceStatus, ifaceWaiting: this.ifaceWaiting});
+                }
+            });
         }
 
         /**
@@ -1510,6 +1531,21 @@ module.exports = function (RED) {
                 this.closeClient('ReGaHSS');
             }
 
+            // task 16: the metadata stream's state is the Metadata pseudo-interface's, not the
+            // ReGaHSS slot's - the system has none, and "Interface ReGaHSS connected" misled
+            this.ifaceTypes[META_IFACE] = {
+                conf: 'meta',
+                pseudo: true,
+                init: false,
+                ping: false,
+                protocol: this.tlsEnabled ? 'https' : 'http',
+                port: this.metaPort,
+                enabled: true,
+            };
+            delete this.ifaceStatus.ReGaHSS;
+            delete this.ifaceWaiting.ReGaHSS;
+            this.ifaceStatus[META_IFACE] = null;
+
             this.logger.info(
                 'openccu-lite detected (' +
                     (info.implementation || 'meta api') +
@@ -1552,12 +1588,20 @@ module.exports = function (RED) {
                         resolve();
                     },
                     onStatus: (connected) => {
-                        this.setIfaceStatus('ReGaHSS', connected);
+                        this.setIfaceStatus(META_IFACE, connected);
                     },
                     onGone: () => {
                         this.metaMode = false;
                         this.meta = null;
                         this.lastMetaProbe = 0;
+                        // task 16: the ReGaHSS slot is the interface again
+                        delete this.ifaceTypes[META_IFACE];
+                        delete this.ifaceStatus[META_IFACE];
+                        if (this.ifaceTypes.ReGaHSS.enabled) {
+                            this.ifaceStatus.ReGaHSS = null;
+                        }
+
+                        this.pushStatus();
                         this.logger.warn('this box no longer answers as openccu-lite - detecting again');
                         this.detectMetaOutcome().then((outcome) => {
                             if (outcome.info) {

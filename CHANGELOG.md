@@ -18,6 +18,13 @@ append commits automatically).
   line that reports the connection says how long after the start (or after the
   outage) it came. The metadata API's re-detection on openccu-lite follows the
   same schedule.
+- **On openccu-lite the metadata stream reports as `Metadata`, not as
+  "Interface ReGaHSS".** The system has no ReGaHSS; the connection borrowed
+  that slot for the stream's state, so the log said "Interface ReGaHSS
+  connected" at every start and reconnect, right next to "this box has no
+  ReGaHSS". The log now says "Metadata stream connected", the nodes' status
+  counts the stream under that name, and the editors' interface lists do not
+  offer it.
 
 ## 4.6.2 (2026-10-23)
 

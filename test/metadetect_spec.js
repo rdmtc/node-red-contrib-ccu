@@ -179,6 +179,26 @@ describe('metadata api detection at start (B-28)', function () {
             .should.be.true();
         should(nc.metaRedetectTimeout).be.null();
         should(nc.clients.ReGaHSS).be.undefined();
+        // task 16: the stream's state is the Metadata pseudo-interface's, not "Interface ReGaHSS"
+        (await until(() => nc.ifaceStatus.Metadata === true, 3000)).should.be.true();
+        should(nc.ifaceStatus.ReGaHSS).be.undefined();
+        nc.ifaceTypes.Metadata.pseudo.should.be.true();
+        infos('nc')
+            .some((m) => /^Metadata stream connected$/.test(m))
+            .should.be.true();
+        infos('nc')
+            .some((m) => /ReGaHSS connected/.test(m))
+            .should.be.false();
+        // and the editors' interface list does not offer it
+        const ifaces = await new Promise((resolve, reject) => {
+            helper
+                .request()
+                .get('/ccu?config=nc&type=ifaces')
+                .end((error, res) => (error ? reject(error) : resolve(JSON.parse(res.text))));
+        });
+        should(ifaces.Metadata).be.undefined();
+        should(ifaces).have.property('ReGaHSS');
+        ifaces['HmIP-RF'].enabled.should.be.false();
     });
 
     it("a CCU's 404 is conclusive: no re-detection is armed", async () => {
