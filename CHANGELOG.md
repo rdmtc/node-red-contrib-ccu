@@ -5,6 +5,20 @@ Notable changes to node-red-contrib-ccu. Format follows
 user-visible symptom and the cause, not the commit list (the release notes
 append commits automatically).
 
+## Unreleased
+
+### Changed
+
+- **An interface process that is not up yet is tried every 3 s for the first
+  90 s, then every 15 s.** The 1, 2, 4, 8 s steps and the 15 s after them
+  missed hmipserver's ready moment on a booting system by up to 15 s (measured
+  on an openccu-lite Pi 4: hmipserver answers 50-55 s after the boot, the next
+  attempt came at 61 s). The same holds after a process went away. When one
+  interface appears, the others still waiting are tried at once, and the log
+  line that reports the connection says how long after the start (or after the
+  outage) it came. The metadata API's re-detection on openccu-lite follows the
+  same schedule.
+
 ## 4.6.2 (2026-10-23)
 
 ### Fixed

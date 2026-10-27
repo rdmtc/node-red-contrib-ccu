@@ -17,7 +17,7 @@ const nextport = require('./lib/nextport.js');
 const hmDiscover = require('./lib/discover.js');
 const {Rega} = require('homematic-rega'); // ES module - require(esm) needs Node >= 20.19 / >= 22.12
 const metaProvider = require('./lib/metaprovider.js');
-const {InitRetry, retryDelay} = require('./lib/initretry.js');
+const {InitRetry, retryDelay, RETRY_INTERVAL} = require('./lib/initretry.js');
 const xmlrpc = require('homematic-xmlrpc');
 const binrpc = require('binrpc');
 
@@ -55,8 +55,12 @@ function execToCallback(promise, callback) {
     );
 }
 
-/** B-28: how often an inconclusive metadata api detection is repeated (1, 2, 4, 8 s, then every 15 s) */
-const META_REDETECT_ATTEMPTS = 20;
+/**
+ * B-28: how often an inconclusive metadata api detection is repeated on the init retry's schedule
+ * (task 17: every 3 s for 90 s, then every 15 s - 41 attempts reach the same 255 s the 1/2/4/8/15 s
+ * steps covered in 20)
+ */
+const META_REDETECT_ATTEMPTS = 41;
 
 /**
  * task 9: has a device description changed in a way that changes its paramsets?
@@ -636,8 +640,10 @@ module.exports = function (RED) {
             this.lastRealEvent = {};
             this.ifaceStatus = {};
             // task 11: interfaces whose init failed and is retried (InitRetry per iface),
-            // and which of them are waiting for an unreachable process
+            // and which of them are waiting for an unreachable process; task 17: when this
+            // node started, for the retry's "connected … after the start" line
             this.initRetry = {};
+            this.startedAt = Date.now();
             this.ifaceWaiting = {};
             // B-37: per interface {inFlight, at, reinit} of our own init, and how long after it the
             // process's listDevices/newDevices still answer it (see keptSubscription())
@@ -1011,6 +1017,7 @@ module.exports = function (RED) {
                 this.initRetry[iface] = new InitRetry({
                     iface,
                     logger: this.logger,
+                    startedAt: this.startedAt,
                     attempt: () => this.rpcInit(iface, {retry: true}),
                     onState: (state) => {
                         if (state === 'connected') {
@@ -1036,6 +1043,21 @@ module.exports = function (RED) {
             } else {
                 this.setIfaceStatus(iface, true);
             }
+
+            this.retryMissingNow(iface);
+        }
+
+        /**
+         * task 17: an interface appeared - every other one whose init retry is waiting on its timer
+         * is tried at once (rfd and hmipserver come up close together on a booting system).
+         * @param {string} iface the one that appeared
+         */
+        retryMissingNow(iface) {
+            Object.keys(this.initRetry).forEach((other) => {
+                if (other !== iface) {
+                    this.initRetry[other].poke();
+                }
+            });
         }
 
         /**
@@ -1396,9 +1418,10 @@ module.exports = function (RED) {
         /**
          * B-28: an inconclusive detection (the box busy or still starting) used
          * to leave the connection in ReGa mode for good - the only re-detection
-         * ran from rare error paths, at most every five minutes. Ask again after
-         * 1, 2, 4, 8 s, then every 15 s, up to META_REDETECT_ATTEMPTS times;
-         * after that the five-minute rule of recheckMeta() applies.
+         * ran from rare error paths, at most every five minutes. Ask again on the
+         * init retry's schedule (every 3 s for 90 s, then every 15 s - task 17), up
+         * to META_REDETECT_ATTEMPTS times; after that the five-minute rule of
+         * recheckMeta() applies.
          * @param {{inconclusive: boolean, reason?: string}} outcome
          */
         scheduleMetaRedetect(outcome) {
@@ -1420,7 +1443,7 @@ module.exports = function (RED) {
                 return;
             }
 
-            const delay = retryDelay(this.metaRedetectAttempt);
+            const delay = retryDelay((this.metaRedetectAttempt - 1) * RETRY_INTERVAL);
             const line =
                 'meta api detection inconclusive (' +
                 outcome.reason +

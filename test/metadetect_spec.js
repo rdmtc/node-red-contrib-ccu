@@ -2,7 +2,7 @@
    connection, a timeout - the box busy or still starting) used to leave the
    connection in ReGa mode for good: the only re-detection ran from rare
    error paths, at most every five minutes. Now the detection is repeated
-   after 1, 2, 4, 8 s, then every 15 s, and the failing ReGa poll asks for a
+   every 3 s (task 17's schedule), and the failing ReGa poll asks for a
    re-detection as well. A CCU's 404 is still a conclusive "no" and is not
    asked again. */
 
@@ -163,13 +163,13 @@ describe('metadata api detection at start (B-28)', function () {
         should(nc.metaRedetectTimeout).be.ok();
         infos('nc')
             .find((m) => m.startsWith('meta api detection inconclusive'))
-            .should.match(/(ECONNREFUSED|timeout).*detecting again in 1 s$/);
+            .should.match(/(ECONNREFUSED|timeout).*detecting again in 3 s$/);
 
-        // the box comes up: the second or third attempt (1 s, 2 s) finds it
+        // the box comes up: the next attempt (3 s steps, task 17) finds it
         box = await fakeBox();
         const started = Date.now();
-        (await until(() => nc.metaMode, 5000)).should.be.true();
-        (Date.now() - started).should.be.below(3500);
+        (await until(() => nc.metaMode, 8000)).should.be.true();
+        (Date.now() - started).should.be.below(6500);
         (await until(() => nc.channelNames && Object.keys(nc.channelNames).length > 0, 3000)).should.be.true();
         infos('nc')
             .some((m) => m.startsWith('openccu-lite detected'))

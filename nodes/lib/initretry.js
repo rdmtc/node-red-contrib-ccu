@@ -5,8 +5,13 @@
  * addon started before the interfaces, a daemon restart) used to leave the
  * interface without events: rpcCheckInit only runs with cached devices and
  * then waits pingTimeout (600 s for HmIP-RF). Now a failed init schedules its
- * own retry, 1 s, 2 s, 4 s, 8 s and then every 15 s (task 12), until it
- * succeeds or the node is closed.
+ * own retry (task 12) until it succeeds or the node is closed: every 3 s for
+ * the first 90 s after the interface was first missed (the start, or the
+ * moment a connected process went away), then every 15 s (task 17 - the
+ * 1/2/4/8/15 s steps of before hit hmipserver's ready moment, ~50-55 s after
+ * an openccu-lite boot, only at their 61 s tick). When one interface appears
+ * the others that are waiting are tried at once (poke): rfd and hmipserver
+ * come up close together.
  *
  * While the process is unreachable the interface is "waiting": one line, then
  * debug. Before the interface was ever connected, a refused connection is
@@ -17,20 +22,22 @@
  * distinct fault.
  */
 
-const RETRY_DELAYS = [1000, 2000, 4000, 8000];
+const RETRY_INTERVAL = 3000;
+const RETRY_WINDOW = 90000;
 const RETRY_MAX_DELAY = 15000;
 
 /**
- * The delay before the next attempt.
- * @param {number} failures failed attempts so far (1 after the first failure)
- * @returns {number} milliseconds
+ * The delay before the next attempt (task 17).
+ * @param {number} elapsed milliseconds since the interface was first missed
+ * @returns {number} milliseconds: 3 s within the first 90 s, then 15 s
  */
-function retryDelay(failures) {
-    if (failures >= 1 && failures <= RETRY_DELAYS.length) {
-        return RETRY_DELAYS[failures - 1];
-    }
+function retryDelay(elapsed) {
+    return elapsed < RETRY_WINDOW ? RETRY_INTERVAL : RETRY_MAX_DELAY;
+}
 
-    return RETRY_MAX_DELAY;
+/** @param {number} ms @returns {string} seconds with one decimal, e.g. "54.0 s" */
+function seconds(ms) {
+    return (Math.max(0, ms) / 1000).toFixed(1) + ' s';
 }
 
 /**
@@ -92,14 +99,19 @@ class InitRetry {
      * @param {object} options.logger {debug, info, warn, error}
      * @param {function(string)} options.onState 'waiting' | 'failed' | 'connected'
      * @param {object} [options.timers] {setTimeout, clearTimeout}, for tests
+     * @param {function(): number} [options.now] the clock, for tests
+     * @param {number} [options.startedAt] when the program (the connection node) started, for the log line
      */
-    constructor({iface, attempt, logger, onState, timers}) {
+    constructor({iface, attempt, logger, onState, timers, now, startedAt}) {
         this.iface = iface;
         this.attempt = attempt;
         this.logger = logger;
         this.onState = onState || (() => {});
         this.timers = timers || {setTimeout, clearTimeout};
+        this.now = now || Date.now;
+        this.startedAt = startedAt === undefined ? this.now() : startedAt;
         this.timer = null;
+        this.running = false;
         this.stopped = false;
         this.everConnected = false;
         this.reset();
@@ -109,6 +121,8 @@ class InitRetry {
         this.failures = 0;
         this.warned = false;
         this.faults = new Set();
+        // task 17: when the process was first missed - the 90 s of 3 s steps count from here
+        this.missedAt = null;
     }
 
     /** true while a retry is scheduled */
@@ -125,8 +139,12 @@ class InitRetry {
             return;
         }
 
+        if (this.failures === 0) {
+            this.missedAt = this.now();
+        }
+
         this.failures += 1;
-        const delay = retryDelay(this.failures);
+        const delay = retryDelay(this.now() - this.missedAt);
         const seconds = delay / 1000;
         const reason = describeError(error);
         if (isFault(error)) {
@@ -177,12 +195,36 @@ class InitRetry {
             return Promise.resolve();
         }
 
+        this.running = true;
         return Promise.resolve()
             .then(() => this.attempt())
             .then(
-                () => this.succeeded(),
-                (error) => this.failed(error),
+                () => {
+                    this.running = false;
+                    this.succeeded();
+                },
+                (error) => {
+                    this.running = false;
+                    this.failed(error);
+                },
             );
+    }
+
+    /**
+     * task 17: another interface just appeared - try this one now instead of at its timer
+     * (rfd and hmipserver come up close together). Nothing while an attempt is running or
+     * none is scheduled.
+     * @returns {boolean} whether an attempt was started
+     */
+    poke() {
+        if (this.stopped || this.running || this.timer === null) {
+            return false;
+        }
+
+        this.clear();
+        this.logger.debug(this.iface + ': another interface appeared, trying now');
+        this.run();
+        return true;
     }
 
     /** an init attempt succeeded */
@@ -193,7 +235,11 @@ class InitRetry {
 
         this.clear();
         if (this.failures > 0) {
-            this.logger.info(this.iface + ' connected after ' + (this.failures + 1) + ' attempts');
+            // task 17: one line with the time, so a log shows how close the start got to the process's ready moment
+            const since = this.everConnected
+                ? seconds(this.now() - this.missedAt) + ' after it went missing'
+                : seconds(this.now() - this.startedAt) + ' after the start';
+            this.logger.info(this.iface + ' connected after ' + (this.failures + 1) + ' attempts, ' + since);
         }
 
         this.everConnected = true;
@@ -215,4 +261,13 @@ class InitRetry {
     }
 }
 
-module.exports = {InitRetry, retryDelay, isFault, isRefused, describeError, RETRY_DELAYS, RETRY_MAX_DELAY};
+module.exports = {
+    InitRetry,
+    retryDelay,
+    isFault,
+    isRefused,
+    describeError,
+    RETRY_INTERVAL,
+    RETRY_WINDOW,
+    RETRY_MAX_DELAY,
+};

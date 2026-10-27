@@ -4,8 +4,9 @@ const assert = require('node:assert/strict');
 const {InitRetry, retryDelay, isFault, isRefused, describeError} = require('../../nodes/lib/initretry.js');
 const statusHelper = require('../../nodes/lib/status.js');
 
-/* task 11: a failed init is retried with backoff 2, 4, 8, 16 s, then every 30 s,
-   quietly while the interface process does not answer. */
+/* task 11: a failed init is retried quietly while the interface process does not
+   answer; task 17: every 3 s for the first 90 s, then every 15 s, and the others
+   that wait are tried at once when one interface appears. */
 
 function refused() {
     const error = new Error('connect ECONNREFUSED 127.0.0.1:2010');
@@ -39,10 +40,10 @@ async function settle() {
 }
 
 describe('retryDelay', () => {
-    test('1, 2, 4, 8 s, then every 15 s (task 12)', () => {
+    test('3 s within the first 90 s, then every 15 s (task 17)', () => {
         assert.deepEqual(
-            [1, 2, 3, 4, 5, 6, 20].map((n) => retryDelay(n)),
-            [1000, 2000, 4000, 8000, 15000, 15000, 15000],
+            [0, 3000, 60000, 89999, 90000, 120000, 3600000].map((elapsed) => retryDelay(elapsed)),
+            [3000, 3000, 3000, 3000, 15000, 15000, 15000],
         );
     });
 });
@@ -103,9 +104,14 @@ describe('InitRetry', () => {
         answer = null;
         states = [];
         log = recorder();
-        retry = new InitRetry({
-            iface: 'HmIP-RF',
+        retry = make('HmIP-RF');
+    });
+
+    function make(iface) {
+        return new InitRetry({
+            iface,
             logger: log.logger,
+            now: () => now,
             onState: (state) => states.push(state),
             attempt: () => {
                 attempts.push(now);
@@ -116,7 +122,7 @@ describe('InitRetry', () => {
                 return available ? Promise.resolve() : Promise.reject(refused());
             },
         });
-    });
+    }
 
     afterEach(() => {
         retry.stop();
@@ -129,43 +135,112 @@ describe('InitRetry', () => {
         await settle();
     }
 
-    test('attempts at 1, 2, 4, 8, 15, 15 s against a refusing server', async () => {
+    test('attempts every 3 s for 90 s, then every 15 s, against a refusing server (task 17)', async () => {
         retry.failed(refused());
-        for (const step of [1000, 2000, 4000, 8000, 15000, 15000]) {
-            await tick(step - 1);
+        for (let i = 0; i < 30; i++) {
+            await tick(2999);
             const before = attempts.length;
             await tick(1);
-            assert.equal(attempts.length, before + 1, 'attempt after ' + step + ' ms');
+            assert.equal(attempts.length, before + 1, 'attempt ' + (i + 1));
         }
 
-        assert.deepEqual(attempts, [1000, 3000, 7000, 15000, 30000, 45000]);
+        assert.equal(now, 90000);
+        assert.equal(attempts[attempts.length - 1], 90000);
+        for (const at of [105000, 120000, 135000]) {
+            await tick(14999);
+            const before = attempts.length;
+            await tick(1);
+            assert.equal(attempts.length, before + 1, 'attempt at ' + at);
+            assert.equal(now, at);
+        }
+
+        assert.equal(attempts.length, 33);
     });
 
-    test('succeeds within one backoff step after the server appears', async () => {
+    test('an interface that appears at 52 s is used by 54 s (task 17)', async () => {
         retry.failed(refused());
+        for (let i = 0; i < 17; i++) {
+            await tick(3000);
+        }
+
         await tick(1000);
-        await tick(2000);
+        assert.equal(now, 52000);
         available = true;
         assert.equal(retry.pending, true);
-        await tick(4000);
+        await tick(2000);
+        assert.equal(retry.pending, false);
+        assert.equal(states[states.length - 1], 'connected');
+        assert.equal(attempts.length, 18);
+        assert.equal(attempts[attempts.length - 1], 54000);
+    });
+
+    test('succeeds within one step after the server appears', async () => {
+        retry.failed(refused());
+        await tick(3000);
+        await tick(3000);
+        available = true;
+        assert.equal(retry.pending, true);
+        await tick(3000);
         assert.equal(retry.pending, false);
         assert.deepEqual(states, ['waiting', 'waiting', 'waiting', 'connected']);
         assert.equal(retry.failures, 0);
     });
 
-    test('the log at the start: one info line while nothing listens, then debug, info on success', async () => {
+    test('the log at the start: one info line while nothing listens, then debug, info with the time on success', async () => {
         retry.failed(refused());
-        await tick(1000);
-        await tick(2000);
+        await tick(3000);
+        await tick(3000);
         available = true;
-        await tick(4000);
+        await tick(3000);
         const levels = log.lines.map((l) => l.level);
         assert.deepEqual(levels, ['info', 'debug', 'debug', 'info']);
         assert.equal(
             log.lines[0].message,
-            'HmIP-RF not listening yet (connect ECONNREFUSED), waiting for it - retrying in 1 s',
+            'HmIP-RF not listening yet (connect ECONNREFUSED), waiting for it - retrying in 3 s',
         );
-        assert.equal(log.lines[3].message, 'HmIP-RF connected after 4 attempts');
+        assert.equal(log.lines[3].message, 'HmIP-RF connected after 4 attempts, 9.0 s after the start');
+    });
+
+    test('after an outage the 3 s steps start again, and the line says how long it was away', async () => {
+        retry.failed(refused());
+        await tick(3000);
+        available = true;
+        await tick(3000);
+        await tick(200000);
+        attempts.length = 0;
+        available = false;
+        retry.failed(refused());
+        await tick(3000);
+        await tick(3000);
+        available = true;
+        await tick(3000);
+        assert.deepEqual(attempts, [209000, 212000, 215000]);
+        assert.equal(
+            log.lines[log.lines.length - 1].message,
+            'HmIP-RF connected after 4 attempts, 9.0 s after it went missing',
+        );
+    });
+
+    test('poke: another interface appeared, so this one is tried now, not at its timer (task 17)', async () => {
+        retry.failed(refused());
+        await tick(1000);
+        available = true;
+        assert.equal(retry.poke(), true);
+        await settle();
+        assert.deepEqual(attempts, [1000]);
+        assert.equal(states[states.length - 1], 'connected');
+        assert.equal(retry.pending, false);
+        // nothing scheduled: nothing to poke; nothing while an attempt runs
+        assert.equal(retry.poke(), false);
+        let release;
+        retry.attempt = () => new Promise((resolve) => (release = resolve));
+        retry.failed(refused());
+        await tick(3000);
+        assert.equal(retry.running, true);
+        assert.equal(retry.poke(), false);
+        release();
+        await settle();
+        assert.equal(retry.running, false);
     });
 
     test('another transport error at the start is a warning', async () => {
@@ -178,17 +253,17 @@ describe('InitRetry', () => {
         assert.equal(log.lines[0].message, 'HmIP-RF not reachable yet (connect ECONNRESET), retrying');
     });
 
-    test('the backoff resets after a success, and a refusal after it is a warning', async () => {
+    test('the schedule resets after a success, and a refusal after it is a warning', async () => {
         retry.failed(refused());
-        await tick(1000);
-        await tick(2000);
+        await tick(3000);
+        await tick(3000);
         available = true;
-        await tick(4000);
+        await tick(3000);
         attempts.length = 0;
         available = false;
         retry.failed(refused());
-        await tick(1000);
-        assert.deepEqual(attempts, [8000]);
+        await tick(3000);
+        assert.deepEqual(attempts, [12000]);
         // the process went away after it was connected: that is worth a warning, once
         assert.equal(log.lines.filter((l) => l.level === 'warn').length, 1);
         assert.equal(log.lines.filter((l) => l.level === 'info' && l.message.includes('not listening yet')).length, 1);
@@ -210,11 +285,11 @@ describe('InitRetry', () => {
     test('a fault answer is an error, once per fault, and the state is failed', async () => {
         answer = fault(-1, 'Failure');
         retry.failed(answer);
-        await tick(1000);
-        await tick(2000);
+        await tick(3000);
+        await tick(3000);
         const errors = log.lines.filter((l) => l.level === 'error');
         assert.equal(errors.length, 1);
-        assert.equal(errors[0].message, 'init HmIP-RF failed: fault -1 Failure, retrying in 1 s');
+        assert.equal(errors[0].message, 'init HmIP-RF failed: fault -1 Failure, retrying in 3 s');
         assert.deepEqual(states, ['failed', 'failed', 'failed']);
         assert.equal(attempts.length, 2);
     });
