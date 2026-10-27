@@ -37,6 +37,7 @@
             username: {value: ''},
 
             metaPort: {value: ''},
+            connectionType: {value: 'auto'},
 
             queueTimeout: {value: 5000, required: true},
             queuePause: {value: 250, required: true},
@@ -313,9 +314,17 @@
         <input type="password" id="node-config-input-password">
     </div>
     <div class="form-row">
+        <label for="node-config-input-connectionType"><i class="icon-tag"></i> openccu-lite interfaces</label>
+        <select id="node-config-input-connectionType" style="width: 70%;">
+            <option value="auto">auto: through the system's lite-rpc on openccu-lite (the default), the CCU way elsewhere</option>
+            <option value="openccu-lite">openccu-lite: lite-rpc only</option>
+            <option value="ccu">CCU: directly, with callbacks (XML-RPC/BIN-RPC) - on openccu-lite too</option>
+        </select>
+    </div>
+    <div class="form-row">
         <label for="node-config-input-metaToken"><i class="icon-tag"></i> openccu-lite token</label>
         <input type="password" id="node-config-input-metaToken" placeholder="olt_...">
-        <small>Only for openccu-lite (a CCU ignores this). Leave empty when Node-RED runs on the box.</small>
+        <small>Only for openccu-lite (a CCU ignores this). Leave empty when Node-RED runs on the system itself (RedMatic).</small>
     </div>
     <div class="form-row">
         <label for="node-config-input-metaPort"><i class="icon-tag"></i> openccu-lite port</label>

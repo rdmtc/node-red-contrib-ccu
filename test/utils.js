@@ -8,6 +8,7 @@ module.exports = {
             'ccu_paramsets_v2.json',
             'ccu_rega_localhost.json',
             'ccu_values_localhost.json',
+            'ccu_lite_localhost.json',
         ];
         for (const file of files) {
             try {

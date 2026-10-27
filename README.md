@@ -36,8 +36,22 @@ BINRPC/XMLRPC works unchanged. Device, channel, room and function names come fro
 ReGaHSS; the connection node detects this at start (`GET /api/meta/v1/version`), nothing has to be configured, and
 `msg.channelName`, `msg.rooms`, `msg.functions` and the room/function filters keep their shape.
 
-- Node-RED **on the system** (RedMatic from its addon catalogue): the system's own read-only token is used, nothing to do.
-- Node-RED **elsewhere**: an API token of the system goes into the connection node's **openccu-lite token** field.
+Since 4.7.0 the interface processes are reached through the system's **lite-rpc** as well, with
+[occulite-client](https://www.npmjs.com/package/occulite-client): the requests over the system's web port, the events
+from a stream the connection opens (replayed after a break, re-read after a restart of the system), one subscriber at
+the processes for every program on the system, no callback server and no `init` of this node's own; the value cache is
+filled from the system's state store at deploy. The connection node's **openccu-lite interfaces** setting chooses
+_auto_ (the default: lite-rpc on openccu-lite, the CCU way on a CCU), _openccu-lite_ (lite-rpc only) or _CCU_ (the
+direct connection with callbacks, on openccu-lite too); an existing connection is moved to lite-rpc once at its first
+start on openccu-lite, the log says so, and a choice made in the node is never changed by a later version. CUxD and
+CCU-Jack keep their own connections.
+
+- Node-RED **on the system** (RedMatic from its addon catalogue): lite-rpc with RedMatic's own token, which the system
+  mints for it from RedMatic's manifest (RedMatic 9.13 or later); the names come with the system's read-only token.
+  Nothing to configure. An older RedMatic has no such token and connects the CCU way, the log says so.
+- Node-RED **elsewhere**: an API token of the system goes into the connection node's **openccu-lite token** field -
+  for lite-rpc it needs the `rpc:*` scope of what the flow does (`rpc:read` for events and reads, `rpc:operate` for
+  `setValue`, `rpc:configure` for paramsets and links, `rpc:admin` for the rest; the rpc node may call anything).
 - **System variables, programs and HM-Script do not exist there.** The `ccu-sysvar`, `ccu-program`, `ccu-script` and
   `ccu-poll` nodes stay in the flows and answer every message with an error.
 

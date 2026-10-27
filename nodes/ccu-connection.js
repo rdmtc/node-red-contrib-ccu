@@ -18,6 +18,7 @@ const hmDiscover = require('./lib/discover.js');
 const {Rega} = require('homematic-rega'); // ES module - require(esm) needs Node >= 20.19 / >= 22.12
 const metaProvider = require('./lib/metaprovider.js');
 const {InitRetry, retryDelay, RETRY_INTERVAL} = require('./lib/initretry.js');
+const lite = require('./lib/lite.js');
 const xmlrpc = require('homematic-xmlrpc');
 const binrpc = require('binrpc');
 
@@ -680,6 +681,17 @@ module.exports = function (RED) {
             this.inSecure = inSecure;
             this.metaPort = Number.parseInt(config.metaPort, 10) || (tls ? 443 : 80);
             this.metaToken = config.metaToken || metaProvider.readLocalToken();
+            // task 14: the way to the interfaces on openccu-lite - `auto` (the default) goes through
+            // the system's lite-rpc where the system is openccu-lite and a credential allows it,
+            // `openccu-lite` insists on it, `ccu` keeps the direct connection with callbacks there
+            // too. The credential for lite-rpc: the node's token, else the addon's own (RedMatic's,
+            // minted by the system); the local token reads names only and is no credential here.
+            this.connectionType = ['ccu', 'openccu-lite'].includes(config.connectionType)
+                ? config.connectionType
+                : 'auto';
+            this.liteToken = config.metaToken || lite.readAddonToken();
+            this.lite = null;
+            this.liteIfaces = [];
             this.metaMode = false;
             this.meta = null;
             // #167: minutes between re-reads of channel names, rooms and
@@ -762,6 +774,12 @@ module.exports = function (RED) {
             this.valuesFile = path.join(
                 RED.settings.userDir || path.join(__dirname, '..'),
                 'ccu_values_' + this.host + '.json',
+            );
+            // task 14: written once, when a connection of type `auto` first went through lite-rpc -
+            // the one-time move is said in the log once, not at every start
+            this.liteMarkerFile = path.join(
+                RED.settings.userDir || path.join(__dirname, '..'),
+                'ccu_lite_' + this.host + '.json',
             );
 
             this.loadMetadata();
@@ -1001,7 +1019,9 @@ module.exports = function (RED) {
                             'Interface',
                             iface,
                             connected
-                                ? this.ifaceTypes[iface].protocol +
+                                ? this.lite && this.lite.has(iface)
+                                    ? 'lite-rpc connected'
+                                    : this.ifaceTypes[iface].protocol +
                                       ' port ' +
                                       this.ifaceTypes[iface].port +
                                       ' connected'
@@ -1311,6 +1331,7 @@ module.exports = function (RED) {
             this.logger.debug('ccu-connection destructor');
             this.closing = true;
             this.stopInitRetries();
+            this.stopLite();
             this.stats(false);
 
             this.logger.debug('clear regaPollTimeout');
@@ -1596,6 +1617,15 @@ module.exports = function (RED) {
                         this.metaMode = false;
                         this.meta = null;
                         this.lastMetaProbe = 0;
+                        if (this.lite) {
+                            // task 14: lite-rpc went with the system's answer; the CCU way needs a deploy
+                            this.stopLite();
+                            this.liteIfaces.forEach((iface) => this.setIfaceStatus(iface, false));
+                            this.logger.warn(
+                                'lite-rpc closed: the system no longer answers as openccu-lite - deploy again to reach the interfaces the CCU way',
+                            );
+                        }
+
                         // task 16: the ReGaHSS slot is the interface again
                         delete this.ifaceTypes[META_IFACE];
                         delete this.ifaceStatus[META_IFACE];
@@ -2286,9 +2316,16 @@ module.exports = function (RED) {
          * @param config
          */
         initIfaces(config) {
+            // task 14: the interfaces that go through lite-rpc get no client and no init of their own
+            const liteIfaces = this.liteInterfaces(config);
+            this.liteIfaces = liteIfaces;
             Object.keys(this.ifaceTypes).forEach((iface) => {
                 const enabled = config[this.ifaceTypes[iface].conf + 'Enabled'];
                 this.ifaceTypes[iface].enabled = enabled;
+                if (enabled && liteIfaces.includes(iface)) {
+                    return;
+                }
+
                 if (enabled && iface === 'ReGaHSS' && this.metaMode) {
                     // B-27: openccu-lite has no ReGaHSS, nothing listens on 31999.
                     // A client would only reconnect forever (with binrpc < 4.3.0
@@ -2318,6 +2355,249 @@ module.exports = function (RED) {
                 }
             });
             this.logger.info('Interfaces:', this.enabledIfaces.join(', '));
+            if (liteIfaces.length > 0) {
+                this.startLite(liteIfaces);
+            }
+        }
+
+        /**
+         * task 14: which of the enabled interfaces go through the system's lite-rpc - the ones
+         * lite-rpc carries (not CUxD, not CCU-Jack), on an openccu-lite system, with a credential,
+         * unless the connection type says `ccu`.
+         * @param {object} config the node's config
+         * @returns {string[]}
+         */
+        liteInterfaces(config) {
+            const enabled = lite.LITE_INTERFACES.filter((iface) => config[this.ifaceTypes[iface].conf + 'Enabled']);
+            if (this.connectionType === 'ccu') {
+                if (this.metaMode) {
+                    this.logger.info(
+                        'openccu-lite: the direct connection with callbacks by choice (connection type CCU) - the interfaces are reached on their own ports',
+                    );
+                }
+
+                return [];
+            }
+
+            if (!this.metaMode) {
+                if (this.connectionType === 'openccu-lite') {
+                    this.logger.warn(
+                        'connection type openccu-lite, but the system did not answer as openccu-lite - the interfaces are reached the CCU way until it does',
+                    );
+                }
+
+                return [];
+            }
+
+            if (!this.liteToken) {
+                this.logger.info(
+                    'openccu-lite without a credential for lite-rpc (no token in the connection node, no addon token in ' +
+                        lite.ADDON_TOKEN_FILE +
+                        ') - the interfaces are reached directly, with callbacks',
+                );
+                return [];
+            }
+
+            if (enabled.length === 0) {
+                return [];
+            }
+
+            return enabled;
+        }
+
+        /**
+         * task 14: the init id the callback table expects for an interface - the same shape rpcInit
+         * registers, so getIfaceFromIdInit() recognises the stream's calls.
+         * @param {string} iface
+         * @returns {string}
+         */
+        liteInitId(iface) {
+            const hash = base62(crypto.createHash('sha1').update(this.initUrl(iface)).digest()).slice(0, 6);
+            return 'nr_' + hash + '_' + iface;
+        }
+
+        /**
+         * task 14: the interfaces through the system's lite-rpc with occulite-client - one client,
+         * the stream's events into the same rpcMethods table the callback servers feed, the
+         * requests through methodCall. The one-time move of an `auto` connection is said once
+         * (the marker file); `ccu` in the connection node is never moved.
+         * @param {string[]} ifaces
+         */
+        startLite(ifaces) {
+            if (this.connectionType === 'auto') {
+                let marker = null;
+                try {
+                    marker = JSON.parse(fs.readFileSync(this.liteMarkerFile, 'utf8'));
+                } catch {
+                    marker = null;
+                }
+
+                if (!marker) {
+                    this.logger.info(
+                        'openccu-lite: ' +
+                            ifaces.join(', ') +
+                            " go through the system's lite-rpc from now on, the default on openccu-lite - moved once; connection type CCU in the connection node keeps the direct connection with callbacks, and is never changed again",
+                    );
+                    try {
+                        fs.writeFileSync(
+                            this.liteMarkerFile,
+                            JSON.stringify({migrated: new Date().toISOString(), host: this.host}),
+                        );
+                    } catch (error) {
+                        this.logger.warn('cannot write ' + this.liteMarkerFile + ': ' + error.message);
+                    }
+                }
+            }
+
+            const url = (this.tlsEnabled ? 'https' : 'http') + '://' + this.host + ':' + this.metaPort;
+            const running = (iface) => this.lite && this.lite.running(iface) !== false;
+            this.lite = new lite.LiteConnection({
+                url,
+                token: this.liteToken,
+                insecure: Boolean(this.inSecure),
+                interfaces: ifaces,
+                initId: (iface) => this.liteInitId(iface),
+                logger: this.logger,
+                createClient: this.liteCreateClient,
+                onCallback: (method, err, parameters, callback) => {
+                    if (err) {
+                        this.logger.error('rpc <', 'lite', method, err);
+                    }
+
+                    this.logger.debug('rpc <', 'lite', method, JSON.stringify(parameters));
+                    const handler = method === 'event' ? 'eventSingle' : method;
+                    if (isIterable(parameters)) {
+                        this.callRpcMethod(handler, err, parameters, callback);
+                    } else {
+                        this.logger.error(
+                            'rpc <',
+                            'lite',
+                            'method',
+                            method,
+                            'params not iterable',
+                            JSON.stringify(parameters),
+                        );
+                        callback(null, this.rpcDefaultAnswer(method));
+                    }
+                },
+                onInterface: (iface, state) => {
+                    if (!ifaces.includes(iface) || this.closing) {
+                        return;
+                    }
+
+                    this.logger.debug('lite-rpc interface', iface, state);
+                    if (state === 'up' || state === 'added' || state === 'restarted') {
+                        this.lastEvent[iface] = now();
+                        this.setIfaceStatus(iface, true);
+                        if (state === 'restarted' || state === 'added') {
+                            this.getDevices(iface).catch(() => {});
+                        }
+                    } else {
+                        this.setIfaceStatus(iface, false, true);
+                    }
+                },
+                onStatus: (state) => {
+                    if (this.closing) {
+                        return;
+                    }
+
+                    this.logger.debug('lite-rpc client', state);
+                    if (state === 'ready') {
+                        ifaces.forEach((iface) => this.setIfaceStatus(iface, running(iface), !running(iface)));
+                    } else if (state === 'degraded' || state === 'offline' || state === 'connecting') {
+                        ifaces.forEach((iface) => this.setIfaceStatus(iface, false, true));
+                    } else if (state === 'closed') {
+                        ifaces.forEach((iface) => this.setIfaceStatus(iface, false));
+                    }
+                },
+                onValues: (values) => this.applyLiteValues(values),
+            });
+            this.logger.info(
+                'lite-rpc: ' + ifaces.join(', ') + ' through ' + url + ' (occulite-client), no callback server',
+            );
+            ifaces.forEach((iface) => this.setIfaceStatus(iface, false, true));
+            this.lite
+                .start()
+                .then(() => {
+                    if (this.closing || !this.lite) {
+                        return;
+                    }
+
+                    const up = ifaces.filter((iface) => running(iface));
+                    this.logger.info('lite-rpc connected: ' + (up.join(', ') || 'no interface running'));
+                    return Promise.all(
+                        up.map((iface) =>
+                            this.getDevices(iface)
+                                .then(() => {
+                                    if (['BidCos-RF', 'BidCos-Wired', 'HmIP-RF'].includes(iface)) {
+                                        return this.methodCall(iface, 'getLinks', [], {quiet: true})
+                                            .then((res) => {
+                                                this.links[iface] = res;
+                                            })
+                                            .catch(() => {});
+                                    }
+                                })
+                                .catch((error) => {
+                                    this.logger.warn('lite-rpc ' + iface + ' listDevices: ' + error.message);
+                                }),
+                        ),
+                    );
+                })
+                .catch((error) => {
+                    if (this.closing) {
+                        return;
+                    }
+
+                    this.logger.warn('lite-rpc: ' + (error.message || error) + ' - the client keeps trying');
+                    ifaces.forEach((iface) => this.setIfaceStatus(iface, false, true));
+                });
+        }
+
+        /**
+         * task 14: the state store's picture into the values cache at connect (what a CCU's ReGa
+         * getValues gave): the nodes with "cache" get a value at deploy on openccu-lite as well.
+         * @param {Map<string, {value: *, ts: number, lc?: number, confirmed: boolean}>} values box.values
+         */
+        applyLiteValues(values) {
+            if (!values || typeof values.forEach !== 'function') {
+                return;
+            }
+
+            let count = 0;
+            values.forEach((entry, ref) => {
+                const [iface, channel, datapoint] = String(ref).split('.');
+                if (!this.liteIfaces.includes(iface) || !channel || !datapoint) {
+                    return;
+                }
+
+                const ts = entry.ts || 0;
+                const message = this.createMessage(iface, channel, datapoint, entry.value, {
+                    cache: true,
+                    change: false,
+                    working: false,
+                    uncertain: entry.confirmed === false,
+                    ts,
+                    lc: entry.lc || ts,
+                });
+                this.values[message.datapointName] = message;
+                count += 1;
+                if (!datapoint.startsWith('PRESS_')) {
+                    this.callCallbacks(message);
+                }
+            });
+            this.logger.debug('lite-rpc: ' + count + ' values from the state store');
+            this.cachedValuesReceived = true;
+            this.saveValues();
+            this.scheduleValuesPrune();
+        }
+
+        /** task 14: close the lite-rpc client, if any */
+        stopLite() {
+            if (this.lite) {
+                this.logger.debug('lite-rpc client closing');
+                this.lite.close();
+                this.lite = null;
+            }
         }
 
         /**
@@ -4210,6 +4490,31 @@ module.exports = function (RED) {
          */
         methodCall(iface, method, parameters, {quiet = false} = {}) {
             return new Promise((resolve, reject) => {
+                if (this.lite && this.lite.has(iface)) {
+                    // task 14: through the system's lite-rpc; a fault keeps its code, a scope the
+                    // token lacks is said as such - the interface stays connected either way
+                    this.logger.debug('rpc >', iface, method, JSON.stringify(parameters));
+                    this.lite.call(iface, method, parameters).then(
+                        (res) => {
+                            this.logger.debug('    <', iface, method, JSON.stringify(res));
+                            resolve(res);
+                        },
+                        (error) => {
+                            this.logger[quiet ? 'debug' : 'error'](
+                                '    <',
+                                iface,
+                                method,
+                                JSON.stringify(parameters),
+                                error.faultCode === undefined
+                                    ? error.message
+                                    : 'fault ' + error.faultCode + ' ' + error.faultString,
+                            );
+                            reject(error);
+                        },
+                    );
+                    return;
+                }
+
                 if (this.clients[iface]) {
                     this.logger.debug('rpc >', iface, method, JSON.stringify(parameters));
                     this.clients[iface].methodCall(method, parameters, (err, res) => {

@@ -7,6 +7,27 @@ append commits automatically).
 
 ## Unreleased
 
+### Added
+
+- **On openccu-lite the interfaces are reached through the system's lite-rpc**
+  (with [occulite-client](https://www.npmjs.com/package/occulite-client))
+  instead of XML-RPC/BIN-RPC clients and callback servers of this node's own -
+  the requests over the system's web port, the events from a stream the
+  connection opens, replayed after a break and re-read after a restart of the
+  system; one subscriber at the interface processes serves every program on
+  the system, and nothing registers with `init`. The credential is the
+  openccu-lite token of the connection node, or on the system itself
+  RedMatic's own token, which the system mints for it. A new setting
+  _openccu-lite interfaces_ in the connection node chooses: _auto_ (the
+  default; the CCU way on a CCU), _openccu-lite_ (lite-rpc only) or _CCU_ (the
+  direct connection with callbacks, on openccu-lite too). An existing
+  connection is moved to lite-rpc once, at its first start on openccu-lite,
+  and the log says so; a choice made in the node is never changed by a later
+  version. The value cache is filled from the system's state store at deploy,
+  so nodes with _cache_ get a value on openccu-lite as well. CUxD and CCU-Jack
+  keep their own connections. On a CCU, RaspberryMatic and OpenCCU nothing
+  changes.
+
 ### Changed
 
 - **An interface process that is not up yet is tried every 3 s for the first
