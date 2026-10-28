@@ -367,6 +367,31 @@ describe('openccu-lite through lite-rpc with occulite-client (task 14)', functio
         }
     });
 
+    it('B-41: a FLOAT goes to lite-rpc as {double}, in setValue, putParamset and a multicall', async () => {
+        await start({}, {nc: {metaToken: TOKEN}});
+        (await until(() => nc.ifaceStatus['HmIP-RF'] === true, 15000)).should.be.true();
+        const before = fake.calls.length;
+        await nc.methodCall('HmIP-RF', 'setValue', ['ABC1:1', 'LEVEL', {explicitDouble: 0.85}]);
+        await nc.methodCall('HmIP-RF', 'setValue', ['ABC1:1', 'LEVEL', {explicitDouble: 1}]);
+        await nc.methodCall('HmIP-RF', 'putParamset', ['ABC1:1', 'VALUES', {LEVEL: {explicitDouble: 0}, COLOR: 0}]);
+        await nc
+            .methodCall(
+                'HmIP-RF',
+                'system.multicall',
+                [[{methodName: 'setValue', params: ['ABC1:1', 'LEVEL', {explicitDouble: 0.5}]}]],
+                {quiet: true},
+            )
+            .catch(() => {}); // the fake knows no multicall; what went out is what counts
+        const sent = fake.calls.slice(before).map((call) => [call.method, call.params]);
+        sent.should.deepEqual([
+            ['setValue', ['ABC1:1', 'LEVEL', {double: 0.85}]],
+            ['setValue', ['ABC1:1', 'LEVEL', {double: 1}]],
+            ['putParamset', ['ABC1:1', 'VALUES', {LEVEL: {double: 0}, COLOR: 0}]],
+            ['system.multicall', [[{methodName: 'setValue', params: ['ABC1:1', 'LEVEL', {double: 0.5}]}]]],
+        ]);
+        JSON.stringify(sent).should.not.match(/explicitDouble/);
+    });
+
     it('errors: a fault keeps its code, a scope the token lacks is said as such', () => {
         const fault = lite.translateError(
             Object.assign(new Error('Invalid device'), {

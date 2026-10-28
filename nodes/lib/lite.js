@@ -80,7 +80,26 @@ function readAddonToken(file = module.exports.ADDON_TOKEN_FILE) {
  * @returns {boolean}
  */
 function isFault(error) {
-    return Boolean(error) && error.kind === 'rpc-fault' && error.faultCode !== undefined;
+    return kindOf(error) === 'rpc-fault' && error.faultCode !== undefined;
+}
+
+/**
+ * The client's error kind: occulite-client's OccuLiteError carries it as `code` (rpc-fault,
+ * forbidden, timeout ...); `kind` is ours, on an error translated before. A Node system error's
+ * `code` (ECONNREFUSED ...) is not a kind.
+ * @param {*} error
+ * @returns {string|undefined}
+ */
+function kindOf(error) {
+    if (!error) {
+        return undefined;
+    }
+
+    if (error.kind) {
+        return error.kind;
+    }
+
+    return error.name === 'OccuLiteError' && typeof error.code === 'string' ? error.code : undefined;
 }
 
 /**
@@ -97,7 +116,8 @@ function translateError(error) {
         return fault;
     }
 
-    if (error && error.kind === 'forbidden') {
+    const kind = kindOf(error);
+    if (kind === 'forbidden') {
         const refused = new Error(
             'the openccu-lite token may not call this method' + (error.scope ? ' (needs ' + error.scope + ')' : ''),
         );
@@ -106,13 +126,45 @@ function translateError(error) {
         return refused;
     }
 
-    if (error && error.kind) {
-        const translated = new Error(error.message || error.kind);
-        translated.kind = error.kind;
+    if (kind) {
+        const translated = new Error(error.message || kind);
+        translated.kind = kind;
         return translated;
     }
 
     return error instanceof Error ? error : new Error(String(error));
+}
+
+/**
+ * B-41: cast.js marks a FLOAT as homematic-xmlrpc's `{explicitDouble: n}` (the XML-RPC client's
+ * `<double>`). lite-rpc's JSON path does not know that marker and would hand the process a struct
+ * where a double belongs - hs485d and hmipserver refuse it. Its own marker is `{double: n}`
+ * (capability `json_double`); a system without it gets the plain number. Walks the whole
+ * parameter list: the top level, structs and paramsets, a multicall's calls.
+ * @param {*} value
+ * @param {boolean} jsonDouble whether the system announces `json_double`
+ * @returns {*} the value for lite-rpc
+ */
+function liteValue(value, jsonDouble) {
+    if (Array.isArray(value)) {
+        return value.map((item) => liteValue(item, jsonDouble));
+    }
+
+    if (value && typeof value === 'object' && Object.getPrototypeOf(value) === Object.prototype) {
+        const keys = Object.keys(value);
+        if (keys.length === 1 && keys[0] === 'explicitDouble') {
+            const number = Number(value.explicitDouble);
+            return jsonDouble ? {double: number} : number;
+        }
+
+        const out = {};
+        keys.forEach((key) => {
+            out[key] = liteValue(value[key], jsonDouble);
+        });
+        return out;
+    }
+
+    return value;
 }
 
 const RPC_TIERS = ['rpc:operate', 'rpc:configure', 'rpc:admin'];
@@ -263,7 +315,8 @@ class LiteConnection {
             return Promise.reject(new Error('lite-rpc client not started'));
         }
 
-        return this.box.call(iface, method, parameters || []).then(
+        const jsonDouble = Boolean(this.box.capabilities && this.box.capabilities.json_double);
+        return this.box.call(iface, method, liteValue(parameters || [], jsonDouble)).then(
             (result) => (result === null || result === undefined ? '' : result),
             (error) => {
                 throw translateError(error);
@@ -302,6 +355,7 @@ module.exports = {
     ADDON_TOKEN_FILE,
     CALLBACK_METHODS,
     readAddonToken,
+    liteValue,
     tierAwareTransport,
     translateError,
     isFault,
