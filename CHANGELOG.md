@@ -5,6 +5,35 @@ Notable changes to node-red-contrib-ccu. Format follows
 user-visible symptom and the cause, not the commit list (the release notes
 append commits automatically).
 
+## 4.7.2 (2026-10-29)
+
+### Fixed
+
+- **On openccu-lite the metadata file was written once per interface at every
+  start** (`metadata saved to …/ccu_<host>.json`, four lines within a second
+  on a system with four interfaces), although nothing had changed. The
+  system's stream hands the connection every interface's whole device list
+  when it connects, in the shape of a `newDevices` call, and the connection
+  saved whenever that list was not empty - on a CCU `newDevices` only ever
+  names devices the connection did not know. The file is now written only
+  when a device is new or its data changed, a burst of changes is one write
+  (and one log line), and the cache files (metadata, names, values) are
+  written atomically - a temporary file and a rename - so a power cut while
+  writing leaves the old file, not a truncated one.
+- **On openccu-lite the start log's `Interfaces:` line listed ReGaHSS**, right
+  after the line saying the system has no ReGaHSS; it leaves it out now (the
+  mqtt node's per-interface counters as well). Log and dialog texts say "the
+  system" where they said "the box".
+
+### Changed
+
+- The README names RedMatic 9.15.1 as the version whose token makes lite-rpc
+  the default on the system (not 9.13).
+- The release workflow's flow-library step no longer trusts the library's
+  "already at latest version" while its page still shows the previous
+  release; it asks again after 2, 5, 10 and 20 minutes and warns only after
+  that.
+
 ## 4.7.1 (2026-10-28)
 
 ### Fixed
