@@ -7,7 +7,6 @@
    goes out as setValue. A fake hmipserver stands in. */
 
 const fs = require('fs');
-const os = require('os');
 const path = require('path');
 require('should');
 const helper = require('node-red-node-test-helper');
@@ -15,6 +14,7 @@ const xmlrpc = require('homematic-xmlrpc');
 
 const nodeConnection = require('../nodes/ccu-connection.js');
 const nodeSetValue = require('../nodes/ccu-set-value.js');
+const {userDir} = require('./utils');
 
 helper.init(require.resolve('node-red'));
 
@@ -23,10 +23,10 @@ const IFACE = 'HmIP-RF';
 const DEVICE = '000A1709AE37B4';
 const CHANNEL = DEVICE + ':1';
 const CACHE_FILES = ['ccu_127.0.0.1.json', 'ccu_rega_127.0.0.1.json', 'ccu_values_127.0.0.1.json'].map((f) =>
-    path.join(__dirname, '..', f),
+    path.join(userDir(), f),
 );
 // fetched paramset descriptions would be saved into the vendored paramsets.json (B-34)
-const PARAMSETS_SCRATCH = path.join(os.tmpdir(), 'nrccu-party-paramsets.json');
+const PARAMSETS_SCRATCH = path.join(userDir(), 'nrccu-party-paramsets.json');
 
 function removeCache() {
     for (const file of [...CACHE_FILES, PARAMSETS_SCRATCH]) {

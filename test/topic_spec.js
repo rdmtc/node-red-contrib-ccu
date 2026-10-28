@@ -15,12 +15,13 @@ const helper = require('node-red-node-test-helper');
 const nodeConnection = require('../nodes/ccu-connection.js');
 const nodeGetValue = require('../nodes/ccu-get-value.js');
 const nodeValue = require('../nodes/ccu-value.js');
+const {userDir} = require('./utils');
 
 helper.init(require.resolve('node-red'));
 
 const HOST = '192.0.2.10';
 const CACHE_FILES = [`ccu_${HOST}.json`, `ccu_rega_${HOST}.json`, `ccu_values_${HOST}.json`].map((f) =>
-    path.join(__dirname, '..', f),
+    path.join(userDir(), f),
 );
 
 function removeCache() {

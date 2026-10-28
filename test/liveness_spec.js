@@ -6,22 +6,22 @@
    intervals are shortened on the node for the test. */
 
 const fs = require('fs');
-const os = require('os');
 const path = require('path');
 const should = require('should');
 const helper = require('node-red-node-test-helper');
 const xmlrpc = require('homematic-xmlrpc');
 
 const nodeConnection = require('../nodes/ccu-connection.js');
+const {userDir} = require('./utils');
 
 helper.init(require.resolve('node-red'));
 
 const HOST = '127.0.0.1';
 const IPRF_PORT = 2010;
 const CACHE_FILES = ['ccu_127.0.0.1.json', 'ccu_rega_127.0.0.1.json', 'ccu_values_127.0.0.1.json'].map((f) =>
-    path.join(__dirname, '..', f),
+    path.join(userDir(), f),
 );
-const PARAMSETS_SCRATCH = path.join(os.tmpdir(), 'nrccu-liveness-paramsets.json');
+const PARAMSETS_SCRATCH = path.join(userDir(), 'nrccu-liveness-paramsets.json');
 
 function removeCache() {
     for (const file of [...CACHE_FILES, PARAMSETS_SCRATCH]) {

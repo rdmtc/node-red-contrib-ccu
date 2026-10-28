@@ -17,6 +17,7 @@ const should = require('should');
 const helper = require('node-red-node-test-helper');
 
 const nodeConnection = require('../nodes/ccu-connection.js');
+const {userDir} = require('./utils');
 
 helper.init(require.resolve('node-red'));
 
@@ -25,7 +26,7 @@ const USER = 'Admin';
 const PASSWORD = 'secret1';
 const BASIC = 'Basic ' + Buffer.from(USER + ':' + PASSWORD).toString('base64');
 const CACHE_FILES = ['ccu_127.0.0.1.json', 'ccu_rega_127.0.0.1.json', 'ccu_values_127.0.0.1.json'].map((f) =>
-    path.join(__dirname, '..', f),
+    path.join(userDir(), f),
 );
 
 function removeCache() {

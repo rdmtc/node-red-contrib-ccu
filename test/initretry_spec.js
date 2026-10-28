@@ -12,12 +12,13 @@ const binrpc = require('binrpc');
 
 const nodeConnection = require('../nodes/ccu-connection.js');
 const nodeRpc = require('../nodes/ccu-rpc.js');
+const {userDir} = require('./utils');
 
 helper.init(require.resolve('node-red'));
 
 const HOST = '127.0.0.1';
 const CACHE_FILES = ['ccu_127.0.0.1.json', 'ccu_rega_127.0.0.1.json', 'ccu_values_127.0.0.1.json'].map((f) =>
-    path.join(__dirname, '..', f),
+    path.join(userDir(), f),
 );
 
 function removeCache() {

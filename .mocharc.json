@@ -1,0 +1,4 @@
+{
+  "require": "test/hooks.js",
+  "exit": true
+}

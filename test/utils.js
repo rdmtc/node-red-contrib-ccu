@@ -2,6 +2,14 @@ const fs = require('fs');
 const path = require('path');
 
 module.exports = {
+    /**
+     * B-34: the suite's Node-RED userDir (test/hooks.js makes it), where the connection node's
+     * cache files and fetched paramset descriptions land - never the repository.
+     * @returns {string}
+     */
+    userDir() {
+        return process.env.NRCCU_TEST_USERDIR || path.join(__dirname, '..');
+    },
     removeFiles() {
         const files = [
             'ccu_localhost.json',
@@ -12,7 +20,7 @@ module.exports = {
         ];
         for (const file of files) {
             try {
-                fs.unlinkSync(path.join(__dirname, '..', file));
+                fs.unlinkSync(path.join(module.exports.userDir(), file));
             } catch {}
         }
     },

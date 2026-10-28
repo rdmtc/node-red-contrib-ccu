@@ -7,13 +7,13 @@
 
 const fs = require('fs');
 const net = require('net');
-const os = require('os');
 const path = require('path');
 require('should');
 const helper = require('node-red-node-test-helper');
 const xmlrpc = require('homematic-xmlrpc');
 
 const nodeConnection = require('../nodes/ccu-connection.js');
+const {userDir} = require('./utils');
 
 helper.init(require.resolve('node-red'));
 
@@ -21,9 +21,9 @@ const HOST = '127.0.0.1';
 const XML_PORT = 2069;
 const FAKE_PORT = 2010;
 const CACHE_FILES = ['ccu_127.0.0.1.json', 'ccu_rega_127.0.0.1.json', 'ccu_values_127.0.0.1.json'].map((f) =>
-    path.join(__dirname, '..', f),
+    path.join(userDir(), f),
 );
-const PARAMSETS_SCRATCH = path.join(os.tmpdir(), 'nrccu-keepalive-paramsets.json');
+const PARAMSETS_SCRATCH = path.join(userDir(), 'nrccu-keepalive-paramsets.json');
 
 function removeCache() {
     for (const file of [...CACHE_FILES, PARAMSETS_SCRATCH]) {

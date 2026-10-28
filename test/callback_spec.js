@@ -6,7 +6,6 @@
    Both callback servers are exercised: binrpc (BidCos-RF) and xmlrpc (HmIP-RF). */
 
 const fs = require('fs');
-const os = require('os');
 const path = require('path');
 const should = require('should');
 const helper = require('node-red-node-test-helper');
@@ -14,6 +13,7 @@ const xmlrpc = require('homematic-xmlrpc');
 const binrpc = require('binrpc');
 
 const nodeConnection = require('../nodes/ccu-connection.js');
+const {userDir} = require('./utils');
 
 helper.init(require.resolve('node-red'));
 
@@ -21,9 +21,9 @@ const HOST = '127.0.0.1';
 const BIN_PORT = 2067;
 const XML_PORT = 2068;
 const CACHE_FILES = ['ccu_127.0.0.1.json', 'ccu_rega_127.0.0.1.json', 'ccu_values_127.0.0.1.json'].map((f) =>
-    path.join(__dirname, '..', f),
+    path.join(userDir(), f),
 );
-const PARAMSETS_SCRATCH = path.join(os.tmpdir(), 'nrccu-callback-paramsets.json');
+const PARAMSETS_SCRATCH = path.join(userDir(), 'nrccu-callback-paramsets.json');
 
 function removeCache() {
     for (const file of [...CACHE_FILES, PARAMSETS_SCRATCH]) {

@@ -20,6 +20,7 @@ const nodeRpcEvent = require('../nodes/ccu-rpc-event.js');
 const nodeValue = require('../nodes/ccu-value.js');
 const nodeRpc = require('../nodes/ccu-rpc.js');
 const lite = require('../nodes/lib/lite.js');
+const {userDir} = require('./utils');
 
 helper.init(require.resolve('node-red'));
 
@@ -29,8 +30,8 @@ const CACHE_FILES = [
     'ccu_rega_127.0.0.1.json',
     'ccu_values_127.0.0.1.json',
     'ccu_lite_127.0.0.1.json',
-].map((f) => path.join(__dirname, '..', f));
-const PARAMSETS_SCRATCH = path.join(os.tmpdir(), 'nrccu-lite-paramsets.json');
+].map((f) => path.join(userDir(), f));
+const PARAMSETS_SCRATCH = path.join(userDir(), 'nrccu-lite-paramsets.json');
 const TOKEN = 'olt_test';
 
 const DEVICES = {
@@ -314,7 +315,7 @@ describe('openccu-lite through lite-rpc with occulite-client (task 14)', functio
         lines('nc', 'INFO')
             .some((l) => /^Interface HmIP-RF lite-rpc connected$/.test(l))
             .should.be.true();
-        fs.existsSync(path.join(__dirname, '..', 'ccu_lite_127.0.0.1.json')).should.be.true();
+        fs.existsSync(path.join(userDir(), 'ccu_lite_127.0.0.1.json')).should.be.true();
 
         // task 25: the system has no ReGaHSS, so the list of interfaces does not name it
         lines('nc', 'INFO')

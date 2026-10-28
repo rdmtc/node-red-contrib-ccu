@@ -14,7 +14,6 @@
    The addresses of the "deleted" devices are made up. */
 
 const fs = require('fs');
-const os = require('os');
 const path = require('path');
 const should = require('should');
 const helper = require('node-red-node-test-helper');
@@ -22,7 +21,7 @@ const HmSim = require('hm-simulator/sim.js');
 const lab = require('hm-simulator/data/fixtures/lab-2026-09.json');
 
 const nodeConnection = require('../nodes/ccu-connection.js');
-const {simPorts} = require('./utils');
+const {simPorts, userDir} = require('./utils');
 
 helper.init(require.resolve('node-red'));
 
@@ -32,8 +31,8 @@ const [TABLE_FILE, REGA_FILE, VALUES_FILE] = [
     'ccu_127.0.0.1.json',
     'ccu_rega_127.0.0.1.json',
     'ccu_values_127.0.0.1.json',
-].map((f) => path.join(__dirname, '..', f));
-const PARAMSETS_SCRATCH = path.join(os.tmpdir(), 'nrccu-paramsetfault-paramsets.json');
+].map((f) => path.join(userDir(), f));
+const PARAMSETS_SCRATCH = path.join(userDir(), 'nrccu-paramsetfault-paramsets.json');
 
 // a remote deleted from the CCU while Node-RED was down (made-up address, a firmware no
 // paramsets.json knows, so its descriptions are missing and would be fetched)

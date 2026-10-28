@@ -12,7 +12,6 @@
    The lab fixture's dimmer alone: every description costs 200 ms. */
 
 const fs = require('fs');
-const os = require('os');
 const path = require('path');
 const should = require('should');
 const helper = require('node-red-node-test-helper');
@@ -23,7 +22,7 @@ const nodeConnection = require('../nodes/ccu-connection.js');
 const nodeRpcEvent = require('../nodes/ccu-rpc-event.js');
 const nodeRpc = require('../nodes/ccu-rpc.js');
 const nodeValue = require('../nodes/ccu-value.js');
-const {simPorts} = require('./utils');
+const {simPorts, userDir} = require('./utils');
 
 helper.init(require.resolve('node-red'));
 
@@ -31,9 +30,9 @@ const HOST = '127.0.0.1';
 const IFACE = 'HmIP-RF';
 const DIMMER = '00000000000006';
 const CACHE_FILES = ['ccu_127.0.0.1.json', 'ccu_rega_127.0.0.1.json', 'ccu_values_127.0.0.1.json'].map((f) =>
-    path.join(__dirname, '..', f),
+    path.join(userDir(), f),
 );
-const PARAMSETS_SCRATCH = path.join(os.tmpdir(), 'nrccu-scenario-paramsets.json');
+const PARAMSETS_SCRATCH = path.join(userDir(), 'nrccu-scenario-paramsets.json');
 const USER = 'Admin';
 const PASSWORD = 'lab-secret';
 

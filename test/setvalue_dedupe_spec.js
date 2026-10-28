@@ -9,7 +9,6 @@
    set by hand as the device would through its events. */
 
 const fs = require('fs');
-const os = require('os');
 const path = require('path');
 require('should');
 const helper = require('node-red-node-test-helper');
@@ -18,15 +17,16 @@ const binrpc = require('binrpc');
 const nodeConnection = require('../nodes/ccu-connection.js');
 const nodeValue = require('../nodes/ccu-value.js');
 const nodeSetValue = require('../nodes/ccu-set-value.js');
+const {userDir} = require('./utils');
 
 helper.init(require.resolve('node-red'));
 
 const HOST = '127.0.0.1';
 const IFACE = 'BidCos-RF';
 const CACHE_FILES = ['ccu_127.0.0.1.json', 'ccu_rega_127.0.0.1.json', 'ccu_values_127.0.0.1.json'].map((f) =>
-    path.join(__dirname, '..', f),
+    path.join(userDir(), f),
 );
-const PARAMSETS_SCRATCH = path.join(os.tmpdir(), 'nrccu-setvalue_dedupe-paramsets.json');
+const PARAMSETS_SCRATCH = path.join(userDir(), 'nrccu-setvalue_dedupe-paramsets.json');
 const BLIND = 'B19BLIND01';
 
 function removeCache() {

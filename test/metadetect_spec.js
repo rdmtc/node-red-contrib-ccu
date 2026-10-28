@@ -13,13 +13,14 @@ const should = require('should');
 const helper = require('node-red-node-test-helper');
 
 const nodeConnection = require('../nodes/ccu-connection.js');
+const {userDir} = require('./utils');
 
 helper.init(require.resolve('node-red'));
 
 const HOST = '127.0.0.1';
 const META_PORT = 2078;
 const CACHE_FILES = ['ccu_127.0.0.1.json', 'ccu_rega_127.0.0.1.json', 'ccu_values_127.0.0.1.json'].map((f) =>
-    path.join(__dirname, '..', f),
+    path.join(userDir(), f),
 );
 const HOUSE = JSON.parse(fs.readFileSync(path.join(__dirname, 'fixtures', 'openccu-lite', 'valid-house.json')));
 
