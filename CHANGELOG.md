@@ -5,6 +5,28 @@ Notable changes to node-red-contrib-ccu. Format follows
 user-visible symptom and the cause, not the commit list (the release notes
 append commits automatically).
 
+## 4.7.1 (2026-10-28)
+
+### Fixed
+
+- **On openccu-lite every write of a decimal value failed** - a dimmer's or a
+  blind's `LEVEL`, a thermostat's set point, an `ON_TIME`, through _value_,
+  _set value_, _rpc_ and the other nodes alike. A `FLOAT` datapoint is sent as
+  a typed double, which over XML-RPC is homematic-xmlrpc's
+  `{explicitDouble: n}`; the lite-rpc connection of 4.7.0 passed that object
+  on as it was, so the interface process got a struct where a number belongs
+  and refused it (`Failure` from rfd and hs485d,
+  `-5 Invalid parameter or value` from hmipserver). The lite-rpc connection
+  now sends lite-rpc's own typed double, `{double: n}` (or the plain number
+  on a system that does not announce it) - in `setValue`, in a paramset of
+  `putParamset` and in a multicall. The direct connection to a CCU is unchanged. Until this version
+  the workaround was _CCU_ in the connection node's _openccu-lite interfaces_.
+- **Errors of the lite-rpc connection said less than they should:** a fault
+  of the interface process was logged as `fault -1 undefined` and reached the
+  flow as `OccuLiteError: Failure`, and a token without the needed rights did
+  not say which right it lacks. The fault now carries its code and text, and a
+  refused call names the missing scope.
+
 ## 4.7.0 (2026-10-27)
 
 ### Added
