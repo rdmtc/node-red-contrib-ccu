@@ -1501,7 +1501,7 @@ module.exports = function (RED) {
             const line =
                 'meta api detection inconclusive (' +
                 outcome.reason +
-                ') - names come from the ReGaHSS until the box answers, detecting again in ' +
+                ') - names come from the ReGaHSS until the system answers, detecting again in ' +
                 delay / 1000 +
                 ' s';
             if (this.metaRedetectAttempt === 1) {
@@ -1578,6 +1578,8 @@ module.exports = function (RED) {
             delete this.ifaceStatus.ReGaHSS;
             delete this.ifaceWaiting.ReGaHSS;
             this.ifaceStatus[META_IFACE] = null;
+            // task 25: the system has no ReGaHSS - the "Interfaces:" line and the counters leave it out
+            this.enabledIfaces = this.enabledIfaces.filter((iface) => iface !== 'ReGaHSS');
 
             this.logger.info(
                 'openccu-lite detected (' +
@@ -1587,12 +1589,12 @@ module.exports = function (RED) {
                     ') - names, rooms and functions come from its metadata api',
             );
             this.logger.info(
-                'this box has no ReGaHSS: system variables, programs and HM-Script are not available (sysvar, program, poll and script nodes stay idle)',
+                'this system has no ReGaHSS: system variables, programs and HM-Script are not available (sysvar, program, poll and script nodes stay idle)',
             );
 
             if (info.version > 1) {
                 this.logger.warn(
-                    'the box speaks metadata api version ' +
+                    'the system speaks metadata api version ' +
                         info.version +
                         ', this version of node-red-contrib-ccu implements version 1',
                 );
@@ -1600,7 +1602,7 @@ module.exports = function (RED) {
 
             if (!this.metaToken) {
                 this.logger.warn(
-                    'no metadata api token: create one on the box (Users page) and enter it in the connection node, or run on the box where ' +
+                    'no metadata api token: create one on the system (Users page) and enter it in the connection node, or run on the system where ' +
                         metaProvider.LOCAL_TOKEN_FILE +
                         ' is readable. Without it the nodes work with addresses only.',
                 );
@@ -1641,10 +1643,13 @@ module.exports = function (RED) {
                         delete this.ifaceStatus[META_IFACE];
                         if (this.ifaceTypes.ReGaHSS.enabled) {
                             this.ifaceStatus.ReGaHSS = null;
+                            if (!this.enabledIfaces.includes('ReGaHSS')) {
+                                this.enabledIfaces.unshift('ReGaHSS');
+                            }
                         }
 
                         this.pushStatus();
-                        this.logger.warn('this box no longer answers as openccu-lite - detecting again');
+                        this.logger.warn('this system no longer answers as openccu-lite - detecting again');
                         this.detectMetaOutcome().then((outcome) => {
                             if (outcome.info) {
                                 return this.startMeta(outcome.info);
@@ -1727,7 +1732,7 @@ module.exports = function (RED) {
          * @returns {Error}
          */
         regaMissingError(feature) {
-            return new Error(feature + ' are not available on this box (openccu-lite has no ReGaHSS)');
+            return new Error(feature + ' are not available on this system (openccu-lite has no ReGaHSS)');
         }
 
         /**

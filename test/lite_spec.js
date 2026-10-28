@@ -316,6 +316,15 @@ describe('openccu-lite through lite-rpc with occulite-client (task 14)', functio
             .should.be.true();
         fs.existsSync(path.join(__dirname, '..', 'ccu_lite_127.0.0.1.json')).should.be.true();
 
+        // task 25: the system has no ReGaHSS, so the list of interfaces does not name it
+        lines('nc', 'INFO')
+            .filter((l) => /^Interfaces: /.test(l))
+            .should.deepEqual(['Interfaces: BidCos-RF, HmIP-RF']);
+        lines('nc', 'INFO')
+            .some((l) => /^this system has no ReGaHSS/.test(l))
+            .should.be.true();
+        nc.enabledIfaces.should.deepEqual(['BidCos-RF', 'HmIP-RF']);
+
         // task 24: the device lists of both interfaces (listDevices and the stream's snapshot as
         // newDevices) are one write of the metadata file, not one per interface and path
         (await until(() => lines('nc', 'INFO').some((l) => /^metadata saved to/.test(l)), 5000)).should.be.true();
