@@ -19,6 +19,7 @@ const {Rega} = require('homematic-rega'); // ES module - require(esm) needs Node
 const metaProvider = require('./lib/metaprovider.js');
 const {InitRetry, retryDelay, RETRY_INTERVAL} = require('./lib/initretry.js');
 const lite = require('./lib/lite.js');
+const {writeJsonAtomic, DebouncedSave} = require('./lib/cachefile.js');
 const xmlrpc = require('homematic-xmlrpc');
 const binrpc = require('binrpc');
 
@@ -781,6 +782,9 @@ module.exports = function (RED) {
                 RED.settings.userDir || path.join(__dirname, '..'),
                 'ccu_lite_' + this.host + '.json',
             );
+            // task 24: the device lists of all interfaces arrive within a second at start -
+            // one write of the metadata file for the burst, flushed at close
+            this.metadataSave = new DebouncedSave(() => this.writeMetadata(), 1000);
 
             this.loadMetadata();
             this.loadRegadata();
@@ -1130,11 +1134,30 @@ module.exports = function (RED) {
          * @returns {Promise<any>}
          */
         saveMetadata() {
-            return new Promise((resolve) => {
-                fs.writeFileSync(this.metadataFile, JSON.stringify(this.metadata));
-                this.logger.info('metadata saved to', this.metadataFile);
-                resolve();
-            });
+            // task 24: a burst (every interface's device list at start) is one write and one line
+            this.metadataSave.request();
+            return Promise.resolve();
+        }
+
+        /** writes the metadata file now (the debounce's write, and the flush at close) */
+        writeMetadata() {
+            this.writeCache(this.metadataFile, 'metadata', this.metadata);
+        }
+
+        /**
+         * task 24: one of the cache files, written atomically; a failure is logged, never thrown
+         * (the caches are a convenience, the connection works without them)
+         * @param {string} file
+         * @param {string} what for the log line
+         * @param {*} data
+         */
+        writeCache(file, what, data) {
+            try {
+                writeJsonAtomic(file, data);
+                this.logger.info(what + ' saved to', file);
+            } catch (error) {
+                this.logger.error(what + ' not saved to ' + file + ': ' + error.message);
+            }
         }
 
         /**
@@ -1142,25 +1165,19 @@ module.exports = function (RED) {
          * @returns {Promise<any>}
          */
         saveRegadata() {
-            return new Promise((resolve) => {
-                fs.writeFileSync(
-                    this.regadataFile,
-                    JSON.stringify({
-                        channelNames: this.channelNames,
-                        regaIdChannel: this.regaIdChannel,
-                        regaChannels: this.regaChannels,
-                        channelRooms: this.channelRooms,
-                        channelFunctions: this.channelFunctions,
-                        rooms: this.rooms,
-                        functions: this.functions,
-                        groups: this.groups,
-                        sysvar: this.sysvar,
-                        program: this.program,
-                    }),
-                );
-                this.logger.info('regadata saved to', this.regadataFile);
-                resolve();
+            this.writeCache(this.regadataFile, 'regadata', {
+                channelNames: this.channelNames,
+                regaIdChannel: this.regaIdChannel,
+                regaChannels: this.regaChannels,
+                channelRooms: this.channelRooms,
+                channelFunctions: this.channelFunctions,
+                rooms: this.rooms,
+                functions: this.functions,
+                groups: this.groups,
+                sysvar: this.sysvar,
+                program: this.program,
             });
+            return Promise.resolve();
         }
 
         /**
@@ -1168,16 +1185,8 @@ module.exports = function (RED) {
          * @returns {Promise<any>}
          */
         saveValues() {
-            return new Promise((resolve) => {
-                fs.writeFileSync(
-                    this.valuesFile,
-                    JSON.stringify({
-                        values: this.values,
-                    }),
-                );
-                this.logger.info('values saved to', this.valuesFile);
-                resolve();
-            });
+            this.writeCache(this.valuesFile, 'values', {values: this.values});
+            return Promise.resolve();
         }
 
         /**
@@ -1353,6 +1362,7 @@ module.exports = function (RED) {
             Object.keys(this.liveness).forEach((iface) => this.stopLiveness(iface));
             clearTimeout(this.valuesPruneTimer);
 
+            this.metadataSave.flush();
             this.saveRegadata();
             this.saveValues();
 
@@ -3456,9 +3466,12 @@ module.exports = function (RED) {
         }
 
         /**
-         *
+         * Takes a device description into the device table.
          * @param iface
          * @param device
+         * @returns {boolean} whether the table changed: the device is new, or its data changed
+         *   (a description equal to the cached one, as the lite-rpc stream's snapshot sends at
+         *   every connect, changes nothing - task 24)
          */
         newDevice(iface, device) {
             if (!this.metadata.devices[iface]) {
@@ -3497,7 +3510,8 @@ module.exports = function (RED) {
                 this.logger.debug('newDevice', iface, device.ADDRESS);
             }
 
-            if (!known || deviceChanged(known, device)) {
+            const changed = !known || deviceChanged(known, device);
+            if (changed) {
                 // B-36: a device added anew (re-paired, or its data changed) is asked again
                 this.forgetParamsetFailures(iface, device.ADDRESS);
             }
@@ -3522,6 +3536,7 @@ module.exports = function (RED) {
             }
 
             this.paramsetQueuePush(iface, device);
+            return changed;
         }
 
         /**
@@ -3860,8 +3875,9 @@ module.exports = function (RED) {
                     if (iface && Array.isArray(devices)) {
                         devices.forEach((device) => {
                             if (device && typeof device.ADDRESS === 'string' && device.TYPE) {
-                                this.newDevice(iface, device);
-                                changed = true;
+                                if (this.newDevice(iface, device)) {
+                                    changed = true;
+                                }
                             } else {
                                 this.logger.warn(
                                     'newDevices',

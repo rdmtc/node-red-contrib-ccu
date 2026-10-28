@@ -315,13 +315,29 @@ describe('openccu-lite through lite-rpc with occulite-client (task 14)', functio
             .some((l) => /^Interface HmIP-RF lite-rpc connected$/.test(l))
             .should.be.true();
         fs.existsSync(path.join(__dirname, '..', 'ccu_lite_127.0.0.1.json')).should.be.true();
+
+        // task 24: the device lists of both interfaces (listDevices and the stream's snapshot as
+        // newDevices) are one write of the metadata file, not one per interface and path
+        (await until(() => lines('nc', 'INFO').some((l) => /^metadata saved to/.test(l)), 5000)).should.be.true();
+        await wait(1200);
+        lines('nc', 'INFO')
+            .filter((l) => /^metadata saved to/.test(l))
+            .length.should.equal(1);
     });
 
-    it('the next start does not say "moved" again; a restart of the stream is followed', async () => {
+    it('the next start does not say "moved" again and saves no metadata; a restart of the stream is followed', async () => {
         await start({}, {nc: {metaToken: TOKEN}});
         (await until(() => nc.ifaceStatus['HmIP-RF'] === true, 15000)).should.be.true();
         lines('nc', 'INFO')
             .some((l) => /from now on, the default on openccu-lite - moved once/.test(l))
+            .should.be.false();
+        // task 24: the snapshot's newDevices carries the devices the cache already has - no write
+        (
+            await until(() => nc.metadata.devices['HmIP-RF'] && nc.metadata.devices['BidCos-RF']['LEQ1:1'], 5000)
+        ).should.be.true();
+        await wait(1500);
+        lines('nc', 'INFO')
+            .some((l) => /^metadata saved to/.test(l))
             .should.be.false();
         const opened = fake.streamsOpened;
         fake.dropStreams();
