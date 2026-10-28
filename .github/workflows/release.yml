@@ -30,6 +30,11 @@ jobs:
       - run: npm ci
       - run: npm test
       - run: npm publish --provenance --access public
+      # flows.nodered.org notices new npm versions late or never: ask it to check, as its
+      # "check for update" button does. Best effort - a failure is a warning, never a failed release.
+      - name: Refresh the Node-RED flow library
+        continue-on-error: true
+        run: bash .github/flows-refresh.sh
 
   github-release:
     needs: npm
