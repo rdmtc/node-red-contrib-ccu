@@ -88,17 +88,17 @@ describe('translateError and readAddonToken', () => {
 
 describe("liteValue (B-41): homematic-xmlrpc's explicitDouble as lite-rpc's double", () => {
     test('the top level: {double} where the system announces json_double, the plain number otherwise', () => {
-        const parameters = ['HEQ0176198:3', 'LEVEL', {explicitDouble: 0.85}];
-        assert.deepEqual(liteValue(parameters, true), ['HEQ0176198:3', 'LEVEL', {double: 0.85}]);
-        assert.deepEqual(liteValue(parameters, false), ['HEQ0176198:3', 'LEVEL', 0.85]);
+        const parameters = ['JEQ0000001:3', 'LEVEL', {explicitDouble: 0.85}];
+        assert.deepEqual(liteValue(parameters, true), ['JEQ0000001:3', 'LEVEL', {double: 0.85}]);
+        assert.deepEqual(liteValue(parameters, false), ['JEQ0000001:3', 'LEVEL', 0.85]);
         assert.deepEqual(liteValue(['X:1', 'LEVEL', {explicitDouble: 1}], true), ['X:1', 'LEVEL', {double: 1}]);
         assert.deepEqual(liteValue(['X:1', 'LEVEL', {explicitDouble: 0}], false), ['X:1', 'LEVEL', 0]);
     });
 
     test('inside a paramset: only the FLOATs change, an INTEGER, a string, a bool stay', () => {
-        const parameters = ['001A58A9A23FB5:9', 'VALUES', {LEVEL: {explicitDouble: 0}, COLOR: 0, NAME: 'x', ON: true}];
+        const parameters = ['0000000000ABCD:9', 'VALUES', {LEVEL: {explicitDouble: 0}, COLOR: 0, NAME: 'x', ON: true}];
         assert.deepEqual(liteValue(parameters, true), [
-            '001A58A9A23FB5:9',
+            '0000000000ABCD:9',
             'VALUES',
             {LEVEL: {double: 0}, COLOR: 0, NAME: 'x', ON: true},
         ]);
@@ -141,8 +141,8 @@ describe("liteValue (B-41): homematic-xmlrpc's explicitDouble as lite-rpc's doub
                     return Promise.resolve('');
                 },
             };
-            await connection.call('BidCos-Wired', 'setValue', ['HEQ0176198:3', 'LEVEL', {explicitDouble: 0.85}]);
-            assert.deepEqual(seen, [['BidCos-Wired', 'setValue', ['HEQ0176198:3', 'LEVEL', expected]]]);
+            await connection.call('BidCos-Wired', 'setValue', ['JEQ0000001:3', 'LEVEL', {explicitDouble: 0.85}]);
+            assert.deepEqual(seen, [['BidCos-Wired', 'setValue', ['JEQ0000001:3', 'LEVEL', expected]]]);
         }
     });
 });
