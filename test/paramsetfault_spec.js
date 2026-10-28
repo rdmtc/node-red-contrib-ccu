@@ -283,7 +283,11 @@ describe('stale cache entries and refused paramset descriptions (B-36)', functio
 
     it('a refused description is asked for once per address and paramset, with one warn line, and the client stays', async () => {
         await start();
-        (await until(() => nc.paramsetQueue.length === 0 && !nc.paramsetPending, 10000)).should.be.true();
+        // the device table of the interface must be there before the queue's emptiness means anything
+        // (on a slow CI leg the queue was still empty before listDevices had answered)
+        (
+            await until(() => nc.metadata.devices[IFACE] && nc.paramsetQueue.length === 0 && !nc.paramsetPending, 10000)
+        ).should.be.true();
         const client = nc.clients[IFACE];
         const before = created();
 
