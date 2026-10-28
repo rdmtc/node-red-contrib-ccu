@@ -26,6 +26,16 @@ describe('writeJsonAtomic', () => {
         fs.rmSync(dir, {recursive: true});
     });
 
+    test('an existing file keeps its mode', () => {
+        const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'nrccu-cachefile-'));
+        const file = path.join(dir, 'ccu_test.json');
+        fs.writeFileSync(file, '{}', {mode: 0o600});
+        fs.chmodSync(file, 0o600);
+        writeJsonAtomic(file, {a: 1});
+        assert.equal(fs.statSync(file).mode & 0o777, 0o600);
+        fs.rmSync(dir, {recursive: true});
+    });
+
     test('a failed write keeps the old file and throws', () => {
         const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'nrccu-cachefile-'));
         const file = path.join(dir, 'ccu_test.json');

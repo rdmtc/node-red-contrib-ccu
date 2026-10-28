@@ -14,7 +14,8 @@ const fs = require('fs');
 const path = require('path');
 
 /**
- * Writes `data` as JSON to `file` by way of a temporary file and a rename.
+ * Writes `data` as JSON to `file` by way of a temporary file and a rename; an existing file's mode
+ * is kept.
  * @param {string} file
  * @param {*} data
  * @param {string|number} [indent] JSON.stringify's third argument
@@ -26,6 +27,17 @@ function writeJsonAtomic(file, data, indent) {
     );
     try {
         fs.writeFileSync(temporary, JSON.stringify(data, null, indent));
+        // the rename replaces the inode: an existing file's mode is kept (0600 on a system that
+        // made it so), a new one gets the umask's
+        let mode;
+        try {
+            mode = fs.statSync(file).mode & 0o777;
+        } catch {}
+
+        if (mode !== undefined) {
+            fs.chmodSync(temporary, mode);
+        }
+
         fs.renameSync(temporary, file);
     } catch (error) {
         try {
