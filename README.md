@@ -47,7 +47,7 @@ start on openccu-lite, the log says so, and a choice made in the node is never c
 CCU-Jack keep their own connections.
 
 - Node-RED **on the system** (RedMatic from its addon catalogue): lite-rpc with RedMatic's own token, which the system
-  mints for it from RedMatic's manifest (RedMatic 9.13 or later); the names come with the system's read-only token.
+  mints for it from RedMatic's manifest (RedMatic 9.15.1 or later); the names come with the system's read-only token.
   Nothing to configure. An older RedMatic has no such token and connects the CCU way, the log says so.
 - Node-RED **elsewhere**: an API token of the system goes into the connection node's **openccu-lite token** field -
   for lite-rpc it needs the `rpc:*` scope of what the flow does (`rpc:read` for events and reads, `rpc:operate` for
