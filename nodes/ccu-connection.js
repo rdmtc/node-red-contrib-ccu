@@ -20,6 +20,7 @@ const metaProvider = require('./lib/metaprovider.js');
 const {InitRetry, retryDelay, RETRY_INTERVAL} = require('./lib/initretry.js');
 const lite = require('./lib/lite.js');
 const {writeJsonAtomic, DebouncedSave} = require('./lib/cachefile.js');
+const {SubscriptionIndex, matches: filterMatches} = require('./lib/subscriptions.js');
 const xmlrpc = require('homematic-xmlrpc');
 const binrpc = require('binrpc');
 
@@ -722,10 +723,10 @@ module.exports = function (RED) {
 
             this.loadParamsets();
 
-            this.callbacks = {};
-            this.idCallback = 0;
-            this.callbackBlacklists = {};
-            this.callbackWhitelists = {};
+            // task 27: the datapoint subscriptions, indexed by their exact key - memory grows with
+            // the subscriptions, not with datapoints x subscriptions as the per-datapoint
+            // whitelists/blacklists did
+            this.subscriptions = new SubscriptionIndex();
 
             this.sysvarCallbacks = {};
             this.idSysvarCallback = 0;
@@ -987,7 +988,7 @@ module.exports = function (RED) {
                 this.logger.debug(
                     'stats rpc rx: ' + JSON.stringify(this.rxCounters) + ' tx: ' + JSON.stringify(this.txCounters),
                 );
-                this.logger.debug('stats rpc subscribers ' + Object.keys(this.callbacks).length);
+                this.logger.debug('stats rpc subscribers ' + this.subscriptions.size);
                 this.logger.debug(
                     'stats rega subscribers ' +
                         (Object.keys(this.programCallbacks).length + Object.keys(this.sysvarCallbacks).length),
@@ -4182,27 +4183,18 @@ module.exports = function (RED) {
                 }
             }
 
-            const id = this.idCallback;
-            this.idCallback += 1;
-
-            //this.logger.trace('subscribe', id, JSON.stringify(filter));
-            this.callbacks[id] = {filter, callback};
+            const id = this.subscriptions.add(filter, callback);
 
             if (filter.cache && this.cachedValuesReceived) {
-                Object.keys(this.values).forEach((dp) => {
-                    const message = {...this.values[dp]};
+                // the replay goes through the index: one lookup for a filter that names its
+                // datapoint, a walk over the cached values for the others (as before, but
+                // nothing is remembered per datapoint any more)
+                for (const cached of SubscriptionIndex.replayCandidates(filter, this.values)) {
+                    const message = {...cached};
                     message.cache = true;
                     message.change = false;
-                    if (!this.callbackBlacklists[message.datapointName]) {
-                        this.callbackBlacklists[message.datapointName] = new Set();
-                    }
-
-                    if (!this.callbackWhitelists[message.datapointName]) {
-                        this.callbackWhitelists[message.datapointName] = new Set();
-                    }
-
                     this.callCallback(message, id);
-                });
+                }
             }
 
             return id;
@@ -4214,18 +4206,8 @@ module.exports = function (RED) {
          * @returns {boolean}
          */
         unsubscribe(id) {
-            if (this.callbacks[id]) {
+            if (this.subscriptions.remove(id)) {
                 this.logger.trace('unsubscribe', id);
-                delete this.callbacks[id];
-
-                Object.keys(this.callbackBlacklists).forEach((dp) => {
-                    this.callbackBlacklists[dp].delete(id);
-                });
-
-                Object.keys(this.callbackWhitelists).forEach((dp) => {
-                    this.callbackWhitelists[dp].delete(id);
-                });
-
                 return true;
             }
 
@@ -4361,145 +4343,30 @@ module.exports = function (RED) {
          * @returns {boolean}
          */
         callCallback(message, id) {
-            const {filter, callback} = this.callbacks[id];
-            //this.logger.trace('filter', JSON.stringify(filter));
-
-            let match = true;
-            let matchCache;
-            let matchChange;
-            let matchStable;
-
-            // Checked before the attribute loop below: that loop may break
-            // early for a whitelisted datapoint, and this decision has to be
-            // made for every message regardless of key order. Only present in
-            // the filter when a node opted in, so existing subscriptions keep
-            // receiving values the ReGa could not timestamp (#96).
-            if (filter && filter.uncertain === false && message.uncertain) {
+            const subscription = this.subscriptions.get(id);
+            if (!subscription) {
                 return false;
             }
 
-            if (filter) {
-                const arrayAttr = Object.keys(filter);
-
-                for (let i = 0, {length} = arrayAttr; match && i < length; i++) {
-                    const attr = arrayAttr[i];
-
-                    if (attr === 'cache') {
-                        // if filter.cache==false - Drop messages with msg.cache==true
-                        if (!filter.cache && message.cache) {
-                            //this.logger.trace('cb mismatch cache ' + id + ' ' + filter.cache + ' ' + msg.cache);
-                            return false;
-                        }
-
-                        matchCache = true;
-                        continue;
-                    }
-
-                    if (attr === 'change') {
-                        // if filter.change==true - Drop messages with msg.change==false - except msg.cache==true && filter.cache==true
-                        if (filter.change && !message.change && !(filter.cache && message.cache)) {
-                            //this.logger.trace('cb mismatch change ' + id + ' ' + filter.change + ' ' + msg.change + ' ' + msg.cache);
-                            return false;
-                        }
-
-                        matchChange = true;
-                        continue;
-                    }
-
-                    if (attr === 'stable') {
-                        // if filter.stable==true - Drop messages with msg.stable==false
-                        if (filter.stable && !message.stable) {
-                            //this.logger.trace('cb mismatch stable ' + id + ' ' + filter.stable + ' ' + msg.stable);
-                            return false;
-                        }
-
-                        matchStable = true;
-                        continue;
-                    }
-
-                    if (attr === 'uncertain') {
-                        // already decided above, and not a value to compare
-                        continue;
-                    }
-
-                    if (this.callbackWhitelists[message.datapointName].has(id)) {
-                        if (matchCache && matchChange && matchStable) {
-                            break;
-                        }
-
-                        continue;
-                    }
-
-                    if (filter[attr] === '') {
-                        // TODO rethink
-                        continue;
-                    }
-
-                    if (attr === 'channelIndex' && typeof filter[attr] !== 'undefined') {
-                        filter[attr] = Number.parseInt(filter[attr], 10);
-                    }
-
-                    if (Array.isArray(message[attr])) {
-                        if (filter[attr] instanceof RegExp) {
-                            match = false;
-                            this.logger.trace('cb test regex array', id, attr, filter[attr], message[attr]);
-                            message[attr].forEach((item) => {
-                                if (filter[attr].test(item)) {
-                                    match = true;
-                                }
-                            });
-                        } else if (!message[attr].includes(filter[attr])) {
-                            this.logger.trace('cb mismatch array', id, attr, filter[attr], message[attr]);
-                            match = false;
-                        }
-                    } else if (filter[attr] instanceof RegExp) {
-                        if (!filter[attr].test(message[attr])) {
-                            this.logger.trace('cb mismatch regex', id, attr, filter[attr], message[attr]);
-                            match = false;
-                        }
-                    } else if (filter[attr] !== message[attr]) {
-                        this.logger.trace(
-                            'cb mismatch misc ' + id + ' ' + attr + ' ' + filter[attr] + ' ' + message[attr],
-                        );
-                        match = false;
-                    }
-                }
+            const {filter, callback} = subscription;
+            if (!filterMatches(filter, message, id, this.logger)) {
+                return false;
             }
 
-            if (match) {
-                //this.logger.trace('callCallback ' + id + ' ' + msg.datapointName + ' ' + msg.value);
-                callback(RED.util.cloneMessage(message));
-                this.callbackWhitelists[message.datapointName].add(id);
-            } else {
-                //this.logger.trace('add to blacklist ' + id + ' ' + msg.datapointName);
-                this.callbackBlacklists[message.datapointName].add(id);
-            }
-
-            return match;
+            callback(RED.util.cloneMessage(message));
+            return true;
         }
 
         /**
-         * Apply msg to callCallback() for all (not blacklisted) callbacks
+         * Apply msg to callCallback() for every subscription the index names as a candidate
+         * for it (task 27: those keyed by one of the message's own attribute values, plus the
+         * generic ones), in subscription order
          * @param msg
          */
         callCallbacks(message) {
-            //this.logger.trace('callCallbacks', this.callbacks.length, JSON.stringify({datapointName: msg.datapointName, value: msg.value, cache: msg.cache, change: msg.change, stable: msg.stable}));
-            if (!this.callbackBlacklists[message.datapointName]) {
-                this.callbackBlacklists[message.datapointName] = new Set();
+            for (const id of this.subscriptions.candidates(message)) {
+                this.callCallback(message, id);
             }
-
-            if (!this.callbackWhitelists[message.datapointName]) {
-                this.callbackWhitelists[message.datapointName] = new Set();
-            }
-
-            Object.keys(this.callbacks).forEach((key) => {
-                if (this.callbackBlacklists[message.datapointName].has(key)) {
-                    //this.logger.trace('blacklistet ' + key + ' ' + msg.datapointName);
-                    return;
-                }
-
-                this.callCallback(message, key);
-            });
         }
 
         /**
