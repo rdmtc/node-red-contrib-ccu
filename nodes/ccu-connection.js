@@ -720,8 +720,14 @@ module.exports = function (RED) {
             this.paramsQueue = [];
 
             this.paramsetFile = path.join(RED.settings.userDir || path.join(__dirname, '..'), 'paramsets.json');
-
-            this.loadParamsets();
+            // task 28: the descriptions in memory are those of the device types present (and
+            // whatever was fetched); the file on disk keeps them all. Fetched since the last
+            // save, merged into the file by saveParamsets():
+            this.paramsetNew = {};
+            // names the file does not have, so a miss does not parse it again
+            this.paramsetFileMissing = new Set();
+            this.paramsetFilePass = null;
+            this.paramsetDescriptions = {};
 
             // task 27: the datapoint subscriptions, indexed by their exact key - memory grows with
             // the subscriptions, not with datapoints x subscriptions as the per-datapoint
@@ -788,6 +794,8 @@ module.exports = function (RED) {
             this.metadataSave = new DebouncedSave(() => this.writeMetadata(), 1000);
 
             this.loadMetadata();
+            // after the metadata: the descriptions of the device table's types are what is loaded
+            this.loadParamsets();
             this.loadRegadata();
             this.loadValues();
             this.pruneCaches();
@@ -1292,44 +1300,180 @@ module.exports = function (RED) {
         }
 
         /**
-         *
+         * Merges the descriptions fetched since the last save into the file on disk. The file
+         * holds every description ever known (the vendored ones and the fetched ones, in the
+         * format other consumers and the editor read); the memory holds only the present types,
+         * so the file is read, merged and written back atomically (task 28).
          * @returns {Promise<any>}
          */
         saveParamsets() {
             return new Promise((resolve) => {
-                fs.writeFileSync(this.paramsetFile, JSON.stringify(this.paramsetDescriptions, null, '  '));
-                this.logger.info(
-                    'paramsets saved to',
-                    this.paramsetFile,
-                    this.paramsetDescriptions ? Object.keys(this.paramsetDescriptions).length : 0,
-                );
+                const names = Object.keys(this.paramsetNew);
+                if (names.length === 0) {
+                    resolve();
+                    return;
+                }
+
+                try {
+                    const all = this.readParamsetFile() || {};
+                    for (const name of names) {
+                        all[name] = this.paramsetNew[name];
+                    }
+
+                    writeJsonAtomic(this.paramsetFile, all, '  ');
+                    this.paramsetNew = {};
+                    this.logger.info(
+                        'paramsets saved to',
+                        this.paramsetFile,
+                        names.length,
+                        'new,',
+                        Object.keys(all).length,
+                        'total',
+                    );
+                } catch (error) {
+                    this.logger.error('error saving paramsets ' + error.message);
+                }
+
                 resolve();
             });
         }
 
         /**
-         *
+         * Parses the paramsets file - the userDir's, or the vendored one when the userDir has none
+         * yet (then it is copied there, as before, so the format on disk stays the same).
+         * @returns {object|null} every description the file holds, or null when there is none
+         */
+        readParamsetFile() {
+            if (!fs.existsSync(this.paramsetFile)) {
+                const vendored = path.join(__dirname, '..', 'paramsets.json');
+                try {
+                    fs.copyFileSync(vendored, this.paramsetFile);
+                    this.logger.info('paramsets copied from', vendored, 'to', this.paramsetFile);
+                } catch (error) {
+                    this.logger.error('error copying paramsets ' + error.message);
+                }
+            }
+
+            try {
+                return JSON.parse(fs.readFileSync(this.paramsetFile));
+            } catch (error) {
+                if (error.code === 'ENOENT') {
+                    this.logger.info('paramsets new empty');
+                } else {
+                    this.logger.error('error loading paramsets ' + error.message);
+                }
+
+                return null;
+            }
+        }
+
+        /**
+         * The paramset names the device table needs: every PARAMSETS entry of every device and
+         * channel of every interface.
+         * @returns {Set<string>}
+         */
+        neededParamsetNames() {
+            const names = new Set();
+            const tables = (this.metadata && this.metadata.devices) || {};
+            for (const iface of Object.keys(tables)) {
+                for (const address of Object.keys(tables[iface])) {
+                    const device = tables[iface][address];
+                    if (device && Array.isArray(device.PARAMSETS)) {
+                        for (const paramset of device.PARAMSETS) {
+                            const name = this.paramsetName(iface, device, paramset);
+                            if (name) {
+                                names.add(name);
+                            }
+                        }
+                    }
+                }
+            }
+
+            return names;
+        }
+
+        /**
+         * Takes the descriptions the device table needs (and `extra`) from the file into memory;
+         * one parse of the file per call. A name the file does not have is remembered, so the
+         * queue asks the interface for it without another parse.
+         * @param {Iterable<string>} [extra] further names
+         * @returns {number} how many descriptions came in
+         */
+        paramsetsFromFile(extra) {
+            const needed = this.neededParamsetNames();
+            for (const name of extra || []) {
+                needed.add(name);
+            }
+
+            const all = this.readParamsetFile();
+            let loaded = 0;
+            for (const name of needed) {
+                if (this.paramsetDescriptions[name]) {
+                    continue;
+                }
+
+                if (all && all[name]) {
+                    this.paramsetDescriptions[name] = all[name];
+                    this.paramsetFileMissing.delete(name);
+                    loaded += 1;
+                } else {
+                    this.paramsetFileMissing.add(name);
+                }
+            }
+
+            this.logger.info(
+                'paramsets loaded from',
+                this.paramsetFile,
+                loaded,
+                'of',
+                all ? Object.keys(all).length : 0,
+                '(' + Object.keys(this.paramsetDescriptions).length + ' in memory for the device types present)',
+            );
+            return loaded;
+        }
+
+        /**
+         * One file pass on the next turn of the event loop, however often it is asked for until then.
+         */
+        paramsetFilePassSoon() {
+            if (this.paramsetFilePass) {
+                return;
+            }
+
+            this.paramsetFilePass = setImmediate(() => {
+                this.paramsetFilePass = null;
+                try {
+                    this.paramsetsFromFile();
+                } catch (error) {
+                    this.logger.error('error loading paramsets ' + error.message);
+                }
+            });
+        }
+
+        /**
+         * At start: the descriptions of the cached device table's types from the file. An obsolete
+         * `ccu_paramsets_v2.json` (the format of 2019) still lying in the userDir is removed.
          * @returns {Promise<any>}
          */
         loadParamsets() {
             return new Promise((resolve) => {
-                const load = (file) => {
-                    try {
-                        this.paramsetDescriptions = JSON.parse(fs.readFileSync(file));
-                        this.logger.info('paramsets loaded from', file);
-                    } catch {
-                        this.logger.info('paramsets new empty');
-                        this.paramsetDescriptions = {};
+                const obsolete = path.join(path.dirname(this.paramsetFile), 'ccu_paramsets_v2.json');
+                try {
+                    if (fs.existsSync(obsolete)) {
+                        fs.unlinkSync(obsolete);
+                        this.logger.info('removed the obsolete', obsolete);
                     }
-                };
-
-                if (fs.existsSync(this.paramsetFile)) {
-                    load(this.paramsetFile);
-                    resolve();
-                } else {
-                    load(path.join(__dirname, '..', 'paramsets.json'));
-                    this.saveParamsets().then(resolve);
+                } catch (error) {
+                    this.logger.warn('could not remove ' + obsolete + ': ' + error.message);
                 }
+
+                try {
+                    this.paramsetsFromFile();
+                } catch (error) {
+                    this.logger.error('error loading paramsets ' + error.message);
+                }
+
+                resolve();
             });
         }
 
@@ -1362,6 +1506,9 @@ module.exports = function (RED) {
             });
             Object.keys(this.liveness).forEach((iface) => this.stopLiveness(iface));
             clearTimeout(this.valuesPruneTimer);
+            clearTimeout(this.getParamsetTimeout);
+            clearImmediate(this.paramsetFilePass);
+            this.paramsetFilePass = null;
 
             this.metadataSave.flush();
             this.saveRegadata();
@@ -3350,6 +3497,12 @@ module.exports = function (RED) {
             if (device && device.PARAMSETS) {
                 device.PARAMSETS.forEach((paramset) => {
                     const name = this.paramsetName(iface, device, paramset);
+                    if (name && !this.paramsetDescriptions[name] && !this.paramsetFileMissing.has(name)) {
+                        // task 28: the file may have it - one pass after this burst of pushes (a
+                        // device list arrives as one callback), not one parse per device
+                        this.paramsetFilePassSoon();
+                    }
+
                     if (
                         !this.paramsetDescriptions[name] &&
                         // B-36: once per description key in the queue, and never again
@@ -3386,6 +3539,17 @@ module.exports = function (RED) {
             if (item) {
                 const {iface, name, address, paramset} = item;
 
+                if (!this.paramsetDescriptions[name] && name && !this.paramsetFileMissing.has(name)) {
+                    // task 28: the file first - one parse takes every name the device table
+                    // needs by now, the rest is asked of the interface
+                    try {
+                        this.paramsetsFromFile([name]);
+                    } catch (error) {
+                        this.logger.error('error loading paramsets ' + error.message);
+                        this.paramsetFileMissing.add(name);
+                    }
+                }
+
                 if (this.paramsetDescriptions[name]) {
                     //this.logger.trace('paramset', name, 'already known');
                     this.paramsetPending = false;
@@ -3398,6 +3562,8 @@ module.exports = function (RED) {
                             this.newParamsetDescriptionCount += 1;
                             this.newParamsetDescription = true;
                             this.paramsetDescriptions[name] = res;
+                            this.paramsetNew[name] = res;
+                            this.paramsetFileMissing.delete(name);
                             if (this.newParamsetDescriptionCount >= 30) {
                                 this.newParamsetDescription = false;
                                 this.newParamsetDescriptionCount = 0;

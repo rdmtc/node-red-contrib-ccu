@@ -185,7 +185,8 @@ describe('party mode on an HmIP thermostat is written atomically (task 2, #156, 
                     nc.ifaceStatus[IFACE] &&
                     nc.metadata.devices[IFACE] &&
                     nc.metadata.devices[IFACE][CHANNEL] &&
-                    nc.getParamsetDescription(IFACE, nc.metadata.devices[IFACE][CHANNEL], 'VALUES', 'PARTY_TIME_START'),
+                    // the description itself, not getParamsetDescription()'s {} for a pending one
+                    nc.paramsetDescriptions[nc.paramsetName(IFACE, nc.metadata.devices[IFACE][CHANNEL], 'VALUES')],
                 8000,
             )
         ).should.be.true();
