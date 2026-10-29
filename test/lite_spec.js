@@ -272,7 +272,14 @@ describe('openccu-lite through lite-rpc with occulite-client (task 14)', functio
         (
             await until(() => nc.metadata.devices['HmIP-RF'] && nc.metadata.devices['HmIP-RF']['ABC1:1'], 5000)
         ).should.be.true();
-        fake.calls.some((call) => call.interface === 'HmIP-RF' && call.method === 'listDevices').should.be.true();
+        // the stream's snapshot can hand the devices over before the listDevices call reaches
+        // the fake (the connection reads its paramsets file after the burst)
+        (
+            await until(
+                () => fake.calls.some((call) => call.interface === 'HmIP-RF' && call.method === 'listDevices'),
+                5000,
+            )
+        ).should.be.true();
         nc.metadata.devices['BidCos-RF']['LEQ1:1'].TYPE.should.equal('SWITCH');
 
         // the value cache from the state store
