@@ -5,6 +5,45 @@ Notable changes to node-red-contrib-ccu. Format follows
 user-visible symptom and the cause, not the commit list (the release notes
 append commits automatically).
 
+## 4.8.0 (2026-10-29)
+
+Less memory: the connection's own bookkeeping no longer grows with the
+number of datapoints, and the paramset descriptions in memory are those of
+the device types the system has. On a large system (a few thousand
+datapoints, a few hundred subscriptions from value nodes, RedMatic-HomeKit
+and RedMatic-Matter) that is on the order of 100 MB of live heap less, and
+a deploy no longer adds to it. It is a reduction, not the whole of a large
+Node-RED's memory: flows and the other nodes keep what they keep.
+
+### Changed
+
+- **Datapoint subscriptions are dispatched through an index.** Until now the
+  connection remembered, for every datapoint, which subscriptions had matched
+  it and which had not - two sets of ids per datapoint name, so the memory
+  grew with datapoints × subscriptions (3,500 datapoints × 536 subscriptions
+  were about 70 MB of live heap on a CCU3), a subscription with `cache` on
+  walked every cached value at deploy time to fill them all, and - because
+  the replay and the event path stored the id in two different forms - a
+  redeploy left the old entries behind and grew the sets again. Now a
+  subscription is indexed by the most exact attribute of its filter (the
+  datapoint name, the channel, the device, ...), an event is tested only
+  against the subscriptions that can match it, and unsubscribe removes
+  exactly one entry. What a subscription receives, and in which order, is
+  unchanged (a randomised equivalence test against the old dispatch guards
+  it). In the benchmark (`test/bench/subscriptions.js`, 12,000 datapoints,
+  1,000 subscriptions) the heap goes from 481 MB to 3 MB, a deploy from
+  6.5 s to 40 ms, an event from 28 µs to 8 µs.
+- **Paramset descriptions in memory only for the device types present.**
+  `paramsets.json` - the shipped 14 MB plus what a system fetched - was held
+  in memory whole: some 2,800 type/version keys, 16-20 MB of heap, where a
+  system uses the few dozen types it has (40 types are 3 MB). The file on
+  disk keeps every description in its format; the memory holds the ones the
+  device table needs, loaded at start and, for a device that arrives later,
+  from the file before the interface is asked. A fetched description is
+  merged into the file. The editor's device data is correspondingly smaller.
+- An obsolete `ccu_paramsets_v2.json` (the format of 2019) still lying in a
+  userDir is removed at start, once, with a log line.
+
 ## 4.7.2 (2026-10-29)
 
 ### Fixed
