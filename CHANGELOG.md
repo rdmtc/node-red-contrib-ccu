@@ -5,6 +5,27 @@ Notable changes to node-red-contrib-ccu. Format follows
 user-visible symptom and the cause, not the commit list (the release notes
 append commits automatically).
 
+## 4.9.0 (2026-11-09)
+
+### Added
+
+- **Pairing with an openccu-lite system from the connection node.** A
+  Node-RED that does not run on the system no longer needs a token copied
+  from the system's API tokens page: _Pair with the system_ asks the system
+  at the configured address for access, the dialog shows a six-digit code,
+  an administrator compares and approves it on the system's Status page, and
+  the dialog fills in the token and the fingerprint of the system's
+  certificate (and TLS, where the system redirects to https). After the
+  deploy the metadata API and lite-rpc accept exactly that certificate, so
+  the system's own self-signed certificate works without _Ignore invalid TLS
+  Certificates_; another certificate is refused before the token is sent. A
+  rejection, an expired request, a CCU or nothing at the address, pairing
+  switched off on the system or a request from outside its local networks
+  are said in the dialog. Closing the dialog withdraws a pending request.
+  Node-RED on the system itself (RedMatic on openccu-lite) is unchanged: it
+  configures itself, the dialog shows no pairing there and the runtime
+  refuses a pairing request for a local connection.
+
 ## 4.8.0 (2026-10-29)
 
 Less memory: the connection's own bookkeeping no longer grows with the
