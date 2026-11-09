@@ -13,13 +13,11 @@ const xmlrpc = require('homematic-xmlrpc');
 const binrpc = require('binrpc');
 
 const nodeConnection = require('../nodes/ccu-connection.js');
-const {userDir} = require('./utils');
+const {userDir, freePorts} = require('./utils');
 
 helper.init(require.resolve('node-red'));
 
 const HOST = '127.0.0.1';
-const BIN_PORT = 2067;
-const XML_PORT = 2068;
 const CACHE_FILES = ['ccu_127.0.0.1.json', 'ccu_rega_127.0.0.1.json', 'ccu_values_127.0.0.1.json'].map((f) =>
     path.join(userDir(), f),
 );
@@ -51,8 +49,8 @@ const flow = [
         rpcPingTimeout: '60',
         rpcInitAddress: HOST,
         rpcServerHost: HOST,
-        rpcBinPort: String(BIN_PORT),
-        rpcXmlPort: String(XML_PORT),
+        bcrfPort: '',
+        iprfPort: '',
     },
 ];
 
@@ -167,7 +165,10 @@ describe('callback calls with an unknown interface id (B-32)', function () {
     before(async () => {
         removeCache();
         await new Promise((resolve) => helper.startServer(resolve));
-        servers = [fakeServer('binrpc', 2001), fakeServer('http', 2010)];
+        const [rfdPort, hmipPort] = await freePorts(2);
+        flow[0].bcrfPort = String(rfdPort);
+        flow[0].iprfPort = String(hmipPort);
+        servers = [fakeServer('binrpc', rfdPort), fakeServer('http', hmipPort)];
         await load([nodeConnection], flow);
         nc = helper.getNode('nc');
         // fetched paramset descriptions would be saved into the repository's paramsets.json (the
@@ -175,8 +176,9 @@ describe('callback calls with an unknown interface id (B-32)', function () {
         nc.paramsetFile = PARAMSETS_SCRATCH;
         (await until(() => nc.ifaceStatus['BidCos-RF'] && nc.ifaceStatus['HmIP-RF'], 5000)).should.be.true();
         clients = [
-            binrpc.createClient({host: HOST, port: BIN_PORT, reconnectTimeout: 0}),
-            xmlrpc.createClient({host: HOST, port: XML_PORT, path: '/'}),
+            // the callback ports the test setup gave the node (test/hooks.js)
+            binrpc.createClient({host: HOST, port: Number(flow[0].rpcBinPort), reconnectTimeout: 0}),
+            xmlrpc.createClient({host: HOST, port: Number(flow[0].rpcXmlPort), path: '/'}),
         ];
     });
 

@@ -14,13 +14,14 @@ const helper = require('node-red-node-test-helper');
 const xmlrpc = require('homematic-xmlrpc');
 
 const nodeConnection = require('../nodes/ccu-connection.js');
-const {userDir} = require('./utils');
+const {userDir, freePorts} = require('./utils');
 
 helper.init(require.resolve('node-red'));
 
 const HOST = '127.0.0.1';
 const IFACE = 'HmIP-RF';
-const HMIP_PORT = 2167;
+/** the fake hmipserver's port, from the OS in before() */
+let HMIP_PORT = 0;
 const CACHE_FILES = ['ccu_127.0.0.1.json', 'ccu_rega_127.0.0.1.json', 'ccu_values_127.0.0.1.json'].map((f) =>
     path.join(userDir(), f),
 );
@@ -61,8 +62,6 @@ function flow() {
             rpcPingTimeout: '60',
             rpcInitAddress: HOST,
             rpcServerHost: HOST,
-            rpcBinPort: '2168',
-            rpcXmlPort: '2169',
         },
     ];
 }
@@ -191,8 +190,9 @@ describe('paramset descriptions in memory for the device types present (task 28)
         (await until(() => nc.ifaceStatus[IFACE], 5000)).should.be.true();
     }
 
-    before((done) => {
-        helper.startServer(done);
+    before(async () => {
+        [HMIP_PORT] = await freePorts(1);
+        await new Promise((resolve) => helper.startServer(resolve));
     });
 
     afterEach(async () => {

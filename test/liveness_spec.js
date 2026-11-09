@@ -12,12 +12,13 @@ const helper = require('node-red-node-test-helper');
 const xmlrpc = require('homematic-xmlrpc');
 
 const nodeConnection = require('../nodes/ccu-connection.js');
-const {userDir} = require('./utils');
+const {userDir, freePorts} = require('./utils');
 
 helper.init(require.resolve('node-red'));
 
 const HOST = '127.0.0.1';
-const IPRF_PORT = 2010;
+/** the fake hmipserver's port, from the OS for every test */
+let IPRF_PORT = 0;
 const CACHE_FILES = ['ccu_127.0.0.1.json', 'ccu_rega_127.0.0.1.json', 'ccu_values_127.0.0.1.json'].map((f) =>
     path.join(userDir(), f),
 );
@@ -48,13 +49,11 @@ const flow = [
         rpcPingTimeout: '60',
         rpcInitAddress: HOST,
         rpcServerHost: HOST,
-        rpcBinPort: '2087',
-        rpcXmlPort: '2088',
     },
 ];
 
 /**
- * A fake hmipserver on 2010: remembers every init (url, id), answers ping
+ * A fake hmipserver on its own port: remembers every init (url, id), answers ping
  * and - while `subscribed` - sends the PONG event to the last callback. A
  * restart is `forget()`: ping still answers, no PONG is sent (the client is
  * gone from its handler list), until the next init.
@@ -154,6 +153,8 @@ describe('HmIP-RF liveness ping (B-29)', function () {
             }),
         );
         await new Promise((resolve) => helper.startServer(resolve));
+        [IPRF_PORT] = await freePorts(1);
+        flow[0].iprfPort = String(IPRF_PORT);
         hmip = fakeHmipServer();
         await load([nodeConnection], flow);
         nc = helper.getNode('nc');

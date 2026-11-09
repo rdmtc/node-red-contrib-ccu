@@ -20,11 +20,13 @@ const helper = require('node-red-node-test-helper');
 const xmlrpc = require('homematic-xmlrpc');
 
 const nodeConnection = require('../nodes/ccu-connection.js');
-const {userDir} = require('./utils');
+const {userDir, freePorts} = require('./utils');
 
 helper.init(require.resolve('node-red'));
 
 const HOST = '127.0.0.1';
+/** the fake hmipserver's port, from the OS in before() */
+let HMIP_PORT = 0;
 const IFACE = 'HmIP-RF';
 const CACHE_FILES = ['ccu_127.0.0.1.json', 'ccu_rega_127.0.0.1.json', 'ccu_values_127.0.0.1.json'].map((f) =>
     path.join(userDir(), f),
@@ -59,8 +61,7 @@ function flow(pingTimeout = '60') {
             rpcPingTimeout: pingTimeout,
             rpcInitAddress: HOST,
             rpcServerHost: HOST,
-            rpcBinPort: '2117',
-            rpcXmlPort: '2118',
+            iprfPort: String(HMIP_PORT),
         },
     ];
 }
@@ -81,7 +82,7 @@ function channel(address, parent, parentType, type) {
     };
 }
 
-/** the fake hmipserver on 2010: init, ping (PONG while `pong`), listDevices from `list`, getParamsetDescription.
+/** the fake hmipserver on its own port: init, ping (PONG while `pong`), listDevices from `list`, getParamsetDescription.
  * Like hmipserver it asks the client for its listDevices after an init and sends newDevices for every entry
  * of its own list the answer does not hold with the same ADDRESS and VERSION. */
 function fakeHmipServer() {
@@ -97,7 +98,7 @@ function fakeHmipServer() {
         ],
         descriptions: [],
     };
-    const server = xmlrpc.createServer({host: HOST, port: 2010});
+    const server = xmlrpc.createServer({host: HOST, port: HMIP_PORT});
     const send = (method, params) =>
         new Promise((resolve) => {
             if (!state.callback) {
@@ -196,8 +197,9 @@ describe('device table refresh and the re-init watchdog (task 9)', function () {
         (await until(() => nc.ifaceStatus[IFACE] && hmip.inits.length === 1, 5000)).should.be.true();
     }
 
-    before((done) => {
-        helper.startServer(done);
+    before(async () => {
+        [HMIP_PORT] = await freePorts(1);
+        await new Promise((resolve) => helper.startServer(resolve));
     });
 
     afterEach(async () => {

@@ -13,13 +13,11 @@ const helper = require('node-red-node-test-helper');
 const xmlrpc = require('homematic-xmlrpc');
 
 const nodeConnection = require('../nodes/ccu-connection.js');
-const {userDir} = require('./utils');
+const {userDir, freePorts} = require('./utils');
 
 helper.init(require.resolve('node-red'));
 
 const HOST = '127.0.0.1';
-const XML_PORT = 2069;
-const FAKE_PORT = 2010;
 const CACHE_FILES = ['ccu_127.0.0.1.json', 'ccu_rega_127.0.0.1.json', 'ccu_values_127.0.0.1.json'].map((f) =>
     path.join(userDir(), f),
 );
@@ -50,8 +48,7 @@ const flow = [
         rpcPingTimeout: '60',
         rpcInitAddress: HOST,
         rpcServerHost: HOST,
-        rpcBinPort: '2066',
-        rpcXmlPort: String(XML_PORT),
+        iprfPort: '',
     },
 ];
 
@@ -144,7 +141,9 @@ describe('the XML-RPC callback server keeps idle keep-alive connections open', f
     before(async () => {
         removeCache();
         await new Promise((resolve) => helper.startServer(resolve));
-        fake = fakeServer(FAKE_PORT);
+        const [hmipPort] = await freePorts(1);
+        flow[0].iprfPort = String(hmipPort);
+        fake = fakeServer(hmipPort);
         await load([nodeConnection], flow);
         nc = helper.getNode('nc');
         nc.paramsetFile = PARAMSETS_SCRATCH;
@@ -165,7 +164,8 @@ describe('the XML-RPC callback server keeps idle keep-alive connections open', f
     });
 
     it('a connection idle for longer than the old 5 s default still serves the next call', async () => {
-        const socket = net.connect({host: HOST, port: XML_PORT});
+        // the callback port the test setup gave the node (test/hooks.js)
+        const socket = net.connect({host: HOST, port: Number(flow[0].rpcXmlPort)});
         await new Promise((resolve, reject) => {
             socket.once('connect', resolve);
             socket.once('error', reject);

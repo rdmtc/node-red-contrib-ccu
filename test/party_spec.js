@@ -14,11 +14,13 @@ const xmlrpc = require('homematic-xmlrpc');
 
 const nodeConnection = require('../nodes/ccu-connection.js');
 const nodeSetValue = require('../nodes/ccu-set-value.js');
-const {userDir} = require('./utils');
+const {userDir, freePorts} = require('./utils');
 
 helper.init(require.resolve('node-red'));
 
 const HOST = '127.0.0.1';
+/** the fake hmipserver's port, from the OS in before() */
+let HMIP_PORT = 0;
 const IFACE = 'HmIP-RF';
 const DEVICE = '000A1709AE37B4';
 const CHANNEL = DEVICE + ':1';
@@ -62,14 +64,13 @@ function flow() {
             rpcPingTimeout: '60',
             rpcInitAddress: HOST,
             rpcServerHost: HOST,
-            rpcBinPort: '2157',
-            rpcXmlPort: '2158',
+            iprfPort: String(HMIP_PORT),
         },
         {id: 'sv', type: 'ccu-set-value', ccuConfig: 'nc', iface: '', channel: '', datapoint: '', wires: [[]]},
     ];
 }
 
-/** the fake hmipserver on 2010 with one eTRV: init, listDevices, the descriptions, get/putParamset, setValue */
+/** the fake hmipserver with one eTRV: init, listDevices, the descriptions, get/putParamset, setValue */
 function fakeHmipServer() {
     const state = {
         inits: [],
@@ -106,7 +107,7 @@ function fakeHmipServer() {
             PARAMSETS: ['MASTER', 'VALUES'],
         },
     ];
-    const server = xmlrpc.createServer({host: HOST, port: 2010});
+    const server = xmlrpc.createServer({host: HOST, port: HMIP_PORT});
     server.on('init', (err, params, callback) => {
         const [url, id] = params;
         state.inits.push(params);
@@ -168,8 +169,9 @@ describe('party mode on an HmIP thermostat is written atomically (task 2, #156, 
     let nc;
     let sv;
 
-    before((done) => {
-        helper.startServer(done);
+    before(async () => {
+        [HMIP_PORT] = await freePorts(1);
+        await new Promise((resolve) => helper.startServer(resolve));
     });
 
     beforeEach(async () => {

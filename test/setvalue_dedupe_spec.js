@@ -17,11 +17,13 @@ const binrpc = require('binrpc');
 const nodeConnection = require('../nodes/ccu-connection.js');
 const nodeValue = require('../nodes/ccu-value.js');
 const nodeSetValue = require('../nodes/ccu-set-value.js');
-const {userDir} = require('./utils');
+const {userDir, freePorts} = require('./utils');
 
 helper.init(require.resolve('node-red'));
 
 const HOST = '127.0.0.1';
+/** the fake rfd's port, from the OS in before() */
+let RFD_PORT = 0;
 const IFACE = 'BidCos-RF';
 const CACHE_FILES = ['ccu_127.0.0.1.json', 'ccu_rega_127.0.0.1.json', 'ccu_values_127.0.0.1.json'].map((f) =>
     path.join(userDir(), f),
@@ -86,8 +88,7 @@ function flow({valueForce = false, setValueForce = false} = {}) {
             rpcPingTimeout: '60',
             rpcInitAddress: HOST,
             rpcServerHost: HOST,
-            rpcBinPort: '2097',
-            rpcXmlPort: '2098',
+            bcrfPort: String(RFD_PORT),
         },
         {
             id: 'nv',
@@ -137,7 +138,7 @@ function flow({valueForce = false, setValueForce = false} = {}) {
 /** a fake rfd: accepts init, records every setValue */
 function fakeRfd() {
     const writes = [];
-    const server = binrpc.createServer({host: HOST, port: 2001});
+    const server = binrpc.createServer({host: HOST, port: RFD_PORT});
     server.on('init', (err, params, callback) => callback(null, ''));
     server.on('getLinks', (err, params, callback) => callback(null, []));
     server.on('ping', (err, params, callback) => callback(null, true));
@@ -213,8 +214,9 @@ describe('queued writes and the value cache (B-19)', function () {
         };
     }
 
-    before((done) => {
-        helper.startServer(done);
+    before(async () => {
+        [RFD_PORT] = await freePorts(1);
+        await new Promise((resolve) => helper.startServer(resolve));
     });
 
     afterEach(async () => {

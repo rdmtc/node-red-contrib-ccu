@@ -12,11 +12,13 @@ const binrpc = require('binrpc');
 
 const nodeConnection = require('../nodes/ccu-connection.js');
 const nodeRpc = require('../nodes/ccu-rpc.js');
-const {userDir} = require('./utils');
+const {userDir, freePorts} = require('./utils');
 
 helper.init(require.resolve('node-red'));
 
 const HOST = '127.0.0.1';
+/** the fake processes' ports, from the OS in before() */
+const PORTS = {rfd: 0, hmip: 0, virt: 0};
 const CACHE_FILES = ['ccu_127.0.0.1.json', 'ccu_rega_127.0.0.1.json', 'ccu_values_127.0.0.1.json'].map((f) =>
     path.join(userDir(), f),
 );
@@ -48,8 +50,9 @@ function flow({bcrf = false, iprf = false, virt = false} = {}) {
             rpcPingTimeout: '60',
             rpcInitAddress: HOST,
             rpcServerHost: HOST,
-            rpcBinPort: '2057',
-            rpcXmlPort: '2058',
+            bcrfPort: String(PORTS.rfd),
+            iprfPort: String(PORTS.hmip),
+            virtPort: String(PORTS.virt),
         },
         {
             id: 'nip',
@@ -128,9 +131,10 @@ describe('init retry (task 11)', function () {
     this.timeout(20000);
     let servers = [];
 
-    before((done) => {
+    before(async () => {
         removeCache();
-        helper.startServer(done);
+        [PORTS.rfd, PORTS.hmip, PORTS.virt] = await freePorts(3);
+        await new Promise((resolve) => helper.startServer(resolve));
     });
 
     afterEach(async () => {
@@ -155,7 +159,7 @@ describe('init retry (task 11)', function () {
         Object.keys(nc.metadata.devices).length.should.equal(0);
 
         const started = Date.now();
-        servers = [fakeServer('binrpc', 2001), fakeServer('http', 2010), fakeServer('http', 9292)];
+        servers = [fakeServer('binrpc', PORTS.rfd), fakeServer('http', PORTS.hmip), fakeServer('http', PORTS.virt)];
 
         (
             await until(
@@ -196,7 +200,7 @@ describe('init retry (task 11)', function () {
         await load([nodeConnection, nodeRpc], flow({iprf: true}));
         const nc = helper.getNode('nc');
         (await until(() => nc.ifaceWaiting['HmIP-RF'], 1500)).should.be.true();
-        servers = [fakeServer('http', 2010)];
+        servers = [fakeServer('http', PORTS.hmip)];
         (await until(() => nc.ifaceStatus['HmIP-RF'], 3000)).should.be.true();
         levels('nc').errors.should.deepEqual([]);
     });
@@ -214,7 +218,7 @@ describe('init retry (task 11)', function () {
         Object.keys(nc.initRetry).length.should.equal(0);
         Object.keys(nc.clients).length.should.equal(0);
 
-        servers = [fakeServer('binrpc', 2001), fakeServer('http', 2010)];
+        servers = [fakeServer('binrpc', PORTS.rfd), fakeServer('http', PORTS.hmip)];
         await wait(3000);
         servers.forEach((s) => s.calls.length.should.equal(0));
         Object.keys(nc.clients).length.should.equal(0);
@@ -222,7 +226,7 @@ describe('init retry (task 11)', function () {
     });
 
     it('a fault answer is still an error, and the init is retried', async () => {
-        servers = [fakeServer('http', 2010, {fault: true})];
+        servers = [fakeServer('http', PORTS.hmip, {fault: true})];
         await load([nodeConnection, nodeRpc], flow({iprf: true}));
         const nc = helper.getNode('nc');
         const nip = helper.getNode('nip');

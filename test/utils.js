@@ -1,7 +1,44 @@
 const fs = require('fs');
+const net = require('net');
 const path = require('path');
 
 module.exports = {
+    /**
+     * Ports the OS hands out on the loopback, distinct from each other: held open together, then
+     * released for the spec's fake processes and callback servers. No fixed port, so the suite
+     * runs beside a CCU, another suite or anything else on this machine.
+     * @param {number} count
+     * @returns {Promise<number[]>}
+     */
+    async freePorts(count) {
+        const servers = [];
+        try {
+            for (let i = 0; i < count; i++) {
+                const server = net.createServer();
+                await new Promise((resolve, reject) => {
+                    server.once('error', reject);
+                    server.listen(0, '127.0.0.1', resolve);
+                });
+                servers.push(server);
+            }
+
+            return servers.map((server) => server.address().port);
+        } finally {
+            await Promise.all(servers.map((server) => new Promise((resolve) => server.close(resolve))));
+        }
+    },
+    /**
+     * The callback ports of a flow's connection node from the OS (rpcBinPort, rpcXmlPort).
+     * @param {Array} flow
+     * @returns {Promise<Array>} the same flow
+     */
+    async withFreeCallbackPorts(flow) {
+        const [bin, xml] = await module.exports.freePorts(2);
+        const node = module.exports.connectionNode(flow);
+        node.rpcBinPort = String(bin);
+        node.rpcXmlPort = String(xml);
+        return flow;
+    },
     /**
      * B-34: the suite's Node-RED userDir (test/hooks.js makes it), where the connection node's
      * cache files and fetched paramset descriptions land - never the repository.

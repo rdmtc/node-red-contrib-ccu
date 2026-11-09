@@ -14,12 +14,13 @@ const xmlrpc = require('homematic-xmlrpc');
 const HmSim = require('hm-simulator/sim');
 
 const nodeConnection = require('../nodes/ccu-connection.js');
-const {hmSimOptions, userDir} = require('./utils');
+const {hmSimOptions, userDir, freePorts} = require('./utils');
 
 helper.init(require.resolve('node-red'));
 
 const HOST = '127.0.0.1';
-const IPRF_PORT = 2010;
+/** the fake hmipserver's port, from the OS for every test */
+let IPRF_PORT = 0;
 const CACHE_FILES = ['ccu_127.0.0.1.json', 'ccu_rega_127.0.0.1.json', 'ccu_values_127.0.0.1.json'].map((f) =>
     path.join(userDir(), f),
 );
@@ -50,13 +51,11 @@ const flow = [
         rpcPingTimeout: '60',
         rpcInitAddress: HOST,
         rpcServerHost: HOST,
-        rpcBinPort: '2097',
-        rpcXmlPort: '2098',
     },
 ];
 
 /**
- * A fake hmipserver on 2010 as measured: `restart()` keeps the registration and calls
+ * A fake hmipserver as measured: `restart()` keeps the registration and calls
  * listDevices and newDevices on it; from then on ping is answered and the PONG delivered,
  * but no other event, until the next init.
  */
@@ -171,6 +170,8 @@ describe('HmIP-RF: a restart that kept the subscription (B-37)', function () {
             }),
         );
         await new Promise((resolve) => helper.startServer(resolve));
+        [IPRF_PORT] = await freePorts(1);
+        flow[0].iprfPort = String(IPRF_PORT);
         hmip = fakeHmipServer();
         await load([nodeConnection], flow);
         nc = helper.getNode('nc');
@@ -274,7 +275,7 @@ describe('HmIP-RF: hm-simulator restarts and keeps its clients (B-37)', function
         removeCache();
         sim = new HmSim({...hmSimOptions(), rega: undefined, behaviorPath: false});
         await sim.whenReady();
-        // task 15: the simulator on a free port; the fake above keeps the default
+        // task 15: the simulator on a free port
         flow[0].iprfPort = sim.ports.hmip;
     });
 
