@@ -5,6 +5,29 @@ Notable changes to node-red-contrib-ccu. Format follows
 user-visible symptom and the cause, not the commit list (the release notes
 append commits automatically).
 
+## Unreleased
+
+### Changed
+
+- **openccu-lite: the names come from occulite-client's live copy.** The
+  connection's own HTTP client for the metadata API (snapshot, change
+  stream, re-reads) is gone; names, rooms and functions now come from
+  occulite-client, in the ReGa shape as before. Where the connection node
+  has its own token (as pairing makes it), one client serves the names and
+  the interfaces - one connection to the system instead of two. Where the
+  names and the interfaces have different credentials (RedMatic on the
+  system: the system's read-only token for the names, RedMatic's own token
+  for lite-rpc) or the interfaces go the CCU way, a names-only client follows
+  the names and opens no lite-rpc stream of its own.
+
+### Fixed
+
+- **openccu-lite: a system that did not answer the first connect of the
+  lite-rpc client is connected later.** The client was given up after a
+  failed first connect while the log said it kept trying; now a new client
+  is opened after 5 s, growing to a minute. A refused credential, or a system
+  that is not openccu-lite, still ends it with a message.
+
 ## 4.9.0 (2026-11-09)
 
 ### Added
