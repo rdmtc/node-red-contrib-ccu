@@ -415,7 +415,11 @@ describe('openccu-lite through lite-rpc with occulite-client (task 14)', functio
                 {quiet: true},
             )
             .catch(() => {}); // the fake knows no multicall; what went out is what counts
-        const sent = fake.calls.slice(before).map((call) => [call.method, call.params]);
+        // the connection's own listDevices/getLinks after the start may land in the window: only the writes count
+        const sent = fake.calls
+            .slice(before)
+            .filter((call) => ['setValue', 'putParamset', 'system.multicall'].includes(call.method))
+            .map((call) => [call.method, call.params]);
         sent.should.deepEqual([
             ['setValue', ['ABC1:1', 'LEVEL', {double: 0.85}]],
             ['setValue', ['ABC1:1', 'LEVEL', {double: 1}]],
