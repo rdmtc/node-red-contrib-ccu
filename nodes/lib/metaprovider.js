@@ -24,6 +24,8 @@
 const fs = require('fs');
 const http = require('http');
 const https = require('https');
+const net = require('net');
+const tls = require('tls');
 
 const API_PATH = '/api/meta/v1';
 
@@ -210,28 +212,86 @@ function readLocalToken(file = LOCAL_TOKEN_FILE) {
     }
 }
 
+/** a fingerprint as its bare lower-case hex, for comparing */
+const bareFingerprint = (fingerprint) => String(fingerprint).replace(/:/g, '').toLowerCase();
+
+/**
+ * A TLS connection that accepts exactly the certificate pinned at pairing (the system's own,
+ * usually self-signed): the socket goes to the request only after the handshake and the check, so
+ * nothing - the token least of all - is written to another server.
+ * @param {string} host
+ * @param {number} port
+ * @param {string} fingerprint256 colon-separated SHA-256, as pairing returns it
+ * @param {number} [timeout] for the connection and the handshake, ms (0: none)
+ * @returns {function(object, Function): undefined} for the request's createConnection
+ */
+function pinnedConnection(host, port, fingerprint256, timeout) {
+    const pin = bareFingerprint(fingerprint256);
+    const name = String(host).replace(/^\[|\]$/g, '');
+    return (_options, oncreate) => {
+        const socket = tls.connect({
+            host: name,
+            port,
+            servername: net.isIP(name) ? undefined : name,
+            rejectUnauthorized: false,
+        });
+        if (timeout > 0) {
+            // the request's own timeout starts only once it has the socket, after the handshake
+            socket.setTimeout(timeout, () => socket.destroy(new Error('timeout')));
+        }
+
+        socket.once('secureConnect', () => {
+            socket.setTimeout(0);
+            const seen = socket.getPeerCertificate().fingerprint256;
+            if (bareFingerprint(seen) !== pin) {
+                socket.destroy();
+                oncreate(new Error('the system presents another certificate than the one pinned at pairing'));
+                return;
+            }
+
+            oncreate(null, socket);
+        });
+        socket.once('error', (error) => oncreate(error));
+        return undefined;
+    };
+}
+
 /**
  * One HTTP request against the metadata API.
  * @param {object} options
  * @returns {Promise<{status: number, headers: object, res: object, body: Promise<string>}>}
  */
 function request(options) {
-    const {host, port, tls, insecure, path, token, timeout = 10000, idleTimeout, accept = 'application/json'} = options;
+    const {
+        host,
+        port,
+        tls: useTls,
+        insecure,
+        fingerprint256,
+        path,
+        token,
+        timeout = 10000,
+        idleTimeout,
+        accept = 'application/json',
+    } = options;
     return new Promise((resolve, reject) => {
         const headers = {accept, 'user-agent': 'node-red-contrib-ccu'};
         if (token) {
             headers.authorization = 'Bearer ' + token;
         }
 
-        const lib = tls ? https : http;
+        const lib = useTls ? https : http;
         const requestOptions = {
             host,
             port,
             path,
             method: 'GET',
             headers,
-            ...(tls ? {rejectUnauthorized: !insecure} : {}),
+            ...(useTls ? {rejectUnauthorized: !insecure} : {}),
         };
+        if (useTls && fingerprint256) {
+            requestOptions.createConnection = pinnedConnection(host, port, fingerprint256, timeout);
+        }
         if (timeout > 0) {
             // as an option, not request.setTimeout(): only this form arms the
             // timer before the socket is connected, so an unreachable box does
@@ -355,6 +415,7 @@ class MetaProvider {
         this.port = options.port || (options.tls ? 443 : 80);
         this.tls = Boolean(options.tls);
         this.insecure = Boolean(options.insecure);
+        this.fingerprint256 = options.fingerprint256 || '';
         this.token = options.token || '';
         this.logger = options.logger || SILENT;
         this.onNames = options.onNames || NOOP;
@@ -452,6 +513,7 @@ class MetaProvider {
                 port: this.port,
                 tls: this.tls,
                 insecure: this.insecure,
+                fingerprint256: this.fingerprint256,
                 logger: this.logger,
             });
             if (info) {
@@ -495,6 +557,7 @@ class MetaProvider {
                 port: this.port,
                 tls: this.tls,
                 insecure: this.insecure,
+                fingerprint256: this.fingerprint256,
                 path: API_PATH + '/snapshot',
                 token: this.token,
                 timeout: this.requestTimeout,
@@ -578,6 +641,7 @@ class MetaProvider {
             port: this.port,
             tls: this.tls,
             insecure: this.insecure,
+            fingerprint256: this.fingerprint256,
             path: API_PATH + '/events/sse?since=' + this.revision,
             token: this.token,
             accept: 'text/event-stream',
@@ -738,6 +802,7 @@ module.exports = {
     detectOutcome,
     flattenEnum,
     memberNames,
+    pinnedConnection,
     readLocalToken,
     refToAddress,
     refToIface,

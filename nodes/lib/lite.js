@@ -38,15 +38,15 @@ let modules = null;
 
 /**
  * occulite-client, loaded once. Throws with a readable message where it cannot be loaded.
- * @returns {{OccuLite: Function, callbackEvents: Function, nodeTransport: Function}}
+ * @returns {{OccuLite: Function, callbackEvents: Function, nodeTransport: Function, pair: Function, probe: Function}}
  */
 function load() {
     if (!modules) {
         try {
             const {OccuLite} = require('occulite-client');
             const {callbackEvents} = require('occulite-client/callbacks');
-            const {nodeTransport} = require('occulite-client/node');
-            modules = {OccuLite, callbackEvents, nodeTransport};
+            const {nodeTransport, pair, probe} = require('occulite-client/node');
+            modules = {OccuLite, callbackEvents, nodeTransport, pair, probe};
         } catch (error) {
             throw new Error(
                 'occulite-client cannot be loaded (' +
@@ -203,12 +203,27 @@ function tierAwareTransport(transport) {
     };
 }
 
+/**
+ * The certificate trust for occulite-client's transport: the fingerprint pinned at pairing, else
+ * any certificate where the node says so, else Node's own store.
+ * @param {{fingerprint256?: string, insecure?: boolean}} options
+ * @returns {object}
+ */
+function trustOf({fingerprint256, insecure}) {
+    if (fingerprint256) {
+        return {fingerprint256};
+    }
+
+    return insecure ? {insecure: true} : {};
+}
+
 class LiteConnection {
     /**
      * @param {object} options
      * @param {string} options.url the system, scheme and authority
      * @param {string} options.token the credential
      * @param {boolean} [options.insecure] accept any certificate
+     * @param {string} [options.fingerprint256] accept exactly this certificate (pinned at pairing; wins over insecure)
      * @param {string[]} options.interfaces the interfaces to follow (the enabled ones lite-rpc carries)
      * @param {function(string): string} options.initId the init id the connection's callback table expects per interface
      * @param {function(string, *, Array, Function)} options.onCallback (method, err, params, answer): a callback server's call
@@ -249,7 +264,7 @@ class LiteConnection {
         const clientOptions = {
             url: this.options.url,
             auth: {token: this.options.token},
-            transport: tierAwareTransport(nodeTransport(this.options.insecure ? {insecure: true} : {})),
+            transport: tierAwareTransport(nodeTransport(trustOf(this.options))),
             interfaces: this.interfaces,
             values: true,
             meta: false,
@@ -357,6 +372,7 @@ module.exports = {
     readAddonToken,
     liteValue,
     tierAwareTransport,
+    trustOf,
     translateError,
     isFault,
     load,

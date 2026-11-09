@@ -19,6 +19,7 @@ const {Rega} = require('homematic-rega'); // ES module - require(esm) needs Node
 const metaProvider = require('./lib/metaprovider.js');
 const {InitRetry, retryDelay, RETRY_INTERVAL} = require('./lib/initretry.js');
 const lite = require('./lib/lite.js');
+const {Pairings} = require('./lib/pairing.js');
 const {writeJsonAtomic, DebouncedSave} = require('./lib/cachefile.js');
 const {SubscriptionIndex, matches: filterMatches} = require('./lib/subscriptions.js');
 const xmlrpc = require('homematic-xmlrpc');
@@ -163,6 +164,42 @@ module.exports = function (RED) {
             .rereadDevices()
             .then((summary) => res.status(200).send(JSON.stringify(summary)))
             .catch((error) => res.status(500).send(JSON.stringify({error: error.message})));
+    });
+
+    // pairing with an openccu-lite system from the connection node's dialog (lib/pairing.js) - for a
+    // Node-RED elsewhere; on the system itself the connection configures itself and pairs nothing
+    const pairings = new Pairings({
+        load: lite.load,
+        isLocal: (host) => isLocalCcu(host),
+        appVersion: pkg.version,
+        logger: {
+            info: (message) => RED.log.info('ccu: ' + message),
+            warn: (message) => RED.log.warn('ccu: ' + message),
+        },
+    });
+
+    RED.httpAdmin.post('/ccu/pair', RED.auth.needsPermission('ccu.write'), (request, res) => {
+        const {host, tls, port} = request.body;
+        try {
+            const id = pairings.start({host, tls: tls === true || tls === 'true', port});
+            res.status(202).json({id});
+        } catch (error) {
+            res.status(error.status).json({error: error.code, message: error.message});
+        }
+    });
+
+    RED.httpAdmin.get('/ccu/pair/:id', RED.auth.needsPermission('ccu.write'), (request, res) => {
+        const view = pairings.get(request.params.id);
+        if (view) {
+            res.status(200).json(view);
+        } else {
+            res.status(404).json({error: 'not-found', message: 'No such pairing request (it ended or was withdrawn).'});
+        }
+    });
+
+    RED.httpAdmin.delete('/ccu/pair/:id', RED.auth.needsPermission('ccu.write'), (request, res) => {
+        pairings.cancel(request.params.id);
+        res.status(204).end();
     });
 
     RED.httpAdmin.get('/ccu', RED.auth.needsPermission('ccu.read'), (request, res) => {
@@ -683,6 +720,9 @@ module.exports = function (RED) {
             this.inSecure = inSecure;
             this.metaPort = Number.parseInt(config.metaPort, 10) || (tls ? 443 : 80);
             this.metaToken = config.metaToken || metaProvider.readLocalToken();
+            // the system's certificate as pinned at pairing (the dialog fills it): the metadata
+            // api and lite-rpc accept exactly that one, whatever "ignore invalid certificates" says
+            this.fingerprint256 = tls ? String((this.credentials && this.credentials.fingerprint256) || '').trim() : '';
             // task 14: the way to the interfaces on openccu-lite - `auto` (the default) goes through
             // the system's lite-rpc where the system is openccu-lite and a credential allows it,
             // `openccu-lite` insists on it, `ccu` keeps the direct connection with callbacks there
@@ -1613,6 +1653,7 @@ module.exports = function (RED) {
                 port: this.metaPort,
                 tls: Boolean(this.tlsEnabled),
                 insecure: Boolean(this.inSecure),
+                fingerprint256: this.fingerprint256,
                 logger: this.logger,
             });
         }
@@ -1763,6 +1804,7 @@ module.exports = function (RED) {
                     port: this.metaPort,
                     tls: Boolean(this.tlsEnabled),
                     insecure: Boolean(this.inSecure),
+                    fingerprint256: this.fingerprint256,
                     token: this.metaToken,
                     logger: this.logger,
                     onNames: (names) => {
@@ -2618,6 +2660,7 @@ module.exports = function (RED) {
                 url,
                 token: this.liteToken,
                 insecure: Boolean(this.inSecure),
+                fingerprint256: this.fingerprint256,
                 interfaces: ifaces,
                 initId: (iface) => this.liteInitId(iface),
                 logger: this.logger,
@@ -4927,6 +4970,7 @@ module.exports = function (RED) {
         credentials: {
             password: {type: 'password'},
             metaToken: {type: 'password'},
+            fingerprint256: {type: 'text'},
         },
     });
 };

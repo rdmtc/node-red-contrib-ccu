@@ -49,9 +49,15 @@ CCU-Jack keep their own connections.
 - Node-RED **on the system** (RedMatic from its addon catalogue): lite-rpc with RedMatic's own token, which the system
   mints for it from RedMatic's manifest (RedMatic 9.15.1 or later); the names come with the system's read-only token.
   Nothing to configure. An older RedMatic has no such token and connects the CCU way, the log says so.
-- Node-RED **elsewhere**: an API token of the system goes into the connection node's **openccu-lite token** field -
-  for lite-rpc it needs the `rpc:*` scope of what the flow does (`rpc:read` for events and reads, `rpc:operate` for
-  `setValue`, `rpc:configure` for paramsets and links, `rpc:admin` for the rest; the rpc node may call anything).
+- Node-RED **elsewhere**: enter the system's address and press **Pair with the system** in the connection node. The
+  dialog shows a six-digit code; an administrator compares it on the system's Status page and approves the request.
+  The token and the fingerprint of the system's certificate are filled in, TLS is switched on where the system
+  offers https, and after the deploy the connection accepts exactly that certificate - no "ignore invalid
+  certificates" needed for the system's own self-signed one. Pairing asks for devices at the _administer_ level (the
+  rpc node may call any method) and for reading the names. Alternatively an API token made on the system goes into
+  the **openccu-lite token** field by hand - for lite-rpc it needs the `rpc:*` scope of what the flow does
+  (`rpc:read` for events and reads, `rpc:operate` for `setValue`, `rpc:configure` for paramsets and links,
+  `rpc:admin` for the rest).
 - **System variables, programs and HM-Script do not exist there.** The `ccu-sysvar`, `ccu-program`, `ccu-script` and
   `ccu-poll` nodes stay in the flows and answer every message with an error.
 

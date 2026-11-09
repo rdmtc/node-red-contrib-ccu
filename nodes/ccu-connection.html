@@ -1,4 +1,19 @@
 <script type="text/javascript">
+    // pairing with an openccu-lite system: the request the open dialog runs, withdrawn when it closes
+    let ccuActivePairing = null;
+    const ccuStopPairing = withdraw => {
+        if (!ccuActivePairing) {
+            return;
+        }
+
+        clearTimeout(ccuActivePairing.timer);
+        if (withdraw && ccuActivePairing.id) {
+            $.ajax({url: 'ccu/pair/' + ccuActivePairing.id, type: 'DELETE'});
+        }
+
+        ccuActivePairing = null;
+    };
+
     RED.nodes.registerType('ccu-connection', {
         category: 'config',
         defaults: {
@@ -48,10 +63,20 @@
         // credentials (flows_cred.json, encrypted, never exported), not in the flow
         credentials: {
             password: {type: 'password'},
-            metaToken: {type: 'password'}
+            metaToken: {type: 'password'},
+            // the system's certificate as pinned at pairing - no secret, shown in the dialog
+            fingerprint256: {type: 'text'}
         },
         label() {
             return this.name || this.host;
+        },
+
+        oneditsave() {
+            ccuStopPairing(true);
+        },
+
+        oneditcancel() {
+            ccuStopPairing(true);
         },
 
         oneditprepare() {
@@ -164,9 +189,128 @@
                 $('#node-config-auth-fields, #node-config-auth-hint').toggle(!local);
                 $('#node-config-input-username, #node-config-input-password').closest('.form-row').toggle(!local);
                 $('#node-config-auth-local').toggle(local);
+                // on the system itself the connection configures itself: nothing to pair
+                $('#node-config-pair, #node-config-pair-status').toggle(!local);
+                $('#node-config-pair-local').toggle(local);
             };
             $nodeConfigInputHost.on('change keyup', showAuthRows);
             showAuthRows();
+
+            // pairing with an openccu-lite system (lib/pairing.js): the runtime asks the system, the
+            // dialog shows the code, an administrator approves it on the system's Status page, and
+            // the token and the pinned certificate land in the fields - then the user deploys
+            const $pair = $('#node-config-pair');
+            const $pairStatus = $('#node-config-pair-status');
+            const pairIdle = $pairStatus.html();
+            const pairButton = () => $pair.text(ccuActivePairing ? 'Cancel pairing' : 'Pair with the system');
+            const pairSay = text => $pairStatus.text(text);
+
+            const pairShow = view => {
+                switch (view.state) {
+                    case 'waiting': {
+                        $pairStatus.empty().append('Code ', $('<b>').text(view.code), ' - approve it on the Status page of the system:');
+                        $pairStatus.append(' ', $('<a target="_blank" rel="noopener">').attr('href', view.url + '/').text(view.url));
+                        return true;
+                    }
+
+                    case 'approved': {
+                        $('#node-config-input-metaToken').val(view.token);
+                        $('#node-config-input-fingerprint256').val(view.fingerprint256 || '');
+                        $('#node-config-input-tls').prop('checked', Boolean(view.tls));
+                        $('#node-config-input-metaPort').val(view.port || '');
+                        if (view.fingerprint256) {
+                            $('#node-config-input-inSecure').prop('checked', false);
+                        }
+
+                        pairSay('Paired as "' + view.name + '"' + (view.fingerprint256 ? ', the certificate of the system pinned' : ' (plain HTTP, no certificate to pin)') + '. Deploy to use it.');
+                        return false;
+                    }
+
+                    case 'failed':
+                    case 'cancelled': {
+                        pairSay(view.message || 'Pairing failed.');
+                        return false;
+                    }
+
+                    default: {
+                        pairSay('Asking the system ...');
+                        return true;
+                    }
+                }
+            };
+
+            const pairPoll = () => {
+                const pairing = ccuActivePairing;
+                if (!pairing) {
+                    return;
+                }
+
+                $.getJSON('ccu/pair/' + pairing.id)
+                    .done(view => {
+                        if (ccuActivePairing !== pairing) {
+                            return;
+                        }
+
+                        if (pairShow(view)) {
+                            pairing.timer = setTimeout(pairPoll, 1000);
+                        } else {
+                            ccuStopPairing(false);
+                            pairButton();
+                        }
+                    })
+                    .fail(xhr => {
+                        if (ccuActivePairing !== pairing) {
+                            return;
+                        }
+
+                        pairSay((xhr.responseJSON && xhr.responseJSON.message) || 'Pairing failed: ' + xhr.statusText);
+                        ccuStopPairing(false);
+                        pairButton();
+                    });
+            };
+
+            $pair.on('click', () => {
+                if (ccuActivePairing) {
+                    ccuStopPairing(true);
+                    $pairStatus.html(pairIdle);
+                    pairButton();
+                    return;
+                }
+
+                ccuActivePairing = {id: null, timer: null};
+                const pairing = ccuActivePairing;
+                pairButton();
+                pairSay('Asking the system ...');
+                $.ajax({
+                    url: 'ccu/pair',
+                    type: 'POST',
+                    contentType: 'application/json',
+                    dataType: 'json',
+                    data: JSON.stringify({
+                        host: $nodeConfigInputHost.val(),
+                        tls: $('#node-config-input-tls').is(':checked'),
+                        port: $('#node-config-input-metaPort').val()
+                    })
+                })
+                    .done(answer => {
+                        if (ccuActivePairing !== pairing) {
+                            $.ajax({url: 'ccu/pair/' + answer.id, type: 'DELETE'});
+                            return;
+                        }
+
+                        pairing.id = answer.id;
+                        pairPoll();
+                    })
+                    .fail(xhr => {
+                        if (ccuActivePairing !== pairing) {
+                            return;
+                        }
+
+                        pairSay((xhr.responseJSON && xhr.responseJSON.message) || 'Pairing failed: ' + xhr.statusText);
+                        ccuStopPairing(false);
+                        pairButton();
+                    });
+            });
 
             // task 9: re-read the device table of the deployed connection
             const $reread = $('#node-config-reread');
@@ -322,9 +466,22 @@
         </select>
     </div>
     <div class="form-row">
+        <label for="node-config-pair"><i class="icon-tag"></i> openccu-lite pairing</label>
+        <div style="width: 70%; display: inline-block; vertical-align: text-top;">
+            <button type="button" class="red-ui-button" id="node-config-pair">Pair with the system</button><br>
+            <small id="node-config-pair-status">For an openccu-lite system on the network: asks it for access, shows a code to approve on its Status page, and fills the token and the certificate below. Deploy afterwards.</small>
+            <small id="node-config-pair-local" style="display: none;">Node-RED runs on the system itself: the connection configures itself, nothing to pair.</small>
+        </div>
+    </div>
+    <div class="form-row">
         <label for="node-config-input-metaToken"><i class="icon-tag"></i> openccu-lite token</label>
         <input type="password" id="node-config-input-metaToken" placeholder="olt_...">
-        <small>Only for openccu-lite (a CCU ignores this). Leave empty when Node-RED runs on the system itself (RedMatic).</small>
+        <small>Only for openccu-lite (a CCU ignores this): filled by pairing, or a token made on the system's API tokens page. Leave empty when Node-RED runs on the system itself (RedMatic).</small>
+    </div>
+    <div class="form-row">
+        <label for="node-config-input-fingerprint256"><i class="icon-tag"></i> Pinned certificate</label>
+        <input type="text" id="node-config-input-fingerprint256" placeholder="SHA-256, filled by pairing">
+        <small>With TLS, the openccu-lite connection accepts exactly this certificate of the system (no need to ignore invalid certificates). Empty: the usual certificate checks.</small>
     </div>
     <div class="form-row">
         <label for="node-config-input-metaPort"><i class="icon-tag"></i> openccu-lite port</label>
