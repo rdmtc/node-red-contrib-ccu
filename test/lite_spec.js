@@ -258,6 +258,8 @@ describe('openccu-lite through lite-rpc with occulite-client (task 14)', functio
     }
 
     it('auto: the interfaces go through lite-rpc - no callback server, the devices, the cache, an event, a write', async () => {
+        const metaStreams = fake.metaStreamsOpened;
+        const streams = fake.streamsOpened;
         await start({}, {nc: {metaToken: TOKEN}});
         (
             await until(() => nc.ifaceStatus['HmIP-RF'] === true && nc.ifaceStatus['BidCos-RF'] === true, 15000)
@@ -267,6 +269,14 @@ describe('openccu-lite through lite-rpc with occulite-client (task 14)', functio
         Object.keys(nc.servers).should.deepEqual([]);
         should(nc.clients['HmIP-RF']).be.undefined();
         fake.streamsOpened.should.be.above(0);
+
+        // one client for names and interfaces: the node's token reads both
+        nc.meta.shared.should.be.true();
+        nc.meta.box.should.equal(nc.lite.box);
+        (await until(() => nc.channelNames.ABC1 === 'Lamp', 5000)).should.be.true();
+        (await until(() => nc.ifaceStatus.Metadata === true, 5000)).should.be.true();
+        (fake.metaStreamsOpened - metaStreams).should.equal(1);
+        (fake.streamsOpened - streams).should.equal(1);
 
         // the devices through lite-rpc
         (
@@ -373,6 +383,10 @@ describe('openccu-lite through lite-rpc with occulite-client (task 14)', functio
         lines('nc', 'INFO')
             .some((l) => /direct connection with callbacks by choice/.test(l))
             .should.be.true();
+        // the names from a names client of its own, which opens no lite-rpc stream either
+        nc.meta.shared.should.be.false();
+        (await until(() => nc.channelNames.ABC1 === 'Lamp', 5000)).should.be.true();
+        fake.streamsOpened.should.equal(opened);
         // the callback server of the CCU path was asked for
         (await until(() => Object.keys(nc.servers).length > 0, 5000)).should.be.true();
     });

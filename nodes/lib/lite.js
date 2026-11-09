@@ -167,42 +167,6 @@ function liteValue(value, jsonDouble) {
     return value;
 }
 
-const RPC_TIERS = ['rpc:operate', 'rpc:configure', 'rpc:admin'];
-
-/**
- * occulite-client B-3: the client decides "names only" from the literal `rpc:read` in
- * GET /api/auth/v1/state, but a token made with a higher tier (rpc:admin, say) carries that tier
- * alone - the system includes the lower ones. The transport spells `rpc:read` out for the client
- * where a tier implies it. Goes once the package fixes it.
- * @param {object} transport occulite-client's Transport
- * @returns {object} the same transport
- */
-function tierAwareTransport(transport) {
-    return {
-        request: (method, url, headers, body, signal) =>
-            transport.request(method, url, headers, body, signal).then((response) => {
-                if (response.status !== 200 || !/\/api\/auth\/v1\/state(\?|$)/.test(String(url))) {
-                    return response;
-                }
-
-                let parsed;
-                try {
-                    parsed = JSON.parse(response.body);
-                } catch {
-                    return response;
-                }
-
-                const scopes = Array.isArray(parsed && parsed.scopes) ? parsed.scopes : [];
-                if (scopes.includes('rpc:read') || !scopes.some((scope) => RPC_TIERS.includes(scope))) {
-                    return response;
-                }
-
-                return {...response, body: JSON.stringify({...parsed, scopes: [...scopes, 'rpc:read']})};
-            }),
-        stream: (url, headers, signal) => transport.stream(url, headers, signal),
-    };
-}
-
 /**
  * The certificate trust for occulite-client's transport: the fingerprint pinned at pairing, else
  * any certificate where the node says so, else Node's own store.
@@ -233,6 +197,10 @@ class LiteConnection {
      * @param {object} options.logger {debug, info, warn, error}
      * @param {number} [options.timeout] per request, ms
      * @param {Function} [options.createClient] for tests, in place of new OccuLite()
+     * @param {boolean} [options.meta] the client keeps the live copy of the names too (one client for both)
+     * @param {function(object)} [options.onBox] every client this connection opens, before it connects
+     * @param {number} [options.retryMin] the first wait before a failed connect is tried again, ms
+     * @param {number} [options.retryMax] the longest wait, ms
      */
     constructor(options) {
         this.options = options;
@@ -242,6 +210,9 @@ class LiteConnection {
         this.server = null;
         this.closed = false;
         this.ready = false;
+        this.retryTimeout = null;
+        this.retryMin = options.retryMin === undefined ? 5000 : options.retryMin;
+        this.retryMax = options.retryMax === undefined ? 60000 : options.retryMax;
     }
 
     /**
@@ -253,27 +224,70 @@ class LiteConnection {
     }
 
     /**
-     * Opens the client. Resolves once the first picture is loaded, rejects with the client's
-     * reason (unauthenticated, forbidden, unreachable, timeout ...); the stream keeps trying by
-     * itself afterwards.
+     * Opens the client. Resolves once the first picture is loaded. occulite-client (0.4) does not
+     * try a failed connect again (its streams only reconnect once connected), so a system that
+     * did not answer (unreachable, timeout, still starting) gets a new client after a wait,
+     * growing to a minute; a refused credential, or a system that is not openccu-lite, rejects.
      * @returns {Promise<void>}
      */
     start() {
+        return new Promise((resolve, reject) => {
+            let attempt = 0;
+            const connect = () => {
+                this.retryTimeout = null;
+                this.open().then(resolve, (error) => {
+                    if (this.closed) {
+                        reject(error);
+                        return;
+                    }
+
+                    const kind = kindOf(error);
+                    if (kind === 'unauthenticated' || kind === 'forbidden' || kind === 'unsupported') {
+                        reject(error);
+                        return;
+                    }
+
+                    const delay = Math.min(this.retryMin * 2 ** attempt, this.retryMax);
+                    attempt += 1;
+                    this.logger[attempt === 1 ? 'warn' : 'debug'](
+                        'lite-rpc: ' + (error.message || error) + ' - connecting again in ' + delay / 1000 + ' s',
+                    );
+                    this.retryTimeout = setTimeout(connect, delay);
+                });
+            };
+
+            connect();
+        });
+    }
+
+    /**
+     * One client: the stream's events into the callback table, the first picture.
+     * @returns {Promise<void>}
+     */
+    open() {
+        if (this.box) {
+            this.box.close();
+        }
+
         const {OccuLite, callbackEvents, nodeTransport} = load();
         const debug = (message) => this.logger.debug('occulite-client: ' + message);
         const clientOptions = {
             url: this.options.url,
             auth: {token: this.options.token},
-            transport: tierAwareTransport(nodeTransport(trustOf(this.options))),
+            transport: nodeTransport(trustOf(this.options)),
             interfaces: this.interfaces,
             values: true,
-            meta: false,
+            meta: Boolean(this.options.meta),
             devices: true,
             timeout: this.options.timeout || 30000,
             log: {debug, info: debug, warn: debug, error: debug},
         };
         const box = this.options.createClient ? this.options.createClient(clientOptions) : new OccuLite(clientOptions);
         this.box = box;
+        if (this.options.onBox) {
+            this.options.onBox(box);
+        }
+
         box.on('status', (event) => {
             if (this.closed || this.box !== box) {
                 return;
@@ -357,6 +371,8 @@ class LiteConnection {
     close() {
         this.closed = true;
         this.ready = false;
+        clearTimeout(this.retryTimeout);
+        this.retryTimeout = null;
         if (this.box) {
             this.box.close();
             this.box = null;
@@ -371,7 +387,6 @@ module.exports = {
     CALLBACK_METHODS,
     readAddonToken,
     liteValue,
-    tierAwareTransport,
     trustOf,
     translateError,
     isFault,

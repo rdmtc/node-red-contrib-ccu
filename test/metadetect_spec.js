@@ -69,6 +69,10 @@ function fakeBox({ccu = false} = {}) {
             res.end(
                 JSON.stringify({api: 'meta', version: 1, format: 1, revision: HOUSE.revision, implementation: 'fake'}),
             );
+        } else if (pathname === '/api/auth/v1/state') {
+            // the names client asks what its credential may (the system's local token: names)
+            res.writeHead(200, {'content-type': 'application/json'});
+            res.end(JSON.stringify({authenticated: true, scopes: ['meta:read']}));
         } else if (pathname === '/api/meta/v1/snapshot') {
             res.writeHead(200, {'content-type': 'application/json'});
             res.end(JSON.stringify(HOUSE));

@@ -54,7 +54,7 @@
     "homematic-rega": "^2.0.1",
     "homematic-xmlrpc": "^2.0.0",
     "mqtt-wildcard": "^3.0.9",
-    "occulite-client": "^0.3.0"
+    "occulite-client": "^0.4.0"
   },
   "deprecated": false,
   "description": "Node-RED Nodes for the Homematic CCU",

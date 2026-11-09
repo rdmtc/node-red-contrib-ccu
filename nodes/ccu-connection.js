@@ -732,6 +732,8 @@ module.exports = function (RED) {
                 ? config.connectionType
                 : 'auto';
             this.liteToken = config.metaToken || lite.readAddonToken();
+            // the enabled interfaces, for startMeta()'s choice of one client for names and interfaces
+            this.liteConfig = config;
             this.lite = null;
             this.liteIfaces = [];
             this.metaMode = false;
@@ -1797,8 +1799,16 @@ module.exports = function (RED) {
                 );
             }
 
+            // one client for names and interfaces where the lite-rpc credential reads the names too
+            // (the connection node's own token, as pairing makes it); a names-only client of its own
+            // where they differ (RedMatic: the system's local token for the names, the addon token
+            // for lite-rpc) or where the interfaces go another way
+            const shared =
+                Boolean(this.metaToken) &&
+                this.metaToken === this.liteToken &&
+                this.liteInterfaces(this.liteConfig, true).length > 0;
             return new Promise((resolve) => {
-                const done = setTimeout(resolve, 5000);
+                const done = setTimeout(resolve, shared ? 0 : 5000);
                 this.meta = new metaProvider.MetaProvider({
                     host: this.host,
                     port: this.metaPort,
@@ -1806,6 +1816,7 @@ module.exports = function (RED) {
                     insecure: Boolean(this.inSecure),
                     fingerprint256: this.fingerprint256,
                     token: this.metaToken,
+                    shared,
                     logger: this.logger,
                     onNames: (names) => {
                         this.applyMetaNames(names);
@@ -2570,12 +2581,14 @@ module.exports = function (RED) {
          * lite-rpc carries (not CUxD, not CCU-Jack), on an openccu-lite system, with a credential,
          * unless the connection type says `ccu`.
          * @param {object} config the node's config
+         * @param {boolean} [quiet] no log line for a CCU by choice (startMeta's look ahead, which runs
+         *     with the system detected and a credential at hand)
          * @returns {string[]}
          */
-        liteInterfaces(config) {
+        liteInterfaces(config, quiet = false) {
             const enabled = lite.LITE_INTERFACES.filter((iface) => config[this.ifaceTypes[iface].conf + 'Enabled']);
             if (this.connectionType === 'ccu') {
-                if (this.metaMode) {
+                if (this.metaMode && !quiet) {
                     this.logger.info(
                         'openccu-lite: the direct connection with callbacks by choice (connection type CCU) - the interfaces are reached on their own ports',
                     );
@@ -2662,6 +2675,13 @@ module.exports = function (RED) {
                 insecure: Boolean(this.inSecure),
                 fingerprint256: this.fingerprint256,
                 interfaces: ifaces,
+                // the names from the same client (startMeta decided it): its live copy to the provider
+                meta: Boolean(this.meta && this.meta.shared),
+                onBox: (box) => {
+                    if (this.meta && this.meta.shared) {
+                        this.meta.attach(box);
+                    }
+                },
                 initId: (iface) => this.liteInitId(iface),
                 logger: this.logger,
                 createClient: this.liteCreateClient,
