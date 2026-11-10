@@ -5,6 +5,27 @@ Notable changes to node-red-contrib-ccu. Format follows
 user-visible symptom and the cause, not the commit list (the release notes
 append commits automatically).
 
+## 4.10.1 (2026-11-10)
+
+### Fixed
+
+- **openccu-lite: a connection whose token reads only the names lost its
+  events and commands after the update to 4.7 or later, without a word.**
+  Since 4.7 a connection to openccu-lite with a token in the connection node
+  moves its interfaces to the system's lite-rpc. A token made for the names
+  alone (`meta:read`, all the direct connection needed before) may not use
+  lite-rpc: the system refused the interface list and the event stream, and
+  the log said only `lite-rpc connected: no interface running`. The
+  connection now asks the system what the token may do before it moves
+  anything. Without `rpc:read` the interfaces stay on the direct connection
+  with callbacks, as before the update, and the log says that lite-rpc needs
+  `rpc:read` (events and device lists) and `rpc:operate` (commands). Where
+  the connection type is set to _openccu-lite_, the log has an error naming
+  the missing scopes and the nodes show `token lacks rpc:read, rpc:operate`
+  instead of waiting. A token with `rpc:read` but without `rpc:operate`
+  connects through lite-rpc and gets a warning that commands are refused.
+  (#189, @reini12345)
+
 ## 4.10.0 (2026-11-09)
 
 ### Changed
