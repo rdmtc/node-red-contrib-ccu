@@ -57,7 +57,8 @@ CCU-Jack keep their own connections.
   rpc node may call any method) and for reading the names. Alternatively an API token made on the system goes into
   the **openccu-lite token** field by hand - for lite-rpc it needs the `rpc:*` scope of what the flow does
   (`rpc:read` for events and reads, `rpc:operate` for `setValue`, `rpc:configure` for paramsets and links,
-  `rpc:admin` for the rest).
+  `rpc:admin` for the rest). A token without `rpc:read` (one made for the names alone) keeps the direct connection
+  with callbacks under _auto_, and the log says what lite-rpc would need.
 - **System variables, programs and HM-Script do not exist there.** The `ccu-sysvar`, `ccu-program`, `ccu-script` and
   `ccu-poll` nodes stay in the flows and answer every message with an error.
 
