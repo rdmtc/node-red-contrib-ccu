@@ -34,6 +34,20 @@ const CALLBACK_METHODS = [
     'readdedDevice',
 ];
 
+/**
+ * B-44: the rpc tiers as the system reads them (occulited's scope table): each tier includes the
+ * ones before it, Full access (`*`) everything. The system lists only the highest tier a token
+ * holds (`rpc:operate`, no `rpc:read` beside it), so a tier is never looked up literally.
+ */
+const RPC_INCLUDES = {
+    'rpc:operate': ['rpc:read'],
+    'rpc:configure': ['rpc:operate', 'rpc:read'],
+    'rpc:admin': ['rpc:configure', 'rpc:operate', 'rpc:read'],
+};
+
+/** what each tier the interfaces need is for, in the order they matter */
+const RPC_TIERS = {'rpc:read': 'events and device lists', 'rpc:operate': 'commands'};
+
 let modules = null;
 
 /**
@@ -71,6 +85,81 @@ function readAddonToken(file = module.exports.ADDON_TOKEN_FILE) {
         return token === '' ? undefined : token;
     } catch {
         return undefined;
+    }
+}
+
+/**
+ * Whether a credential holding `scopes` may do what needs `want`.
+ * @param {string[]} scopes as the system lists them
+ * @param {string} want
+ * @returns {boolean}
+ */
+function covers(scopes, want) {
+    return scopes.some((have) => have === want || have === '*' || (RPC_INCLUDES[have] || []).includes(want));
+}
+
+/**
+ * B-44: the tiers lite-rpc needs that `scopes` lacks: `rpc:read` (events, device lists),
+ * `rpc:operate` (commands).
+ * @param {string[]|undefined} scopes undefined: not known, nothing is said to be missing
+ * @returns {string[]}
+ */
+function missingTiers(scopes) {
+    if (!Array.isArray(scopes)) {
+        return [];
+    }
+
+    return Object.keys(RPC_TIERS).filter((tier) => !covers(scopes, tier));
+}
+
+/**
+ * B-44: what a token lacking these tiers cannot do, for the log.
+ * @param {string[]} missing from missingTiers()
+ * @returns {string} e.g. "rpc:read (events and device lists) and rpc:operate (commands)"
+ */
+function describeTiers(missing) {
+    return missing.map((tier) => tier + ' (' + RPC_TIERS[tier] + ')').join(' and ');
+}
+
+/**
+ * B-44: the scopes the system lists for a credential (GET /api/auth/v1/state), asked before the
+ * interfaces are moved to lite-rpc: a token made for the names (meta:read) cannot follow them
+ * there. Undefined where it cannot be told (no answer, a refused credential - the client says
+ * that itself -, an older system without the auth state): nothing is decided on it then.
+ * @param {object} options
+ * @param {string} options.url the system, scheme and authority
+ * @param {string} options.token
+ * @param {boolean} [options.insecure]
+ * @param {string} [options.fingerprint256]
+ * @param {number} [options.timeout] ms
+ * @returns {Promise<string[]|undefined>}
+ */
+async function tokenScopes({url, token, insecure, fingerprint256, timeout = 5000}) {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), timeout);
+    try {
+        const transport = load().nodeTransport(trustOf({insecure, fingerprint256}));
+        const response = await transport.request(
+            'GET',
+            url + '/api/auth/v1/state',
+            {Accept: 'application/json', Authorization: 'Bearer ' + token, 'X-Occulite-Request': '1'},
+            undefined,
+            controller.signal,
+        );
+        if (response.status !== 200) {
+            return undefined;
+        }
+
+        const state = JSON.parse(response.body);
+        if (!state || state.authenticated === false || !Array.isArray(state.scopes)) {
+            return undefined;
+        }
+
+        return state.scopes.map(String);
+    } catch {
+        return undefined;
+    } finally {
+        clearTimeout(timer);
     }
 }
 
@@ -325,6 +414,22 @@ class LiteConnection {
                 return;
             }
 
+            // B-44: occulite-client runs a credential without rpc:read names-only - no interface
+            // list, no stream, every call refused. Said as that, not as "no interface running";
+            // the client stays open (a shared names provider follows its copy).
+            if (box.mode === 'names-only') {
+                const missing = missingTiers(box.scopes);
+                const refused = new Error(
+                    'the openccu-lite token lacks ' +
+                        describeTiers(missing.length > 0 ? missing : ['rpc:read']) +
+                        ' - the system refuses the interfaces to it',
+                );
+                refused.kind = 'forbidden';
+                refused.scope = 'rpc:read';
+                refused.missing = missing.length > 0 ? missing : ['rpc:read'];
+                throw refused;
+            }
+
             this.ready = true;
             if (this.options.onValues) {
                 this.options.onValues(box.values);
@@ -351,6 +456,19 @@ class LiteConnection {
                 throw translateError(error);
             },
         );
+    }
+
+    /**
+     * B-44: whether the credential may do what needs `scope`, as the system lists its scopes.
+     * @param {string} scope
+     * @returns {boolean} true while not known
+     */
+    may(scope) {
+        if (!this.box || !Array.isArray(this.box.scopes) || this.box.scopes.length === 0) {
+            return true;
+        }
+
+        return covers(this.box.scopes, scope);
     }
 
     /**
@@ -386,6 +504,10 @@ module.exports = {
     ADDON_TOKEN_FILE,
     CALLBACK_METHODS,
     readAddonToken,
+    covers,
+    missingTiers,
+    describeTiers,
+    tokenScopes,
     liteValue,
     trustOf,
     translateError,

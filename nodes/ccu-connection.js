@@ -736,6 +736,10 @@ module.exports = function (RED) {
             this.liteConfig = config;
             this.lite = null;
             this.liteIfaces = [];
+            // B-44: the scopes the system lists for the lite-rpc credential (undefined: not known)
+            // and, per interface, why it cannot be reached (the nodes show it)
+            this.liteScopes = undefined;
+            this.ifaceError = {};
             this.metaMode = false;
             this.meta = null;
             // #167: minutes between re-reads of channel names, rooms and
@@ -1058,6 +1062,11 @@ module.exports = function (RED) {
             }
 
             waiting = Boolean(waiting) && !connected;
+            if (connected && this.ifaceError[iface]) {
+                delete this.ifaceError[iface];
+                this.ifaceStatus[iface] = null; // the nodes drop the error text
+            }
+
             const waitingChanged = Boolean(this.ifaceWaiting[iface]) !== waiting;
             if (this.ifaceStatus[iface] !== connected || waitingChanged) {
                 if (this.ifaceStatus[iface] !== connected) {
@@ -1126,7 +1135,11 @@ module.exports = function (RED) {
         pushStatus() {
             Object.keys(this.users).forEach((id) => {
                 if (typeof this.users[id].setStatus === 'function') {
-                    this.users[id].setStatus({ifaceStatus: this.ifaceStatus, ifaceWaiting: this.ifaceWaiting});
+                    this.users[id].setStatus({
+                        ifaceStatus: this.ifaceStatus,
+                        ifaceWaiting: this.ifaceWaiting,
+                        ifaceError: this.ifaceError,
+                    });
                 }
             });
         }
@@ -1799,6 +1812,44 @@ module.exports = function (RED) {
                 );
             }
 
+            return this.checkLiteScopes().then(() => this.startMetaProvider());
+        }
+
+        /**
+         * B-44: what the lite-rpc credential may do, asked once before the interfaces are moved
+         * there - a token made for the names alone (meta:read, enough for the CCU way up to 4.6)
+         * cannot follow them to lite-rpc, and liteInterfaces() keeps them on the direct path then.
+         * @returns {Promise<void>}
+         */
+        checkLiteScopes() {
+            if (
+                this.connectionType === 'ccu' ||
+                !this.liteToken ||
+                !lite.LITE_INTERFACES.some((iface) => this.liteConfig[this.ifaceTypes[iface].conf + 'Enabled'])
+            ) {
+                return Promise.resolve();
+            }
+
+            return lite
+                .tokenScopes({
+                    url: (this.tlsEnabled ? 'https' : 'http') + '://' + this.host + ':' + this.metaPort,
+                    token: this.liteToken,
+                    insecure: Boolean(this.inSecure),
+                    fingerprint256: this.fingerprint256,
+                })
+                .then((scopes) => {
+                    this.liteScopes = scopes;
+                    if (scopes) {
+                        this.logger.debug('openccu-lite: the lite-rpc credential holds ' + scopes.join(', '));
+                    }
+                });
+        }
+
+        /**
+         * The names from the system's metadata api (startMeta's second half).
+         * @returns {Promise<void>}
+         */
+        startMetaProvider() {
             // one client for names and interfaces where the lite-rpc credential reads the names too
             // (the connection node's own token, as pairing makes it); a names-only client of its own
             // where they differ (RedMatic: the system's local token for the names, the addon token
@@ -2620,6 +2671,24 @@ module.exports = function (RED) {
                 return [];
             }
 
+            // B-44: a token without rpc:read (one made for the names, as the CCU way needed up to
+            // 4.6) cannot follow the interfaces to lite-rpc: `auto` keeps the direct connection that
+            // worked with it; `openccu-lite` insists, and startLite() says what the token lacks
+            const missing = lite.missingTiers(this.liteScopes);
+            if (missing.includes('rpc:read') && this.connectionType === 'auto') {
+                if (!quiet) {
+                    this.logger.warn(
+                        'openccu-lite: the token in the connection node holds ' +
+                            (this.liteScopes.join(', ') || 'no scope') +
+                            ' - lite-rpc needs ' +
+                            lite.describeTiers(missing) +
+                            ', so the interfaces stay on the direct connection with callbacks. To use lite-rpc, give the token these scopes on the system or pair the connection node with it',
+                    );
+                }
+
+                return [];
+            }
+
             return enabled;
         }
 
@@ -2751,6 +2820,15 @@ module.exports = function (RED) {
 
                     const up = ifaces.filter((iface) => running(iface));
                     this.logger.info('lite-rpc connected: ' + (up.join(', ') || 'no interface running'));
+                    if (!this.lite.may('rpc:operate')) {
+                        // B-44: events and device lists, but every command refused
+                        this.logger.warn(
+                            'lite-rpc: the openccu-lite token lacks ' +
+                                lite.describeTiers(['rpc:operate']) +
+                                ' - events arrive, but setValue, putParamset and the other commands are refused. Give the token rpc:operate on the system or pair the connection node with it',
+                        );
+                    }
+
                     return Promise.all(
                         up.map((iface) =>
                             this.getDevices(iface)
@@ -2771,6 +2849,31 @@ module.exports = function (RED) {
                 })
                 .catch((error) => {
                     if (this.closing) {
+                        return;
+                    }
+
+                    if (error.kind === 'forbidden' || error.kind === 'unauthenticated') {
+                        // B-44: a refused credential is not tried again - said as an error, and
+                        // the nodes show what the token lacks instead of "waiting"
+                        const missing = error.missing || (error.scope ? [error.scope] : []);
+                        this.logger.error(
+                            'lite-rpc: ' +
+                                (error.message || error) +
+                                (error.kind === 'forbidden'
+                                    ? '. Give the token ' +
+                                      (missing.join(' and ') || 'rpc:read and rpc:operate') +
+                                      ' on the system, pair the connection node with it, or set the connection type to CCU for the direct connection with callbacks'
+                                    : ''),
+                        );
+                        const text =
+                            error.kind === 'forbidden'
+                                ? 'token lacks ' + (missing.join(', ') || 'rpc:read')
+                                : 'token not accepted';
+                        ifaces.forEach((iface) => {
+                            this.ifaceError[iface] = text;
+                            this.ifaceStatus[iface] = null;
+                            this.setIfaceStatus(iface, false);
+                        });
                         return;
                     }
 

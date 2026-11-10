@@ -334,3 +334,34 @@ describe('status helper: waiting', () => {
         assert.deepEqual(n.shown, [{fill: 'red', shape: 'dot', text: 'disconnected'}]);
     });
 });
+
+describe('status helper: B-44, an interface the token cannot reach', () => {
+    function node(iface) {
+        const n = {iface, shown: []};
+        n.status = (s) => n.shown.push(s);
+        return n;
+    }
+
+    test('an interface node shows the reason as a red ring, then connected', () => {
+        const n = node('HmIP-RF');
+        statusHelper(n, {ifaceStatus: {'HmIP-RF': null}, ifaceError: {'HmIP-RF': 'token lacks rpc:read'}});
+        statusHelper(n, {ifaceStatus: {'HmIP-RF': true}, ifaceError: {}});
+        assert.deepEqual(n.shown, [
+            {fill: 'red', shape: 'ring', text: 'token lacks rpc:read'},
+            {fill: 'green', shape: 'dot', text: 'connected'},
+        ]);
+    });
+
+    test('a node without interface shows it while nothing is connected', () => {
+        const n = node('');
+        statusHelper(n, {
+            ifaceStatus: {'HmIP-RF': null, 'BidCos-RF': null, Metadata: true},
+            ifaceError: {'HmIP-RF': 'token lacks rpc:read', 'BidCos-RF': 'token lacks rpc:read'},
+        });
+        statusHelper(n, {ifaceStatus: {'HmIP-RF': false}, ifaceError: {'HmIP-RF': 'token lacks rpc:read'}});
+        assert.deepEqual(n.shown, [
+            {fill: 'yellow', shape: 'dot', text: 'partly connected: token lacks rpc:read'},
+            {fill: 'red', shape: 'ring', text: 'token lacks rpc:read'},
+        ]);
+    });
+});

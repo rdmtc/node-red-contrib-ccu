@@ -226,3 +226,93 @@ describe('LiteConnection: a failed connect is tried again with a new client', ()
         await assert.rejects(started, /unreachable/);
     });
 });
+
+describe('B-44: the rpc tiers a token lacks', () => {
+    const {covers, missingTiers, describeTiers, tokenScopes} = require('../../nodes/lib/lite.js');
+
+    test('a tier includes the ones before it, Full access everything, meta:read none', () => {
+        assert.equal(covers(['rpc:operate'], 'rpc:read'), true);
+        assert.equal(covers(['rpc:admin'], 'rpc:operate'), true);
+        assert.equal(covers(['*'], 'rpc:operate'), true);
+        assert.equal(covers(['rpc:read'], 'rpc:operate'), false);
+        assert.equal(covers(['meta:read'], 'rpc:read'), false);
+        assert.equal(covers(['meta:write'], 'rpc:read'), false);
+    });
+
+    test('missingTiers names rpc:read and rpc:operate, nothing where the scopes are not known', () => {
+        assert.deepEqual(missingTiers(['meta:read']), ['rpc:read', 'rpc:operate']);
+        assert.deepEqual(missingTiers([]), ['rpc:read', 'rpc:operate']);
+        assert.deepEqual(missingTiers(['meta:read', 'rpc:read']), ['rpc:operate']);
+        assert.deepEqual(missingTiers(['meta:read', 'rpc:operate']), []);
+        assert.deepEqual(missingTiers(['rpc:admin']), []);
+        assert.deepEqual(missingTiers(undefined), []);
+        assert.equal(
+            describeTiers(['rpc:read', 'rpc:operate']),
+            'rpc:read (events and device lists) and rpc:operate (commands)',
+        );
+    });
+
+    test('tokenScopes: the auth state of each token, undefined for a refused one or no system', async () => {
+        const {FakeBox} = require('occulite-client/testing');
+        const fake = new FakeBox({token: 'olt_full'});
+        fake.tokens.set('olt_names', ['meta:read']);
+        fake.tokens.set('olt_ops', ['meta:read', 'rpc:read', 'rpc:operate']);
+        const url = await fake.start();
+        try {
+            assert.deepEqual(await tokenScopes({url, token: 'olt_names'}), ['meta:read']);
+            assert.deepEqual(await tokenScopes({url, token: 'olt_ops'}), ['meta:read', 'rpc:operate']);
+            assert.deepEqual(await tokenScopes({url, token: 'olt_full'}), ['*']);
+            assert.equal(await tokenScopes({url, token: 'olt_wrong'}), undefined);
+        } finally {
+            await fake.stop();
+        }
+
+        assert.equal(await tokenScopes({url, token: 'olt_names', timeout: 2000}), undefined);
+    });
+
+    test('a client that comes up names-only rejects as forbidden naming the tiers, and stays open', async () => {
+        let closed = false;
+        const box = {
+            mode: 'names-only',
+            scopes: ['meta:read'],
+            values: new Map(),
+            on: () => () => {},
+            ready: () => Promise.resolve(),
+            close() {
+                closed = true;
+            },
+        };
+        const lite = new LiteConnection({
+            url: 'http://box',
+            token: 't',
+            interfaces: ['HmIP-RF'],
+            initId: (iface) => 'nr_x_' + iface,
+            onCallback() {},
+            onInterface() {},
+            onStatus() {},
+            logger: {debug() {}, warn() {}},
+            createClient: () => box,
+        });
+        const error = await lite.start().then(
+            () => null,
+            (error_) => error_,
+        );
+        assert.ok(error);
+        assert.equal(error.kind, 'forbidden');
+        assert.deepEqual(error.missing, ['rpc:read', 'rpc:operate']);
+        assert.match(error.message, /lacks rpc:read \(events and device lists\) and rpc:operate \(commands\)/);
+        assert.equal(closed, false);
+        assert.equal(lite.retryTimeout, null);
+        lite.close();
+    });
+
+    test('may(): rpc:operate from the scopes the client read, true while they are not known', () => {
+        const lite = new LiteConnection({interfaces: ['HmIP-RF']});
+        assert.equal(lite.may('rpc:operate'), true);
+        lite.box = {scopes: ['meta:read', 'rpc:read']};
+        assert.equal(lite.may('rpc:read'), true);
+        assert.equal(lite.may('rpc:operate'), false);
+        lite.box = {scopes: ['rpc:admin']};
+        assert.equal(lite.may('rpc:operate'), true);
+    });
+});

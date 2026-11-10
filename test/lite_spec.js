@@ -33,6 +33,9 @@ const CACHE_FILES = [
 ].map((f) => path.join(userDir(), f));
 const PARAMSETS_SCRATCH = path.join(userDir(), 'nrccu-lite-paramsets.json');
 const TOKEN = 'olt_test';
+const NAMES_TOKEN = 'olt_names';
+const READ_TOKEN = 'olt_read';
+const OPERATE_TOKEN = 'olt_operate';
 
 const DEVICES = {
     'HmIP-RF': [
@@ -230,6 +233,10 @@ describe('openccu-lite through lite-rpc with occulite-client (task 14)', functio
             },
             meta: {revision: 3, objects: {'HmIP-RF.ABC1': {name: 'Lamp'}}, enums: {}},
         });
+        // B-44: tokens with fewer scopes beside TOKEN (Full access)
+        fake.tokens.set(NAMES_TOKEN, ['meta:read']);
+        fake.tokens.set(READ_TOKEN, ['meta:read', 'rpc:read']);
+        fake.tokens.set(OPERATE_TOKEN, ['meta:read', 'rpc:read', 'rpc:operate']);
         port = new URL(await fake.start()).port;
         await new Promise((resolve) => helper.startServer(resolve));
     });
@@ -441,6 +448,79 @@ describe('openccu-lite through lite-rpc with occulite-client (task 14)', functio
             ['system.multicall', [[{methodName: 'setValue', params: ['ABC1:1', 'LEVEL', {double: 0.5}]}]]],
         ]);
         JSON.stringify(sent).should.not.match(/explicitDouble/);
+    });
+
+    it('B-44 auto with a token for the names alone: the interfaces stay on the direct connection, the log names the tiers', async () => {
+        const opened = fake.streamsOpened;
+        await start({}, {nc: {metaToken: NAMES_TOKEN}});
+        (await until(() => lines('nc', 'INFO').some((l) => /^Interfaces: /.test(l)), 15000)).should.be.true();
+        should(nc.lite).be.null();
+        nc.liteIfaces.should.deepEqual([]);
+        nc.liteScopes.should.deepEqual(['meta:read']);
+        lines('nc', 'WARN')
+            .some((l) =>
+                /token in the connection node holds meta:read - lite-rpc needs rpc:read \(events and device lists\) and rpc:operate \(commands\), so the interfaces stay on the direct connection with callbacks/.test(
+                    l,
+                ),
+            )
+            .should.be.true();
+        lines('nc', 'INFO')
+            .some((l) => /no interface running|go through the system's lite-rpc from now on/.test(l))
+            .should.be.false();
+        // the names still come, from a names client of its own; the CCU path's callback server is asked for
+        nc.meta.shared.should.be.false();
+        (await until(() => nc.channelNames.ABC1 === 'Lamp', 5000)).should.be.true();
+        (await until(() => Object.keys(nc.servers).length > 0, 5000)).should.be.true();
+        fake.streamsOpened.should.equal(opened);
+    });
+
+    it('B-44 openccu-lite by choice with that token: an error naming the tiers, the nodes show it, the names stay', async () => {
+        await start({connectionType: 'openccu-lite'}, {nc: {metaToken: NAMES_TOKEN}});
+        (
+            await until(
+                () =>
+                    lines('nc', 'ERROR').some((l) =>
+                        /^lite-rpc: the openccu-lite token lacks rpc:read \(events and device lists\) and rpc:operate \(commands\)/.test(
+                            l,
+                        ),
+                    ),
+                15000,
+            )
+        ).should.be.true();
+        should(nc.lite).be.ok();
+        nc.ifaceError['HmIP-RF'].should.equal('token lacks rpc:read, rpc:operate');
+        (await until(() => helper.getNode('nv').currentStatus === 'error', 5000)).should.be.true();
+        lines('nc', 'INFO')
+            .some((l) => /no interface running/.test(l))
+            .should.be.false();
+        (await until(() => nc.channelNames.ABC1 === 'Lamp', 5000)).should.be.true();
+        await nc.methodCall('HmIP-RF', 'listDevices', []).should.be.rejectedWith(/needs rpc:read/);
+    });
+
+    it('B-44 a token with rpc:read alone: lite-rpc and events, and a warning that commands need rpc:operate', async () => {
+        await start({}, {nc: {metaToken: READ_TOKEN}});
+        (await until(() => nc.ifaceStatus['HmIP-RF'] === true, 15000)).should.be.true();
+        should(nc.lite).be.ok();
+        (
+            await until(
+                () =>
+                    lines('nc', 'WARN').some((l) =>
+                        /^lite-rpc: the openccu-lite token lacks rpc:operate \(commands\) - events arrive/.test(l),
+                    ),
+                5000,
+            )
+        ).should.be.true();
+    });
+
+    it('B-44 meta:read, rpc:read and rpc:operate: lite-rpc without a warning about the token', async () => {
+        await start({}, {nc: {metaToken: OPERATE_TOKEN}});
+        (await until(() => nc.ifaceStatus['HmIP-RF'] === true, 15000)).should.be.true();
+        should(nc.lite).be.ok();
+        nc.liteIfaces.should.deepEqual(['BidCos-RF', 'HmIP-RF']);
+        await wait(300);
+        lines('nc', 'WARN')
+            .some((l) => /token/.test(l))
+            .should.be.false();
     });
 
     it('errors: a fault keeps its code, a scope the token lacks is said as such', () => {
