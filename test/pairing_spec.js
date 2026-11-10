@@ -367,7 +367,9 @@ describe('pairing with an openccu-lite system', function () {
         });
 
         it('another certificate than the pinned one: refused before the token goes out', async () => {
-            const other = 'AA:' + certificate.fingerprint256.slice(3);
+            // another first byte than the certificate's own (a fresh one per run starts with AA: once in 256)
+            const other =
+                (certificate.fingerprint256.startsWith('AA:') ? 'BB:' : 'AA:') + certificate.fingerprint256.slice(3);
             const outcome = await metaProvider.detectOutcome({
                 host: '127.0.0.1',
                 port: front.port,
