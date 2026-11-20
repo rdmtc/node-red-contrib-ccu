@@ -5,6 +5,35 @@ Notable changes to node-red-contrib-ccu. Format follows
 user-visible symptom and the cause, not the commit list (the release notes
 append commits automatically).
 
+## 4.11.0 (2026-11-20)
+
+### Changed
+
+- **Far fewer writes to the SD card.** The connection used to rewrite its
+  cache files more often than needed: the device table at every start, the
+  names file on a CCU at every names re-read (every 15 minutes by default,
+  even when nothing had changed), the value cache twice per redeploy or
+  restart, and `paramsets.json` (several megabytes) whole after every 30
+  fetched descriptions. Now the device table and the names file are written
+  only when their content changed, the names file no longer carries system
+  variable and program values (they were never read back),
+  `paramsets.json` is written once per fetch round and only when it gained a
+  new description (the shipped file is read directly instead of being
+  copied), and the value cache is written at stop and otherwise at most every
+  60 minutes. A redeploy now writes about half as much, and on a CCU the
+  connection writes nothing while idle.
+
+### Added
+
+- **Setting "Value cache write (min)"** in the connection node: how often the
+  value cache is written while Node-RED runs (default 60, 0 = only at stop).
+  A longer interval writes less; after a power cut the cache is at most that
+  old, and the values are read fresh from the CCU at the next start anyway.
+- **A warning when the connection's values go into a file context store.**
+  Node-RED's `localfilesystem` store rewrites the whole global context on
+  every change, which writes a lot with many devices; the help text explains
+  it.
+
 ## 4.10.3 (2026-11-20)
 
 ### Fixed
