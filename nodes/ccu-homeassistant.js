@@ -158,6 +158,18 @@ module.exports = function (RED) {
                         return true;
                     }
 
+                    // B-46: a description that will never come must not hold the node for its
+                    // five minutes - no key (the parent is not in the device table), a channel
+                    // without a VALUES paramset (nothing is ever queued for it), or a fetch the
+                    // interface refused with a fault (not asked again in this run, B-36)
+                    if (
+                        !key ||
+                        !(channel.PARAMSETS || []).includes('VALUES') ||
+                        (ccu.paramsetFailed && ccu.paramsetFailed.has(iface + '/' + channel.ADDRESS + '/VALUES'))
+                    ) {
+                        return true;
+                    }
+
                     ccu.getParamsetDescription(iface, channel, 'VALUES'); // queues the fetch
                     return false;
                 });
