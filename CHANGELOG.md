@@ -5,6 +5,21 @@ Notable changes to node-red-contrib-ccu. Format follows
 user-visible symptom and the cause, not the commit list (the release notes
 append commits automatically).
 
+## 4.10.3 (2026-11-20)
+
+### Fixed
+
+- **ccu-homeassistant: a closed cover could show "open" at position 0 in
+  Home Assistant (and one opened from 0 "closed").** The cover's state came
+  from the DIRECTION/ACTIVITY_STATE message, which says "stopped" before the
+  final LEVEL arrives; Home Assistant then fixed open/closed from the stale
+  position and ignored the later one. The state now comes from the LEVEL
+  message itself, which carries working, direction and the position
+  together. With ccu-mqtt's mqsh-basic or plain payloads the cover gets no
+  state topic and Home Assistant derives open/closed from the position. Home
+  Assistant picks up the changed discovery on the next deploy
+  (hobbyquaker/hm2mqtt.js#35, @sgybas).
+
 ## 4.10.2 (2026-11-20)
 
 ### Fixed
