@@ -20,7 +20,14 @@ const metaProvider = require('./lib/metaprovider.js');
 const {InitRetry, retryDelay, RETRY_INTERVAL} = require('./lib/initretry.js');
 const lite = require('./lib/lite.js');
 const {Pairings} = require('./lib/pairing.js');
-const {writeJsonAtomic, DebouncedSave} = require('./lib/cachefile.js');
+const {
+    writeJsonAtomic,
+    writeJsonIfChanged,
+    readText,
+    lastWritten,
+    contextStoreModule,
+    DebouncedSave,
+} = require('./lib/cachefile.js');
 const {SubscriptionIndex, matches: filterMatches} = require('./lib/subscriptions.js');
 const xmlrpc = require('homematic-xmlrpc');
 const binrpc = require('binrpc');
@@ -667,6 +674,16 @@ module.exports = function (RED) {
 
             this.globalContext = this.context().global;
             this.contextStore = config.contextStore;
+            if (contextStoreModule(RED.settings, this.contextStore) === 'localfilesystem') {
+                // the values object goes into the global context once and changes in place: a
+                // file store writes the whole global context, these values with it, whenever
+                // anything else in it is set
+                this.logger.warn(
+                    'context store "' +
+                        this.contextStore +
+                        '" keeps the global context in a file: every change of the global context rewrites it with all values of this connection - a memory store writes nothing to disk',
+                );
+            }
 
             if (ccu.network.listen.includes(config.rpcServerHost)) {
                 this.rpcServerHost = config.rpcServerHost;
@@ -747,6 +764,14 @@ module.exports = function (RED) {
             this.regaMetaInterval =
                 config.regaMetaInterval === undefined ? 15 : Number.parseInt(config.regaMetaInterval, 10) || 0;
             this.regaInterval = Number.parseInt(config.regaInterval, 10);
+            // the values cache file is written at stop, and while running at most every this many
+            // minutes (after the start's read of all values, a resync, a prune); 0 = only at stop.
+            // A write is the whole file - megabytes on a big system, on the SD card.
+            this.valuesSaveInterval =
+                config.valuesSaveInterval === undefined || config.valuesSaveInterval === ''
+                    ? 60
+                    : Math.max(0, Number.parseInt(config.valuesSaveInterval, 10) || 0);
+            this.valuesSaveTimer = null;
             this.hadTimeout = new Set();
 
             this.enabledIfaces = [];
@@ -754,7 +779,6 @@ module.exports = function (RED) {
             this.clients = {};
             this.servers = {};
 
-            this.newParamsetDescriptionCount = 0;
             this.paramsetQueue = [];
             // B-36: iface/address/paramset whose description the interface refused
             // with a fault (-2 Invalid device for an address it does not know) - not
@@ -1219,8 +1243,11 @@ module.exports = function (RED) {
          */
         writeCache(file, what, data) {
             try {
-                writeJsonAtomic(file, data);
-                this.logger.info(what + ' saved to', file);
+                if (writeJsonIfChanged(file, data)) {
+                    this.logger.info(what + ' saved to', file);
+                } else {
+                    this.logger.debug(what + ' unchanged, not written');
+                }
             } catch (error) {
                 this.logger.error(what + ' not saved to ' + file + ': ' + error.message);
             }
@@ -1240,18 +1267,44 @@ module.exports = function (RED) {
                 rooms: this.rooms,
                 functions: this.functions,
                 groups: this.groups,
-                sysvar: this.sysvar,
-                program: this.program,
+                // no system variables and programs: they are not read back at start (see
+                // loadRegadata), and their values and timestamps made the file differ at every
+                // write, so it was rewritten although nothing it is read for had changed
             });
             return Promise.resolve();
         }
 
         /**
-         *
+         * The values cache file. At stop and after a prune (`now`: datapoints of deleted devices
+         * must leave the file) it is written at once; otherwise at most every `valuesSaveInterval`
+         * minutes, counted from the file's last write (the one at the previous stop too), so a
+         * redeploy or a restart does not write it twice - the values in it are the cache for the
+         * next start, the live ones come from the interfaces.
+         * @param {boolean} [now] write at once
          * @returns {Promise<any>}
          */
-        saveValues() {
-            this.writeCache(this.valuesFile, 'values', {values: this.values});
+        saveValues(now) {
+            clearTimeout(this.valuesSaveTimer);
+            this.valuesSaveTimer = null;
+            if (now) {
+                this.writeCache(this.valuesFile, 'values', {values: this.values});
+                return Promise.resolve();
+            }
+
+            if (!this.valuesSaveInterval) {
+                return Promise.resolve();
+            }
+
+            const due = lastWritten(this.valuesFile) + this.valuesSaveInterval * 60000 - Date.now();
+            if (due <= 0) {
+                this.writeCache(this.valuesFile, 'values', {values: this.values});
+            } else {
+                this.valuesSaveTimer = setTimeout(() => this.saveValues(), Math.min(due, 2147483647));
+                if (typeof this.valuesSaveTimer.unref === 'function') {
+                    this.valuesSaveTimer.unref();
+                }
+            }
+
             return Promise.resolve();
         }
 
@@ -1262,7 +1315,7 @@ module.exports = function (RED) {
         loadMetadata() {
             return new Promise((resolve) => {
                 try {
-                    this.metadata = JSON.parse(fs.readFileSync(this.metadataFile));
+                    this.metadata = JSON.parse(readText(this.metadataFile));
                     this.logger.info('metadata loaded from', this.metadataFile);
                     resolve();
                 } catch {
@@ -1283,7 +1336,7 @@ module.exports = function (RED) {
         loadRegadata() {
             return new Promise((resolve) => {
                 try {
-                    const regadata = JSON.parse(fs.readFileSync(this.regadataFile));
+                    const regadata = JSON.parse(readText(this.regadataFile));
                     this.logger.info('regadata loaded from', this.regadataFile);
                     this.channelNames = regadata.channelNames;
                     this.regaIdChannel = regadata.regaIdChannel;
@@ -1301,7 +1354,7 @@ module.exports = function (RED) {
                         this.functions = regadata.functions;
                     }
 
-                    /*
+                    /* system variables and programs are polled anew and no longer saved in the file
                     this.sysvar = regadata.sysvar;
                     Object.keys(this.sysvar).forEach(s => {
                         this.sysvar[s].fromFile = true;
@@ -1360,7 +1413,8 @@ module.exports = function (RED) {
          * Merges the descriptions fetched since the last save into the file on disk. The file
          * holds every description ever known (the vendored ones and the fetched ones, in the
          * format other consumers and the editor read); the memory holds only the present types,
-         * so the file is read, merged and written back atomically (task 28).
+         * so the file is read, merged and written back atomically (task 28). Descriptions the
+         * file holds as they are already are no reason to write it.
          * @returns {Promise<any>}
          */
         saveParamsets() {
@@ -1373,16 +1427,25 @@ module.exports = function (RED) {
 
                 try {
                     const all = this.readParamsetFile() || {};
-                    for (const name of names) {
+                    const changed = names.filter(
+                        (name) => JSON.stringify(all[name]) !== JSON.stringify(this.paramsetNew[name]),
+                    );
+                    for (const name of changed) {
                         all[name] = this.paramsetNew[name];
                     }
 
-                    writeJsonAtomic(this.paramsetFile, all, '  ');
                     this.paramsetNew = {};
+                    if (changed.length === 0) {
+                        this.logger.debug('paramsets: the fetched descriptions are in the file already');
+                        resolve();
+                        return;
+                    }
+
+                    writeJsonAtomic(this.paramsetFile, all, '  ');
                     this.logger.info(
                         'paramsets saved to',
                         this.paramsetFile,
-                        names.length,
+                        changed.length,
                         'new,',
                         Object.keys(all).length,
                         'total',
@@ -1396,23 +1459,18 @@ module.exports = function (RED) {
         }
 
         /**
-         * Parses the paramsets file - the userDir's, or the vendored one when the userDir has none
-         * yet (then it is copied there, as before, so the format on disk stays the same).
+         * Parses the paramsets file - the userDir's, or the shipped one while the userDir has none
+         * yet. The userDir's is written the first time a description the shipped file lacks is
+         * saved (the whole set, in the same format); a copy of 14 MB at the first start, before,
+         * was a write for nothing on a system whose devices the shipped file knows.
          * @returns {object|null} every description the file holds, or null when there is none
          */
         readParamsetFile() {
-            if (!fs.existsSync(this.paramsetFile)) {
-                const vendored = path.join(__dirname, '..', 'paramsets.json');
-                try {
-                    fs.copyFileSync(vendored, this.paramsetFile);
-                    this.logger.info('paramsets copied from', vendored, 'to', this.paramsetFile);
-                } catch (error) {
-                    this.logger.error('error copying paramsets ' + error.message);
-                }
-            }
-
+            const file = fs.existsSync(this.paramsetFile)
+                ? this.paramsetFile
+                : path.join(__dirname, '..', 'paramsets.json');
             try {
-                return JSON.parse(fs.readFileSync(this.paramsetFile));
+                return JSON.parse(fs.readFileSync(file));
             } catch (error) {
                 if (error.code === 'ENOENT') {
                     this.logger.info('paramsets new empty');
@@ -1569,7 +1627,9 @@ module.exports = function (RED) {
 
             this.metadataSave.flush();
             this.saveRegadata();
-            this.saveValues();
+            this.saveValues(true);
+            // descriptions fetched since the last save (a stop in the middle of the queue)
+            this.saveParamsets();
 
             this.rpcClose()
                 .then(() => {
@@ -3744,16 +3804,13 @@ module.exports = function (RED) {
                     this.methodCall(iface, 'getParamsetDescription', [address, paramset], {quiet: true})
                         .then((res) => {
                             //this.logger.trace('paramsetDescription', name);
-                            this.newParamsetDescriptionCount += 1;
                             this.newParamsetDescription = true;
                             this.paramsetDescriptions[name] = res;
                             this.paramsetNew[name] = res;
                             this.paramsetFileMissing.delete(name);
-                            if (this.newParamsetDescriptionCount >= 30) {
-                                this.newParamsetDescription = false;
-                                this.newParamsetDescriptionCount = 0;
-                                this.saveParamsets();
-                            }
+                            // saved once the queue is through (or at stop): every save rewrites the
+                            // whole file, 14 MB and more - one every 30 descriptions was a dozen
+                            // rewrites for a system whose firmwares the shipped file lacks
                         })
                         .catch((error) => {
                             // B-36: one line naming the address and the paramset; a
@@ -3960,7 +4017,7 @@ module.exports = function (RED) {
             const pruned = this.pruneValues();
             if (pruned) {
                 this.logger.info('values cache: dropped', pruned, 'values of devices not in the device table');
-                this.saveValues();
+                this.saveValues(true);
             }
         }
 
@@ -3977,7 +4034,7 @@ module.exports = function (RED) {
                 const pruned = this.pruneValues();
                 if (pruned) {
                     this.logger.info('values cache: dropped', pruned, 'values of devices not in the device table');
-                    this.saveValues();
+                    this.saveValues(true);
                 }
             }, this.valuesPruneDelay);
         }

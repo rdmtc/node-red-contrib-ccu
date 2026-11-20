@@ -49,9 +49,15 @@
                 Das Zeitintervall in Sekunden in dem Systemvariablen von der CCU abgefragt werden.</li>
             </ul>
             <ul>
+                <li><b>Names/rooms refresh (min)</b>: Wie oft Kanalnamen, Räume und Gewerke neu gelesen werden; 0 nie. Die Datei mit den Namen wird nur geschrieben, wenn sich etwas geändert hat.</li>
+            </ul>
+            <ul>
+                <li><b>Value cache write (min)</b>: Der letzte Wert jedes Datenpunkts liegt in einer Datei im Node-RED-Verzeichnis, damit Nodes mit <i>cache</i> gleich nach dem nächsten Start einen Wert haben. Die Datei wird geschrieben, wenn Node-RED beendet oder die Verbindung neu deployt wird, und während es läuft höchstens so oft (nach dem Lesen aller Werte beim Start, nach einem Resync); Voreinstellung 60. 0 schreibt sie nur beim Beenden - die wenigsten Schreibzugriffe auf die SD-Karte, aber nach einem Stromausfall oder Absturz enthält die Datei die Werte vom letzten Beenden. So oder so kommen die aktuellen Werte nach einem Start wieder von der CCU. Auf einem großen System hat die Datei mehrere Megabyte, und jeder Schreibvorgang schreibt die ganze Datei.</li>
+            </ul>
+            <ul>
                 <li><b>Context-Store</b>: Hier wird der Node-RED Context-Store festgelegt in dem RedMatic die Zustände aller Geräte/Variablen vorhält.
 
-Weiteres unter <a target="_blank" href="https://nodered.org/docs/user-guide/context">Working</a> with context in der Node-RED Dokumentation.</li>
+Weiteres unter <a target="_blank" href="https://nodered.org/docs/user-guide/context">Working</a> with context in der Node-RED Dokumentation. Am besten ein Speicher-Store (memory): ein Datei-Store (<code>localfilesystem</code>) schreibt den ganzen globalen Kontext - mit allen Werten dieser Verbindung - jedes Mal neu, wenn irgendetwas darin gesetzt wird, und nutzt so die SD-Karte ab; das Log warnt dann.</li>
             </ul>
             <ul>
                 <li><b>openccu-lite Token</b>: Nur für <a href="https://github.com/hobbyquaker/openccu-lite" target="_blank">openccu-lite</a>,

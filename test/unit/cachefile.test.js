@@ -4,9 +4,16 @@ const fs = require('fs');
 const os = require('os');
 const path = require('path');
 
-const {writeJsonAtomic, DebouncedSave} = require('../../nodes/lib/cachefile.js');
+const {
+    writeJsonAtomic,
+    writeJsonIfChanged,
+    readText,
+    lastWritten,
+    contextStoreModule,
+    DebouncedSave,
+} = require('../../nodes/lib/cachefile.js');
 
-/* task 24: the cache files are written once per burst and atomically. */
+/* task 24: the cache files are written once per burst and atomically; nothing unchanged is written. */
 
 function wait(ms) {
     return new Promise((resolve) => setTimeout(resolve, ms));
@@ -88,5 +95,83 @@ describe('DebouncedSave', () => {
         await wait(40);
         assert.equal(writes, 0);
         assert.equal(save.pending, false);
+    });
+});
+
+describe('writeJsonIfChanged', () => {
+    test('the same content is not written again, a changed one is', () => {
+        const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'nrccu-cachefile-'));
+        const file = path.join(dir, 'ccu_test.json');
+        assert.equal(writeJsonIfChanged(file, {a: 1}), true);
+        assert.equal(writeJsonIfChanged(file, {a: 1}), false);
+        assert.equal(writeJsonIfChanged(file, {a: 2}), true);
+        assert.deepEqual(JSON.parse(fs.readFileSync(file, 'utf8')), {a: 2});
+        assert.deepEqual(fs.readdirSync(dir), ['ccu_test.json']);
+        fs.rmSync(dir, {recursive: true});
+    });
+
+    test('a file changed or removed from outside is written again', () => {
+        const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'nrccu-cachefile-'));
+        const file = path.join(dir, 'ccu_test.json');
+        writeJsonIfChanged(file, {a: 1});
+        fs.writeFileSync(file, '{"a":1000}');
+        assert.equal(writeJsonIfChanged(file, {a: 1}), true);
+        fs.unlinkSync(file);
+        assert.equal(writeJsonIfChanged(file, {a: 1}), true);
+        assert.equal(fs.existsSync(file), true);
+        fs.rmSync(dir, {recursive: true});
+    });
+
+    test('what readText read is not written back', () => {
+        const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'nrccu-cachefile-'));
+        const file = path.join(dir, 'ccu_test.json');
+        fs.writeFileSync(file, JSON.stringify({names: {x: 'Lamp'}}));
+        const data = JSON.parse(readText(file));
+        assert.equal(writeJsonIfChanged(file, data), false);
+        data.names.y = 'Door';
+        assert.equal(writeJsonIfChanged(file, data), true);
+        fs.rmSync(dir, {recursive: true});
+    });
+});
+
+describe('lastWritten', () => {
+    test("the file's modification time, 0 without a file", () => {
+        const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'nrccu-cachefile-'));
+        const file = path.join(dir, 'ccu_test.json');
+        assert.equal(lastWritten(file), 0);
+        writeJsonAtomic(file, {});
+        assert.ok(Math.abs(lastWritten(file) - Date.now()) < 5000);
+        fs.utimesSync(file, 1000, 1000);
+        assert.equal(lastWritten(file), 1000000);
+        fs.rmSync(dir, {recursive: true});
+    });
+});
+
+describe('contextStoreModule', () => {
+    const settings = {
+        contextStorage: {default: 'file', file: {module: 'localfilesystem'}, memory: {module: 'memory'}},
+    };
+
+    test('the module of a store, the default by its name', () => {
+        assert.equal(contextStoreModule(settings, 'file'), 'localfilesystem');
+        assert.equal(contextStoreModule(settings, 'default'), 'localfilesystem');
+        assert.equal(contextStoreModule(settings, 'memory'), 'memory');
+    });
+
+    test('no store, no name, no settings: undefined', () => {
+        assert.equal(contextStoreModule(settings, ''), undefined);
+        assert.equal(contextStoreModule(settings, 'redis'), undefined);
+        assert.equal(contextStoreModule({}, 'file'), undefined);
+        assert.equal(
+            contextStoreModule(
+                {
+                    get contextStorage() {
+                        throw new Error('no such setting');
+                    },
+                },
+                'file',
+            ),
+            undefined,
+        );
     });
 });

@@ -38,6 +38,7 @@
             regaPoll: {value: true},
             regaInterval: {value: 30},
             regaMetaInterval: {value: 15},
+            valuesSaveInterval: {value: 60},
 
             rpcPing: {value: true},
             rpcPingTimeout: {value: 60},
@@ -90,6 +91,11 @@
             if (typeof this.regaMetaInterval === 'undefined') {
                 this.regaMetaInterval = 15;
                 $('#node-config-input-regaMetaInterval').val(15);
+            }
+
+            if (typeof this.valuesSaveInterval === 'undefined') {
+                this.valuesSaveInterval = 60;
+                $('#node-config-input-valuesSaveInterval').val(60);
             }
 
             const $nodeConfigInputHost = $('#node-config-input-host');
@@ -422,6 +428,11 @@
         <label for="node-config-input-regaMetaInterval"><i class="icon-tag"></i> Names/rooms refresh (min)</label>
         <input type="text" id="node-config-input-regaMetaInterval">
         <small>How often channel names, rooms and functions are re-read. 0 = never (the behaviour before 4.3.0).</small>
+    </div>
+    <div class="form-row">
+        <label for="node-config-input-valuesSaveInterval"><i class="icon-tag"></i> Value cache write (min)</label>
+        <input type="text" id="node-config-input-valuesSaveInterval">
+        <small>The file with the last values (the cache for the next start) is written when Node-RED stops, and while it runs at most this often. 0 = only when stopping: fewest writes to the SD card, but after a power cut the file holds the values of the last stop.</small>
     </div>
     <div class="form-row">
         <label for="node-config-input-queueTimeout"><i class="icon-tag"></i> Queue timeout (ms)</label>
