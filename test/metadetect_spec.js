@@ -32,7 +32,7 @@ function removeCache() {
     }
 }
 
-function flow({regaPoll = false} = {}) {
+function flow({regaPoll = false, regaEnabled = true} = {}) {
     return [
         {
             id: 'nc',
@@ -40,7 +40,7 @@ function flow({regaPoll = false} = {}) {
             name: 'detect',
             host: HOST,
             metaPort: String(META_PORT),
-            regaEnabled: true,
+            regaEnabled,
             bcrfEnabled: false,
             iprfEnabled: false,
             virtEnabled: false,
@@ -236,6 +236,39 @@ describe('metadata api detection at start (B-28)', function () {
         nc.regaPollEnabled = false;
         nc.regaPoll();
         (await until(() => rechecks >= 2, 2000)).should.be.true();
+    });
+
+    it('B-46: with the ReGaHSS unticked an openccu-lite is still detected and its names are loaded', async () => {
+        box = await fakeBox();
+        await load([nodeConnection], flow({regaEnabled: false}));
+        const nc = helper.getNode('nc');
+        let regaAsked = 0;
+        nc.getRegaData = () => {
+            regaAsked += 1;
+            return Promise.resolve();
+        };
+
+        (await until(() => nc.metaMode, 5000)).should.be.true();
+        (await until(() => nc.channelNames && Object.keys(nc.channelNames).length > 0, 5000)).should.be.true();
+        infos('nc')
+            .some((m) => m.startsWith('openccu-lite detected'))
+            .should.be.true();
+        regaAsked.should.equal(0);
+        should(nc.clients.ReGaHSS).be.undefined();
+        should(nc.lastRegaDataRefresh).be.undefined();
+    });
+
+    it('B-46: with the ReGaHSS unticked a CCU is asked once and the ReGa is left alone', async () => {
+        box = await fakeBox({ccu: true});
+        await load([nodeConnection], flow({regaEnabled: false}));
+        const nc = helper.getNode('nc');
+        (await until(() => infos('nc').some((m) => /^Interfaces:/.test(m)), 5000)).should.be.true();
+        nc.metaMode.should.be.false();
+        should(nc.metaRedetectTimeout).not.be.ok();
+        should(nc.lastRegaDataRefresh).be.undefined();
+        infos('nc')
+            .some((m) => /^rega /.test(m))
+            .should.be.false();
     });
 
     it('the re-detection stops with the node', async () => {

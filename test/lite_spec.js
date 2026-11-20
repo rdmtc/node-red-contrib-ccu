@@ -92,7 +92,7 @@ function removeFiles() {
     }
 }
 
-function flow(port, {connectionType = 'auto'} = {}) {
+function flow(port, {connectionType = 'auto', regaEnabled = true} = {}) {
     return [
         {
             id: 'nc',
@@ -101,7 +101,7 @@ function flow(port, {connectionType = 'auto'} = {}) {
             host: HOST,
             metaPort: String(port),
             connectionType,
-            regaEnabled: true,
+            regaEnabled,
             bcrfEnabled: true,
             bcrfBinRpc: true,
             iprfEnabled: true,
@@ -357,6 +357,22 @@ describe('openccu-lite through lite-rpc with occulite-client (task 14)', functio
         lines('nc', 'INFO')
             .filter((l) => /^metadata saved to/.test(l))
             .length.should.equal(1);
+    });
+
+    it('B-46: with the ReGaHSS unticked the system is still detected - lite-rpc and the names', async () => {
+        await start({regaEnabled: false}, {nc: {metaToken: TOKEN}});
+        (
+            await until(() => nc.ifaceStatus['HmIP-RF'] === true && nc.ifaceStatus['BidCos-RF'] === true, 15000)
+        ).should.be.true();
+        nc.metaMode.should.be.true();
+        should(nc.lite).be.ok();
+        nc.liteIfaces.should.deepEqual(['BidCos-RF', 'HmIP-RF']);
+        Object.keys(nc.servers).should.deepEqual([]);
+        should(nc.clients['HmIP-RF']).be.undefined();
+        (await until(() => nc.channelNames.ABC1 === 'Lamp', 5000)).should.be.true();
+        lines('nc', 'INFO')
+            .filter((l) => /^Interfaces: /.test(l))
+            .should.deepEqual(['Interfaces: BidCos-RF, HmIP-RF']);
     });
 
     it('the next start does not say "moved" again and saves no metadata; a restart of the stream is followed', async () => {

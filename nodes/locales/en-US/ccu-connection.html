@@ -11,7 +11,7 @@
         <li><b>XMLRPC listening port</b>: The port of the XML-RPC server the CCU sends its events to. Several connections each need a port of their own.</li>
         <li><b>Interfaces</b>: The interfaces to use. Untick what you do not have (no CUxD, no HmIP devices, say) to switch the unused parts off.
             <ul>
-                <li>ReGaHSS: the CCU's logic layer, which holds the programs and system variables</li>
+                <li>ReGaHSS: the CCU's logic layer, which holds the programs and system variables (and the names, rooms and functions). openccu-lite has no ReGaHSS: there the names come from the system's metadata API and the interfaces go through lite-rpc whether it is ticked or not</li>
                 <li>BidCos-RF: Homematic radio</li>
                 <li>BidCos-Wired: Homematic wired</li>
                 <li>HmIP-RF: Homematic IP radio</li>

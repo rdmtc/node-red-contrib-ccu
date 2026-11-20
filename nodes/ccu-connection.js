@@ -866,34 +866,36 @@ module.exports = function (RED) {
                 }
             });
 
-            if (config.regaEnabled) {
-                this.lastRegaDataRefresh = now();
-                // B-17: ask the box once whether it speaks the openccu-lite
-                // metadata api. It does not on a CCU/RaspberryMatic/OpenCCU,
-                // where everything below runs exactly as before.
-                this.lastMetaProbe = now();
-                this.detectMetaOutcome()
-                    .then((outcome) => {
-                        if (outcome.info) {
-                            return this.startMeta(outcome.info);
-                        }
+            // B-17: ask the box once whether it speaks the openccu-lite metadata api. It does not
+            // on a CCU/RaspberryMatic/OpenCCU, where everything below runs exactly as before.
+            // B-46: asked whatever the ReGaHSS checkbox says - on openccu-lite there is no ReGaHSS
+            // the checkbox could switch, the names come from the metadata api and the interfaces
+            // through lite-rpc; only the ReGa path (names, sysvars, programs) stays behind it.
+            this.lastMetaProbe = now();
+            this.detectMetaOutcome()
+                .then((outcome) => {
+                    if (outcome.info) {
+                        return this.startMeta(outcome.info);
+                    }
 
-                        // B-28: a timeout or a refused connection decides nothing -
-                        // the ReGa path starts, and the detection is repeated
-                        this.scheduleMetaRedetect(outcome);
-                        return this.getRegaData().then(() => {
-                            this.regaPoll();
-                        });
-                    })
-                    .catch((error) => {
-                        this.logger.error('name sync ' + error.message);
-                    })
-                    .then(() => {
-                        this.initIfaces(config);
+                    // B-28: a timeout or a refused connection decides nothing -
+                    // the ReGa path starts, and the detection is repeated
+                    this.scheduleMetaRedetect(outcome);
+                    if (!config.regaEnabled) {
+                        return;
+                    }
+
+                    this.lastRegaDataRefresh = now();
+                    return this.getRegaData().then(() => {
+                        this.regaPoll();
                     });
-            } else {
-                this.initIfaces(config);
-            }
+                })
+                .catch((error) => {
+                    this.logger.error('name sync ' + error.message);
+                })
+                .then(() => {
+                    this.initIfaces(config);
+                });
 
             this.stats(true);
 
@@ -1695,7 +1697,8 @@ module.exports = function (RED) {
                         outcome.reason +
                         ') after ' +
                         META_REDETECT_ATTEMPTS +
-                        ' attempts - staying with the ReGaHSS, detecting again every five minutes',
+                        ' attempts - staying with the ' +
+                        (this.regaEnabled ? 'ReGaHSS, detecting again every five minutes' : 'CCU way'),
                 );
                 this.metaRedetectAttempt = 0;
                 return;
@@ -1705,7 +1708,9 @@ module.exports = function (RED) {
             const line =
                 'meta api detection inconclusive (' +
                 outcome.reason +
-                ') - names come from the ReGaHSS until the system answers, detecting again in ' +
+                ') - ' +
+                (this.regaEnabled ? 'names come from the ReGaHSS' : 'the interfaces are reached the CCU way') +
+                ' until the system answers, detecting again in ' +
                 delay / 1000 +
                 ' s';
             if (this.metaRedetectAttempt === 1) {
@@ -1744,7 +1749,12 @@ module.exports = function (RED) {
 
                 this.metaRedetectAttempt = 0;
                 this.logger.info(
-                    'not an openccu-lite (' + outcome.reason + ') - names, rooms and functions come from the ReGaHSS',
+                    'not an openccu-lite (' +
+                        outcome.reason +
+                        ') - ' +
+                        (this.regaEnabled
+                            ? 'names, rooms and functions come from the ReGaHSS'
+                            : 'the interfaces are reached the CCU way'),
                 );
             });
         }
@@ -1795,6 +1805,10 @@ module.exports = function (RED) {
             this.logger.info(
                 'this system has no ReGaHSS: system variables, programs and HM-Script are not available (sysvar, program, poll and script nodes stay idle)',
             );
+            if (!this.regaEnabled) {
+                // B-46: the checkbox has nothing to switch here - the names are the metadata api's
+                this.logger.debug('the ReGaHSS checkbox is off - it has no effect on openccu-lite');
+            }
 
             if (info.version > 1) {
                 this.logger.warn(
@@ -1909,6 +1923,11 @@ module.exports = function (RED) {
 
                             // B-28: an unreachable box is not a CCU yet - keep asking
                             this.scheduleMetaRedetect(outcome);
+
+                            if (!this.regaEnabled) {
+                                // B-46: the ReGaHSS is switched off in the connection node
+                                return;
+                            }
 
                             if (this.ifaceTypes.ReGaHSS.enabled && !this.clients.ReGaHSS) {
                                 this.createClient('ReGaHSS').then(() => this.setIfaceStatus('ReGaHSS', true));
