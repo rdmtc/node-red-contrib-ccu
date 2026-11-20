@@ -5,6 +5,25 @@ Notable changes to node-red-contrib-ccu. Format follows
 user-visible symptom and the cause, not the commit list (the release notes
 append commits automatically).
 
+## 4.10.2 (2026-11-20)
+
+### Fixed
+
+- **openccu-lite: with the ReGaHSS unticked in the connection node, the
+  connection did not notice it was talking to openccu-lite.** The check for
+  openccu-lite's metadata API only ran while the ReGaHSS was ticked. Without
+  it the interfaces were connected directly with callbacks instead of through
+  lite-rpc, and no names were loaded. The check now runs regardless of the
+  checkbox; only the ReGaHSS itself (names, rooms and polling on a CCU) stays
+  behind it. On openccu-lite the checkbox has no effect: names come from the
+  system's metadata API and the interfaces go through lite-rpc either way.
+- **ccu-homeassistant: the node could wait the full five minutes ("waiting
+  for CCU") for a device description that never comes.** It waited for the
+  values description of every channel of the selected devices, including
+  channels that have none, descriptions the interface refused, and devices
+  missing from the device table. Those now count as settled; only a fetch
+  that is still pending holds the node.
+
 ## 4.10.1 (2026-11-10)
 
 ### Fixed
