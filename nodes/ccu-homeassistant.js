@@ -226,6 +226,7 @@ module.exports = function (RED) {
                 prefix: this.prefix,
                 origin: {name: pkg.name, sw: pkg.version, url: pkg.homepage},
                 jsonPayloads: mqtt.payloadOutput !== 'plain',
+                hmPayload: mqtt.payloadOutput === 'mqsh-extended',
                 generic: this.generic,
                 area: this.area,
                 devices: ccu.metadata.devices,

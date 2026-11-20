@@ -3,6 +3,7 @@ const assert = require('node:assert/strict');
 
 const paramsets = require('../../paramsets.json');
 const {
+    COVER_STATE_TEMPLATE,
     DEVICE_CLASSES,
     NOT_ANNOUNCED,
     validDeviceClass,
@@ -180,7 +181,7 @@ test('generic entities: write-only ACTION → button, writable FLOAT → number,
     assert.equal(b.components['4_ON_TIME'].dev_cla, undefined);
 });
 
-test('HM blind: cover with position, DIRECTION state and no tilt', () => {
+test('HM blind: cover with position, the state from the LEVEL message and no tilt', () => {
     const fx = fixture('BidCos-RF', 'LEQ0001', 'HM-LC-Bl1-FM', '1.5', 1, ['MAINTENANCE', 'BLIND'], {
         LEQ0001: 'Rollo',
         'LEQ0001:1': 'Rollo Wohnzimmer',
@@ -195,8 +196,14 @@ test('HM blind: cover with position, DIRECTION state and no tilt', () => {
     assert.equal(cover.set_pos_t, 'hm/set/LEQ0001:1/LEVEL');
     assert.equal(cover.cmd_t, 'hm/set/LEQ0001:1/LEVEL');
     assert.equal(cover.pl_stop, 'STOP');
-    assert.equal(cover.stat_t, 'hm/status/Rollo Wohnzimmer/DIRECTION');
-    assert.match(cover.val_tpl, /opening/);
+    // the state topic is the position topic: one message is a whole state (hm2mqtt.js #35)
+    assert.equal(cover.stat_t, cover.pos_t);
+    assert.equal(cover.val_tpl, COVER_STATE_TEMPLATE);
+    assert.equal(cover.stat_stopped, undefined);
+    assert.deepEqual(
+        [cover.stat_open, cover.stat_clsd, cover.stat_opening, cover.stat_closing],
+        ['open', 'closed', 'opening', 'closing'],
+    );
     assert.equal(cover.tilt_cmd_t, undefined);
     assert.equal(b.components['1_STOP'], undefined, 'STOP is consumed by the cover');
     assert.equal(b.components['1_WORKING'].p, 'binary_sensor');
@@ -225,6 +232,44 @@ test('HmIP shutter actuator: one shutter cover from the first virtual receiver',
     assert.equal(b.components['3_LEVEL'], undefined);
     assert.equal(b.device.name, 'ABC0002', 'unnamed device falls back to its address');
     assert.equal(b.components['7_LEVEL'], undefined, 'no week profile channel in the fixture');
+    assert.equal(cover.stat_t, 'hm/status/ABC0002:3/LEVEL', 'the state from the same message as the position');
+    assert.equal(cover.val_tpl, COVER_STATE_TEMPLATE);
+    assert.equal(cover.stat_stopped, undefined);
+});
+
+test('cover state template: moving from hm.working/hm.direction, open/closed from the value, never "stopped"', () => {
+    for (const word of ['hm.working | default(false)', 'hm.direction | default(0)', 'value_json.hm | default({})']) {
+        assert.ok(COVER_STATE_TEMPLATE.includes(word), word);
+    }
+    for (const state of ['opening', 'closing', 'closed', 'open']) {
+        assert.ok(COVER_STATE_TEMPLATE.includes(`'${state}'`), state);
+    }
+    assert.doesNotMatch(COVER_STATE_TEMPLATE, /stopped/);
+});
+
+test('covers without the hm block (mqsh-basic, plain): no state topic, the position says open/closed', () => {
+    const blind = () => fixture('BidCos-RF', 'LEQ0001', 'HM-LC-Bl1-FM', '1.5', 1, ['MAINTENANCE', 'BLIND']);
+    const broll = () =>
+        fixture('HmIP-RF', 'ABC0002', 'HmIP-BROLL', '1.6.2', 3, [
+            'MAINTENANCE',
+            'KEY_TRANSCEIVER',
+            'KEY_TRANSCEIVER',
+            'SHUTTER_TRANSMITTER',
+            'SHUTTER_VIRTUAL_RECEIVER',
+        ]);
+    for (const more of [{hmPayload: false}, {jsonPayloads: false}, {jsonPayloads: false, hmPayload: true}]) {
+        for (const [fx, key] of [
+            [blind(), '1_LEVEL'],
+            [broll(), '4_LEVEL'],
+        ]) {
+            const cover = block(fx, more).components[key];
+            assert.equal(cover.p, 'cover');
+            assert.equal('stat_t' in cover, false);
+            assert.equal('val_tpl' in cover, false);
+            assert.equal(cover.stat_stopped, undefined);
+            assert.match(cover.pos_t, /\/LEVEL$/);
+        }
+    }
 });
 
 test('HM thermostat: climate with mode words for ccu-mqtt to translate', () => {

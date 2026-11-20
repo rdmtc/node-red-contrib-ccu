@@ -162,6 +162,7 @@ const BINARY_ONLY_CLASSES = new Set([
  * @property {string} [prefix] discovery prefix (default homeassistant)
  * @property {{name: string, sw: string, url?: string}} origin the `o` block (package name/version/url)
  * @property {boolean} [jsonPayloads] status payloads are {val, ts, lc} (ccu-mqtt mqsh-*), false = plain
+ * @property {boolean} [hmPayload] the payloads carry the `hm` block (ccu-mqtt mqsh-extended; default: jsonPayloads)
  * @property {boolean} [generic] generic entities for datapoints without a role (default true)
  * @property {Object<string, Object<string, object>>} devices metadata.devices (iface → address → device)
  * @property {string[]} selected device addresses to publish
@@ -173,6 +174,18 @@ const BINARY_ONLY_CLASSES = new Set([
  * @property {(iface: string, address: string, datapoint: string) => string} statusTopicFor
  * @property {(iface: string, address: string, datapoint: string) => string} setTopicFor
  */
+
+/**
+ * A cover's state from its LEVEL message in ccu-mqtt's mqsh-extended format: `hm.working` and
+ * `hm.direction` (1 up, 2 down; ACTIVITY_STATE mapped onto DIRECTION) say whether it moves, the
+ * value whether it is closed. Closed is what Home Assistant calls closed without a state topic:
+ * the position, rounded to a percent, is 0.
+ */
+const COVER_STATE_TEMPLATE =
+    '{% set hm = value_json.hm | default({}) %}' +
+    '{% set d = (hm.direction | default(0) | int(0)) if hm.working | default(false) else 0 %}' +
+    "{{ 'opening' if d == 1 else 'closing' if d == 2 else" +
+    " 'closed' if ((value_json.val | float(0)) * 100) | round == 0 else 'open' }}";
 
 /** Stable device/unique-id base: ccu_<address>, sanitised. */
 function discoveryId(address) {
@@ -338,6 +351,7 @@ function suggestedArea(roomsOf, deviceAddress, channels) {
  */
 function deviceBlock(ctx, iface, device) {
     const json = ctx.jsonPayloads !== false;
+    const hm = json && ctx.hmPayload !== false;
     const generic = ctx.generic !== false;
     const t = templates(json);
     const list = ctx.devices[iface];
@@ -498,11 +512,6 @@ function deviceBlock(ctx, iface, device) {
             case 'cover': {
                 if (has('LEVEL')) {
                     const tilt = has('LEVEL_2');
-                    const direction = stateCh.description.ACTIVITY_STATE
-                        ? 'ACTIVITY_STATE'
-                        : stateCh.description.DIRECTION
-                          ? 'DIRECTION'
-                          : null;
                     add(
                         key('LEVEL'),
                         e('LEVEL', 'cover', label, {
@@ -520,12 +529,22 @@ function deviceBlock(ctx, iface, device) {
                                 set_pos_tpl: '{{ (position / 100) | round(3) }}',
                                 pos_open: 100,
                                 pos_clsd: 0,
-                                ...(direction && {
-                                    stat_t: sst(direction),
-                                    val_tpl: `{% set d = ${t.int} %}{{ 'opening' if d == 1 else 'closing' if d == 2 else 'stopped' }}`,
+                                // The state comes from the LEVEL message alone, which says in its
+                                // hm block whether and where the cover is moving: every message is
+                                // a whole state. A state topic that only says moving/stopped makes
+                                // Home Assistant decide between open and closed from the position
+                                // it has at that moment, and the 'stopped' of ACTIVITY_STATE/
+                                // DIRECTION is published before the last LEVEL (which waits for
+                                // WORKING, ccu-connection's publishEvent) - a closed cover stayed
+                                // 'open' (hm2mqtt.js #35). Without the hm block there is no state
+                                // topic: Home Assistant then takes open/closed from the position.
+                                ...(hm && {
+                                    stat_t: sst('LEVEL'),
+                                    val_tpl: COVER_STATE_TEMPLATE,
+                                    stat_open: 'open',
+                                    stat_clsd: 'closed',
                                     stat_opening: 'opening',
                                     stat_closing: 'closing',
-                                    stat_stopped: 'stopped',
                                 }),
                                 ...(tilt && {
                                     tilt_cmd_t: scmd('LEVEL_2'),
@@ -1001,6 +1020,7 @@ function discoveryMessages(ctx) {
 }
 
 module.exports = {
+    COVER_STATE_TEMPLATE,
     DEVICE_CLASSES,
     NOT_ANNOUNCED,
     validDeviceClass,
