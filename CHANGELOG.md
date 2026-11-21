@@ -5,6 +5,22 @@ Notable changes to node-red-contrib-ccu. Format follows
 user-visible symptom and the cause, not the commit list (the release notes
 append commits automatically).
 
+## 4.12.0 (2026-11-21)
+
+### Added
+
+- **Setting "Include internal system variables"** in the connection node.
+  The CCU keeps system variables of its own that its WebUI hides - the ones
+  it creates for devices, such as `svHmIPRainCounterToday_…` of an HmIP
+  weather station, and the watchdog variables. They were never listed: the
+  script that reads the variables (homematic-rega) skipped every internal
+  variable. homematic-rega 2.1.0 lists them and marks them; with the new
+  setting on they appear in the sysvar node's list and its messages like any
+  other variable. Off by default, as a CCU with many HmIP devices has several
+  per device. The alarm and service messages (`Alarmmeldungen`,
+  `Servicemeldungen`) are listed either way, as before, and now carry their
+  real timestamp. (#184, @drMaxxi)
+
 ## 4.11.1 (2026-11-21)
 
 ### Fixed
