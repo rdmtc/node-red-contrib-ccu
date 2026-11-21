@@ -26,7 +26,7 @@ Some example flows can be found in the [RedMatic Wiki](https://github.com/rdmtc/
 
 ## openccu-lite
 
-[openccu-lite](https://github.com/hobbyquaker/openccu-lite) is a Homematic CCU firmware based on OpenCCU **without
+[openccu-lite](https://github.com/openccu-lite/openccu-lite) is a Homematic CCU firmware based on OpenCCU **without
 ReGaHSS**. The interface processes (`rfd`, `hs485d`, `hmipserver`) are the same, so everything these nodes do over
 BINRPC/XMLRPC works unchanged. Device, channel, room and function names come from the system's metadata API instead of
 ReGaHSS; the connection node detects this at start (`GET /api/meta/v1/version`), nothing has to be configured, and
