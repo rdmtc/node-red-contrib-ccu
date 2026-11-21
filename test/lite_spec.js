@@ -9,6 +9,7 @@
      token file stands in for the node's token on the system itself. */
 
 const fs = require('fs');
+const http = require('http');
 const os = require('os');
 const path = require('path');
 const should = require('should');
@@ -20,6 +21,7 @@ const nodeRpcEvent = require('../nodes/ccu-rpc-event.js');
 const nodeValue = require('../nodes/ccu-value.js');
 const nodeRpc = require('../nodes/ccu-rpc.js');
 const lite = require('../nodes/lib/lite.js');
+const metaProvider = require('../nodes/lib/metaprovider.js');
 const {userDir} = require('./utils');
 
 helper.init(require.resolve('node-red'));
@@ -210,6 +212,60 @@ function lines(id, level) {
         .map((a) => a[0])
         .filter((l) => l && l.id === id && (level === undefined || l.level === levels[level]))
         .map((l) => String(l.msg));
+}
+
+/**
+ * B-48: the system behind a proxy that can go away - mode `forward`; `down` (nothing answers,
+ * an update or a reboot); `gone` (a CCU's 404 on every path), for `goneFor` version probes when set,
+ * then `forward` again.
+ * @param {number} target the FakeBox's port
+ * @returns {Promise<object>}
+ */
+async function systemProxy(target) {
+    const state = {mode: 'forward', goneFor: 0, sockets: new Set()};
+    const server = http.createServer((request_, res) => {
+        if (state.mode === 'gone') {
+            if (state.goneFor > 0 && request_.url.startsWith('/api/meta/v1/version')) {
+                state.goneFor -= 1;
+                if (state.goneFor === 0) {
+                    state.mode = 'forward';
+                }
+            }
+
+            res.writeHead(404, {'content-type': 'text/html'}).end('<html>404</html>');
+            return;
+        }
+
+        const upstream = http.request(
+            'http://127.0.0.1:' + target + request_.url,
+            {method: request_.method, headers: request_.headers},
+            (answer) => {
+                res.writeHead(answer.statusCode, answer.headers);
+                answer.pipe(res);
+            },
+        );
+        upstream.on('error', () => res.destroy());
+        res.on('close', () => upstream.destroy());
+        request_.pipe(upstream);
+    });
+    server.on('connection', (socket) => {
+        if (state.mode === 'down') {
+            socket.destroy();
+            return;
+        }
+
+        state.sockets.add(socket);
+        socket.on('close', () => state.sockets.delete(socket));
+    });
+    await new Promise((resolve) => server.listen(0, HOST, resolve));
+    state.port = server.address().port;
+    state.drop = () => state.sockets.forEach((socket) => socket.destroy());
+    state.close = () =>
+        new Promise((resolve) => {
+            state.drop();
+            server.close(resolve);
+        });
+    return state;
 }
 
 describe('openccu-lite through lite-rpc with occulite-client (task 14)', function () {
@@ -537,6 +593,117 @@ describe('openccu-lite through lite-rpc with occulite-client (task 14)', functio
         lines('nc', 'WARN')
             .some((l) => /token/.test(l))
             .should.be.false();
+    });
+
+    describe('B-48: the system goes away and comes back (#190)', () => {
+        const defaults = metaProvider.MetaProvider.defaults;
+        let proxy;
+
+        beforeEach(async () => {
+            metaProvider.MetaProvider.defaults = {retryMin: 50, retryMax: 50, goneAfter: 2};
+            proxy = await systemProxy(port);
+        });
+
+        afterEach(async () => {
+            metaProvider.MetaProvider.defaults = defaults;
+            await proxy.close();
+        });
+
+        async function startBehind(options = {}) {
+            await load([nodeConnection, nodeRpcEvent, nodeValue, nodeRpc], flow(proxy.port, options), {
+                nc: {metaToken: TOKEN},
+            });
+            nc = helper.getNode('nc');
+            nc.paramsetFile = PARAMSETS_SCRATCH;
+            (
+                await until(() => nc.ifaceStatus['HmIP-RF'] === true && nc.ifaceStatus['BidCos-RF'] === true, 15000)
+            ).should.be.true();
+            should(nc.lite).be.ok();
+            return nc;
+        }
+
+        async function eventArrives() {
+            const received = [];
+            helper.getNode('nh').on('input', (message) => received.push(message));
+            fake.event('HmIP-RF', 'ABC1:1', 'STATE', true);
+            return until(() => received.some((m) => m.datapoint === 'STATE' && m.iface === 'HmIP-RF'), 5000);
+        }
+
+        it('an outage longer than the probe limit: lite-rpc is kept and connected again without a deploy', async () => {
+            await startBehind();
+            const client = nc.lite;
+            // a firmware update: nothing answers, for many times the probe limit
+            proxy.mode = 'down';
+            proxy.drop();
+            (await until(() => nc.ifaceStatus['HmIP-RF'] === false, 10000)).should.be.true();
+            (
+                await until(() => lines('nc', 'INFO').some((l) => /^the system does not answer/.test(l)), 10000)
+            ).should.be.true();
+            await wait(1000);
+            nc.metaMode.should.be.true();
+            nc.lite.should.equal(client);
+            lines('nc', 'WARN')
+                .some((l) => /lite-rpc closed|not as openccu-lite/.test(l))
+                .should.be.false();
+
+            proxy.mode = 'forward';
+            (
+                await until(() => nc.ifaceStatus['HmIP-RF'] === true && nc.ifaceStatus['BidCos-RF'] === true, 20000)
+            ).should.be.true();
+            nc.lite.should.equal(client);
+            (await until(() => nc.ifaceStatus.Metadata === true, 10000)).should.be.true();
+            (await eventArrives()).should.be.true();
+        });
+
+        it('answers as something else, then as openccu-lite again: lite-rpc starts again with the same interfaces', async () => {
+            await startBehind();
+            const client = nc.lite;
+            // a web server without the api for the probes, openccu-lite again at the next detection
+            proxy.mode = 'gone';
+            proxy.goneFor = 2;
+            proxy.drop();
+            (
+                await until(
+                    () =>
+                        lines('nc', 'INFO').some((l) => /^openccu-lite detected again: lite-rpc starts again/.test(l)),
+                    15000,
+                )
+            ).should.be.true();
+            lines('nc', 'WARN')
+                .some((l) => /^lite-rpc closed: the system no longer answers as openccu-lite/.test(l))
+                .should.be.true();
+            (
+                await until(() => nc.ifaceStatus['HmIP-RF'] === true && nc.ifaceStatus['BidCos-RF'] === true, 15000)
+            ).should.be.true();
+            nc.metaMode.should.be.true();
+            nc.lite.should.not.equal(client);
+            nc.lite.interfaces.should.deepEqual(['BidCos-RF', 'HmIP-RF']);
+            should(nc.liteResume).be.null();
+            Object.keys(nc.servers).should.deepEqual([]);
+            (await eventArrives()).should.be.true();
+        });
+
+        it('comes back as a classic CCU: lite-rpc closed, and the log says the CCU way needs a deploy', async () => {
+            await startBehind({regaEnabled: false});
+            proxy.mode = 'gone';
+            proxy.drop();
+            (
+                await until(
+                    () =>
+                        lines('nc', 'WARN').some((l) =>
+                            /^lite-rpc closed: the system no longer answers as openccu-lite - deploy again to reach the interfaces the CCU way/.test(
+                                l,
+                            ),
+                        ),
+                    15000,
+                )
+            ).should.be.true();
+            await wait(500);
+            should(nc.lite).be.null();
+            nc.metaMode.should.be.false();
+            nc.ifaceStatus['HmIP-RF'].should.be.false();
+            nc.liteResume.should.deepEqual(['BidCos-RF', 'HmIP-RF']);
+        });
     });
 
     it('errors: a fault keeps its code, a scope the token lacks is said as such', () => {

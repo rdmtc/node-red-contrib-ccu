@@ -487,13 +487,13 @@ class MetaProvider {
         this.logger = options.logger || SILENT;
         this.onNames = options.onNames || NOOP;
         this.onStatus = options.onStatus || NOOP;
-        // called when the box stopped answering the version probe altogether -
-        // it is not an openccu-lite any more (restored backup, firmware swap)
+        // called when the box answers the version probe, but no longer as openccu-lite (a restored
+        // backup, a firmware swap) - B-48: a box that does not answer at all is waited for
         this.onGone = options.onGone || NOOP;
-        this.goneAfter = options.goneAfter === undefined ? 3 : options.goneAfter;
+        this.goneAfter = options.goneAfter === undefined ? MetaProvider.defaults.goneAfter : options.goneAfter;
         this.requestTimeout = options.requestTimeout || 10000;
-        this.retryMin = options.retryMin === undefined ? 5000 : options.retryMin;
-        this.retryMax = options.retryMax === undefined ? 60000 : options.retryMax;
+        this.retryMin = options.retryMin === undefined ? MetaProvider.defaults.retryMin : options.retryMin;
+        this.retryMax = options.retryMax === undefined ? MetaProvider.defaults.retryMax : options.retryMax;
         this.emitDelay = options.emitDelay === undefined ? 100 : options.emitDelay;
         this.attachTimeout = options.attachTimeout === undefined ? 15000 : options.attachTimeout;
         this.createClient = options.createClient;
@@ -506,6 +506,7 @@ class MetaProvider {
         this.streamRefused = false;
         this.refusedLogged = false;
         this.missedProbes = 0;
+        this.unanswered = false;
         this.probeRetry = 0;
         this.probeTimeout = null;
         this.emitTimeout = null;
@@ -685,6 +686,7 @@ class MetaProvider {
     _status(state) {
         if (state === 'ready') {
             this.missedProbes = 0;
+            this.unanswered = false;
             this.probeRetry = 0;
             clearTimeout(this.probeTimeout);
             this.probeTimeout = null;
@@ -726,10 +728,14 @@ class MetaProvider {
      * The version probe while the copy is not connected: needs no credential, and it is how a box
      * that is no longer an openccu-lite is noticed without a Node-RED restart. A client of its own
      * whose first connect failed is opened again once the system answers.
+     *
+     * B-48: only an answer counts towards `goneAfter` - a CCU's 404 or HTML. A box that does not
+     * answer (a timeout, a refused connection, 502/503/504 while it starts: an update, a reboot)
+     * has not become something else; the copy and lite-rpc keep reconnecting until it is back.
      * @returns {Promise<void>}
      */
     async _probe() {
-        const info = await detect({
+        const outcome = await detectOutcome({
             host: this.host,
             port: this.port,
             tls: this.tls,
@@ -741,11 +747,19 @@ class MetaProvider {
             return;
         }
 
-        if (!info) {
+        const {info} = outcome;
+        if (!info && outcome.inconclusive) {
+            this.logger[this.unanswered ? 'debug' : 'info'](
+                'the system does not answer (' + outcome.reason + ') - waiting for it, the connection is kept',
+            );
+            this.unanswered = true;
+        } else if (!info) {
             this.missedProbes += 1;
             if (this.missedProbes >= this.goneAfter) {
                 this.logger.warn(
-                    'the box stopped answering the openccu-lite metadata api (' +
+                    'the system answers, but not as openccu-lite (' +
+                        outcome.reason +
+                        ', ' +
                         this.missedProbes +
                         ' probes) - falling back to detection from scratch',
                 );
@@ -755,6 +769,7 @@ class MetaProvider {
             }
         } else {
             this.missedProbes = 0;
+            this.unanswered = false;
             if (this.owned && (this.connectFailed || this.streamRefused)) {
                 this.logger.debug('meta api: the system answers - connecting the names client again');
                 this._own();
@@ -785,6 +800,9 @@ class MetaProvider {
         this.onNames(names);
     }
 }
+
+/** the probe's schedule and how many answers that are not openccu-lite end the copy (tests shorten them) */
+MetaProvider.defaults = {retryMin: 5000, retryMax: 60000, goneAfter: 3};
 
 module.exports = {
     API_PATH,

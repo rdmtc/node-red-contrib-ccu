@@ -753,6 +753,8 @@ module.exports = function (RED) {
             this.liteConfig = config;
             this.lite = null;
             this.liteIfaces = [];
+            // B-48: the interfaces lite-rpc carried when onGone closed it, for resumeLite()
+            this.liteResume = null;
             // B-44: the scopes the system lists for the lite-rpc credential (undefined: not known)
             // and, per interface, why it cannot be reached (the nodes show it)
             this.liteScopes = undefined;
@@ -1886,7 +1888,24 @@ module.exports = function (RED) {
                 );
             }
 
-            return this.checkLiteScopes().then(() => this.startMetaProvider());
+            return this.checkLiteScopes()
+                .then(() => this.startMetaProvider())
+                .then(() => this.resumeLite());
+        }
+
+        /**
+         * B-48: openccu-lite detected again after onGone closed lite-rpc - the interfaces it
+         * carried go through it again, without a deploy. A no-op at the first detection.
+         */
+        resumeLite() {
+            const ifaces = this.liteResume;
+            this.liteResume = null;
+            if (!ifaces || ifaces.length === 0 || this.closing || this.lite) {
+                return;
+            }
+
+            this.logger.info('openccu-lite detected again: lite-rpc starts again for ' + ifaces.join(', '));
+            this.startLite(ifaces);
         }
 
         /**
@@ -1956,11 +1975,15 @@ module.exports = function (RED) {
                         this.meta = null;
                         this.lastMetaProbe = 0;
                         if (this.lite) {
-                            // task 14: lite-rpc went with the system's answer; the CCU way needs a deploy
+                            // task 14: lite-rpc went with the system's answer; the CCU way needs a deploy.
+                            // B-48: the provider calls this only for a system that answers as something
+                            // else (never for one that does not answer); should it be openccu-lite again
+                            // at the next detection, lite-rpc starts again with the same interfaces
+                            this.liteResume = this.liteIfaces.slice();
                             this.stopLite();
                             this.liteIfaces.forEach((iface) => this.setIfaceStatus(iface, false));
                             this.logger.warn(
-                                'lite-rpc closed: the system no longer answers as openccu-lite - deploy again to reach the interfaces the CCU way',
+                                'lite-rpc closed: the system no longer answers as openccu-lite - deploy again to reach the interfaces the CCU way (lite-rpc starts again by itself if the system answers as openccu-lite again)',
                             );
                         }
 

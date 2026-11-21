@@ -371,6 +371,12 @@ async function front(target, port = 0) {
         request_.pipe(upstream);
     });
     server.on('connection', (socket) => {
+        if (state.mode === 'down') {
+            // B-48: a system that does not answer at all (an update, a reboot)
+            socket.destroy();
+            return;
+        }
+
         state.sockets.add(socket);
         socket.on('close', () => state.sockets.delete(socket));
     });
@@ -573,6 +579,51 @@ test('a system that stops answering as openccu-lite hands back to detection', as
     await waitFor(() => gone === 1, 5000);
     assert.equal(status.at(-1), false);
     assert.equal(provider.stopped, true, 'it stops itself instead of hammering the box');
+});
+
+test('B-48: a system that does not answer is waited for - not handed back to detection', async (t) => {
+    const {fake, port: fakePort} = await liteBox();
+    const proxy = await front('http://127.0.0.1:' + fakePort);
+    let gone = 0;
+    const status = [];
+    const infos = [];
+    const provider = new MetaProvider({
+        host: '127.0.0.1',
+        port: proxy.port,
+        token: 'olt_test',
+        retryMin: 30,
+        retryMax: 30,
+        goneAfter: 2,
+        emitDelay: 10,
+        logger: {...SILENT_LOG, info: (message) => infos.push(message)},
+        onStatus: (s) => status.push(s),
+        onGone: () => {
+            gone += 1;
+        },
+    });
+    t.after(async () => {
+        provider.stop();
+        await proxy.close();
+        await fake.stop();
+    });
+
+    provider.start();
+    await waitFor(() => status.at(-1) === true);
+    // an update: nothing answers, for many times goneAfter probes
+    proxy.mode = 'down';
+    proxy.drop();
+    await waitFor(() => status.at(-1) === false, 5000);
+    await waitFor(() => infos.some((line) => /^the system does not answer/.test(line)), 5000);
+    await new Promise((resolve) => setTimeout(resolve, 600));
+    assert.equal(gone, 0);
+    assert.equal(provider.stopped, false);
+    assert.equal(provider.missedProbes, 0);
+    assert.equal(infos.filter((line) => /^the system does not answer/.test(line)).length, 1, 'said once');
+
+    // back: the copy connects again by itself
+    proxy.mode = 'forward';
+    await waitFor(() => status.at(-1) === true, 10000);
+    assert.equal(gone, 0);
 });
 
 test('a change stream the system refuses: the names client is opened again once the system answers', async (t) => {
