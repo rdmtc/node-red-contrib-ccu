@@ -5,6 +5,23 @@ Notable changes to node-red-contrib-ccu. Format follows
 user-visible symptom and the cause, not the commit list (the release notes
 append commits automatically).
 
+## 4.11.1 (2026-11-21)
+
+### Fixed
+
+- **openccu-lite: the interfaces stayed disconnected after the system was
+  unreachable for more than about 40 seconds, until Node-RED was restarted
+  or the flow deployed again.** During a firmware update, a longer reboot or
+  a network outage the connection took three unanswered probes as "this
+  system is no longer openccu-lite" and closed lite-rpc; when the system
+  answered again, the names came back but the interfaces did not. A system
+  that does not answer is now waited for: lite-rpc and the names keep
+  reconnecting and pick up where they were once the system is back (the log
+  says `the system does not answer … - waiting for it` once). lite-rpc is
+  closed only when the system answers as something other than openccu-lite,
+  and if it is detected as openccu-lite again later, lite-rpc starts again
+  with the same interfaces, without a deploy. (#190, @reini12345)
+
 ## 4.11.0 (2026-11-20)
 
 ### Changed
