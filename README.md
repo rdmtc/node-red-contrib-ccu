@@ -24,10 +24,6 @@ for installation on a Homematic CCU3 or RaspberryMatic.
 
 Some example flows can be found in the [RedMatic Wiki](https://github.com/rdmtc/RedMatic/wiki) (German language).
 
-**A modern Browser is required, Internet Explorer won't work.**
-
-**Starting with Version 3.x these Nodes need Node-RED >= 1.0 to work correctly**
-
 ## openccu-lite
 
 [openccu-lite](https://github.com/hobbyquaker/openccu-lite) is a Homematic CCU firmware based on OpenCCU **without
