@@ -7,7 +7,8 @@
         "max": 65000,
         "unit": "",
         "type": "number",
-        "enum": ""
+        "enum": "",
+        "internal": true
     },
     {
         "id": 41,
@@ -17,7 +18,8 @@
         "max": 65000,
         "unit": "",
         "type": "number",
-        "enum": ""
+        "enum": "",
+        "internal": true
     },
     {
         "id": 1235,
@@ -30,7 +32,8 @@
         "unit": "",
         "type": "boolean",
         "enum": "%24%7BsysVarAlarmZone1NotTriggered%7D;%24%7BsysVarAlarmZone1Triggered%7D",
-        "channel": "65535"
+        "channel": "65535",
+        "internal": false
     },
     {
         "id": 950,
@@ -43,6 +46,21 @@
         "unit": "",
         "type": "boolean",
         "enum": "nicht anwesend;anwesend",
-        "channel": "65535"
+        "channel": "65535",
+        "internal": false
+    },
+    {
+        "id": 1301,
+        "name": "svHmIPRainCounterToday_1290_1",
+        "info": "",
+        "val": 1.5,
+        "ts": "2026-11-21 12:00:00",
+        "min": null,
+        "max": null,
+        "unit": "mm",
+        "type": "number",
+        "enum": "",
+        "channel": "1290",
+        "internal": true
     }
 ]

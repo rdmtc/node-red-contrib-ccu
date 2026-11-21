@@ -766,6 +766,8 @@ module.exports = function (RED) {
             this.regaMetaInterval =
                 config.regaMetaInterval === undefined ? 15 : Number.parseInt(config.regaMetaInterval, 10) || 0;
             this.regaInterval = Number.parseInt(config.regaInterval, 10);
+            // #184: the internal system variables (homematic-rega >= 2.1.0 lists them, marked), off by default
+            this.regaInternal = Boolean(config.regaInternal);
             // the values cache file is written at stop, and while running at most every this many
             // minutes (after the start's read of all values, a resync, a prune); 0 = only at stop.
             // A write is the whole file - megabytes on a big system, on the SD card.
@@ -2587,6 +2589,17 @@ module.exports = function (RED) {
             }
         }
 
+        /**
+         * #184: a variable the CCU keeps for itself (`internal`, homematic-rega >= 2.1.0) only with
+         * the connection node's "Include internal system variables"; the alarm and service
+         * messages (40, 41) always, as before.
+         * @param {{id: number, internal?: boolean}} sysvar
+         * @returns {boolean}
+         */
+        regaVariableWanted(sysvar) {
+            return this.regaInternal || !sysvar.internal || sysvar.id === 40 || sysvar.id === 41;
+        }
+
         getRegaVariables() {
             return new Promise((resolve, reject) => {
                 this.logger.debug('getRegaVariables');
@@ -2596,7 +2609,7 @@ module.exports = function (RED) {
                         this.hadTimeout.add('ReGaHSS');
                         this.setIfaceStatus('ReGaHSS', false);
                     } else {
-                        res.forEach((sysvar) => {
+                        res.filter((sysvar) => this.regaVariableWanted(sysvar)).forEach((sysvar) => {
                             //this.logger.trace(JSON.stringify(sysvar));
                             // sysvar.ts is epoch ms since homematic-rega 2.x (0 = never)
                             sysvar.ts = sysvar.ts || Date.now();

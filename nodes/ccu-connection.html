@@ -21,6 +21,7 @@
             host: {value: '', required: true},
 
             regaEnabled: {value: true},
+            regaInternal: {value: false},
             bcrfEnabled: {value: true},
             iprfEnabled: {value: true},
             virtEnabled: {value: true},
@@ -423,6 +424,13 @@
     <div class="form-row">
         <label for="node-config-input-regaInterval"><i class="icon-tag"></i> Rega poll interval (s)</label>
         <input type="text" id="node-config-input-regaInterval">
+    </div>
+    <div class="form-row">
+        <label for="node-config-input-regaInternal"><i class="icon-tag"></i> Internal variables</label>
+        <div style="width: 70%; display: inline-block; vertical-align: text-top;">
+            <label class="ccu-checkbox"><input type="checkbox" id="node-config-input-regaInternal"> Include internal system variables</label><br>
+            <small>The ones the CCU creates for itself and for devices (e.g. the rain counters of a weather station). Off by default: on a CCU with many HmIP devices they are several per device.</small>
+        </div>
     </div>
     <div class="form-row">
         <label for="node-config-input-regaMetaInterval"><i class="icon-tag"></i> Names/rooms refresh (min)</label>

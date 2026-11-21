@@ -49,6 +49,9 @@
                 Das Zeitintervall in Sekunden in dem Systemvariablen von der CCU abgefragt werden.</li>
             </ul>
             <ul>
+                <li><b>Internal variables</b>: Die CCU führt eigene, in ihrer WebUI versteckte interne Systemvariablen - die, die sie für Geräte anlegt (zum Beispiel <code>svHmIPRainCounterToday_…</code> einer Wetterstation), und die Watchdog-Variablen. Mit <i>Include internal system variables</i> erscheinen sie in der Liste des Sysvar-Nodes und in seinen Nachrichten; aus in der Voreinstellung, weil eine CCU mit vielen HmIP-Geräten mehrere pro Gerät hat. Alarm- und Servicemeldungen (<i>Alarmmeldungen</i>, <i>Servicemeldungen</i>) sind immer dabei.</li>
+            </ul>
+            <ul>
                 <li><b>Names/rooms refresh (min)</b>: Wie oft Kanalnamen, Räume und Gewerke neu gelesen werden; 0 nie. Die Datei mit den Namen wird nur geschrieben, wenn sich etwas geändert hat.</li>
             </ul>
             <ul>
