@@ -5,6 +5,31 @@ Notable changes to node-red-contrib-ccu. Format follows
 user-visible symptom and the cause, not the commit list (the release notes
 append commits automatically).
 
+## 4.13.0 (unreleased)
+
+### Added
+
+- **Home Assistant: Homematic channels as Home Assistant devices.** The
+  `ccu-homeassistant` node created one Home Assistant device per Homematic
+  device, so the channels of a two-channel actuator or an HmIP-DRSI4 that
+  serve different rooms were all in one device and one area. A new option
+  _Channels_ makes them child devices of the device (Home Assistant 2026.11
+  or newer; the entities keep their IDs, history and settings, and the way
+  back works the same) or devices of their own, each in its channel's room.
+  The default stays one device per Homematic device, with the same discovery
+  configs as before. A channel is a function (an HmIP actuator channel with
+  its virtual channels counts as one), the maintenance channel stays on the
+  device and a device with a single function is not split.
+- **Home Assistant: settings per device and per channel.** The device table
+  opens into the channels of a device: per channel whether it is published
+  to Home Assistant at all and where it goes (on the device, a child device,
+  a device of its own), per device how its channels are split. The filter
+  also matches rooms and functions, and a bulk action applies a setting to
+  the listed devices or their matching channels. A channel that is no longer
+  published, or moves to another device, is removed from Home Assistant on
+  the next deploy - before, an entity left out of a device's discovery config
+  stayed in Home Assistant.
+
 ## 4.12.0 (2026-11-21)
 
 ### Added
