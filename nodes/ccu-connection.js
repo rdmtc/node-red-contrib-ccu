@@ -29,6 +29,7 @@ const {
     DebouncedSave,
 } = require('./lib/cachefile.js');
 const {SubscriptionIndex, matches: filterMatches} = require('./lib/subscriptions.js');
+const {deviceSummary: haDeviceSummary} = require('./lib/hadiscovery.js');
 const xmlrpc = require('homematic-xmlrpc');
 const binrpc = require('binrpc');
 
@@ -347,8 +348,20 @@ module.exports = function (RED) {
 
                 case 'devices': {
                     // ccu-homeassistant editor: every device (not channel) of every, or the
-                    // given, interface with its channels
+                    // given, interface with its channels, their rooms and functions, and the
+                    // units the Home Assistant discovery makes of them (task 33) - from the
+                    // descriptions there are, none is fetched for this
                     const all = (config.metadata && config.metadata.devices) || {};
+                    const summary = {
+                        devices: all,
+                        generic: request.query.generic !== 'false',
+                        channelName: (address) => config.channelNames[address],
+                        description: (iface, address) => {
+                            const channel = all[iface] && all[iface][address];
+                            const key = channel && config.paramsetName(iface, channel, 'VALUES');
+                            return key ? config.paramsetDescriptions[key] : undefined;
+                        },
+                    };
                     const ifaces = request.query.iface ? [request.query.iface] : Object.keys(all);
                     ifaces.forEach((iface) => {
                         const devices = all[iface] || {};
@@ -369,7 +382,10 @@ module.exports = function (RED) {
                                         address: ch,
                                         name: config.channelNames[ch],
                                         type: devices[ch].TYPE,
+                                        rooms: (config.channelRooms && config.channelRooms[ch]) || [],
+                                        functions: (config.channelFunctions && config.channelFunctions[ch]) || [],
                                     })),
+                                units: haDeviceSummary(summary, iface, device),
                             };
                         });
                     });

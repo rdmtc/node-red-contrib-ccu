@@ -7,9 +7,36 @@
     <p>Den Ausgang mit demselben <b>mqtt out</b>-Node verbinden wie den ccu-mqtt-Node. Der Node sendet
     <code>msg.topic</code>, <code>msg.payload</code> und <code>msg.retain</code>.</p>
     <h3>Geräteauswahl</h3>
-    <p>Nur angehakte Geräte werden an Home Assistant gemeldet (ein HA-Gerät pro Homematic-Gerät).
-    Wird ein zuvor angehaktes Gerät abgehakt, sendet der Node beim nächsten Deploy eine leere
+    <p>Nur angehakte Geräte werden an Home Assistant gemeldet. Wird ein zuvor angehaktes Gerät abgehakt, sendet der Node beim nächsten Deploy eine leere
     Konfiguration, die das Gerät in Home Assistant entfernt.</p>
+    <h3>Kanäle als Geräte</h3>
+    <p>Die Option <i>Channels</i> legt fest, wie Home Assistant ein Homematic-Gerät mit mehreren Kanälen sieht:</p>
+    <ul>
+        <li><b>one device</b> (Standard): ein Home-Assistant-Gerät pro Homematic-Gerät, wie bisher;</li>
+        <li><b>child devices</b>: jeder Kanal wird ein Untergerät (Child Device) des Geräts (Home Assistant 2026.11
+        oder neuer). Die Entitäten ziehen an Ort und Stelle um: IDs, Verlauf und Einstellungen bleiben, und der
+        Weg zurück geht jederzeit. Ein Untergerät liegt im Bereich seines Geräts, bis man ihm in Home Assistant
+        einen anderen gibt (für MQTT-Untergeräte nimmt Home Assistant keinen Bereichsvorschlag an). Ein älteres
+        Home Assistant lehnt die ganze Gerätekonfiguration ab („not a valid option at 'cdevs'“ im Log);</li>
+        <li><b>own devices</b>: jeder Kanal wird ein eigenes Gerät, im Raum seines Kanals, mit dem Homematic-Gerät
+        verknüpft. Der Wechsel dorthin oder zurück entfernt die Entitäten und legt sie am neuen Gerät neu an: Home
+        Assistant stellt ihre Entitäts-IDs und Bereiche meist wieder her, die Einstellungen der Geräte selbst
+        aber nicht, und Automationen, die ein Gerät über seine Geräte-ID ansprechen, müssen angepasst werden.</li>
+    </ul>
+    <p>Ein Kanal ist hier eine Funktion: der Kanal eines HmIP-Schalt-, Dimm- oder Rollladenaktors zählt mit seinen
+    drei virtuellen Kanälen als einer, eine Taste oder ein Eingang als einer. Der Wartungskanal (<code>:0</code>:
+    Erreichbarkeit, Batterie, Signal) bleibt immer am Gerät, und ein Gerät mit nur einer Funktion (ein
+    Zwischenstecker, ein Kontakt) wird nicht aufgeteilt. Die Hauptentität eines Kanals trägt den Namen ihres
+    Geräts, die übrigen den ihres Datenpunkts.</p>
+    <p>In der Gerätetabelle öffnet der Pfeil die Kanäle eines Geräts. Pro Gerät übersteuert eine Einstellung die
+    Option des Nodes; pro Kanal schaltet <i>publish</i> ihn für Home Assistant ab (seine MQTT-Topics bleiben), und
+    die Auswahl legt ihn ans Gerät, in ein Untergerät oder in ein eigenes Gerät, egal was Gerät und Node sagen. Ein
+    unveränderter Kanal folgt seinem Gerät, das Gerät dem Node. Die Sammelaktion unter dem Filter gilt für jedes
+    aufgelistete, angehakte Gerät oder für dessen Kanäle, auf die der Filter passt (z. B. alle Kanäle im Raum
+    „Küche“: eigenes Gerät); gespeichert werden die einzelnen Werte.</p>
+    <p>Ein Kanal, der nicht mehr veröffentlicht wird oder in ein anderes Gerät wandert, wird beim nächsten Deploy
+    aus Home Assistant entfernt. Was er veröffentlicht hat, merkt sich der Node in
+    <code>ccu_homeassistant_&lt;Node-ID&gt;.json</code> im Benutzerverzeichnis von Node-RED.</p>
     <h3>Entitäten</h3>
     <p>Schalter, Dimmer (light), Rollladen/Jalousie (cover), Thermostate (climate), Kontakte/Bewegung/
     Rauch/Wasser (binary_sensor), Tasten (event), KeyMatic (lock), Energie/Wetter (sensor). Mit der
@@ -21,7 +48,8 @@
     <code>&lt;Präfix&gt;/status</code>) anschließt, bekommt beides nach jedem Neustart von Home Assistant
     neu; dessen <code>offline</code> auf diesem Topic wird ignoriert.</p>
     <h3>Voraussetzungen</h3>
-    <p>Home Assistant ≥ 2024.11 (gerätebasierte Discovery).</p>
+    <p>Home Assistant ≥ 2024.11 (gerätebasierte Discovery); für Kanäle als Untergeräte Home Assistant
+    ≥ 2026.11.</p>
     <h3>Verfügbarkeit</h3>
     <p>Die Verfügbarkeit der Geräte wird aus dem UNREACH-Datenpunkt des Wartungskanals abgeleitet
     (<code>…:0/UNREACH</code>). Home Assistant zeigt alle Entitäten eines Geräts als „nicht verfügbar“,

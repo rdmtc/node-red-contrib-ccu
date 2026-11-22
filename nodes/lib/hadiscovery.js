@@ -262,7 +262,9 @@ function ifaceOf(devices, address) {
 /**
  * HmIP actuators: a *_TRANSMITTER channel (state) followed by three *_VIRTUAL_RECEIVER channels
  * (control). The first receiver becomes the control entity with the transmitter's state topic,
- * the others are secondary (disabled by default).
+ * the others are secondary (disabled by default). `family` names the first channel of the group a
+ * channel belongs to (the transmitter, the first receiver of a block, the real dimmer) - one unit
+ * when channels become Home Assistant devices of their own (task 33).
  */
 function resolveVirtualReceivers(channels) {
     const families = [
@@ -272,6 +274,7 @@ function resolveVirtualReceivers(channels) {
     ];
     for (const {transmitter, receiver} of families) {
         let current = null;
+        let block = null;
         let count = 0;
         for (const ch of channels) {
             if (ch.role === transmitter && /_TRANSMITTER$/.test(ch.TYPE)) {
@@ -283,6 +286,7 @@ function resolveVirtualReceivers(channels) {
             if (ch.role === receiver && /_VIRTUAL_RECEIVER$/.test(ch.TYPE) && current) {
                 count += 1;
                 ch.stateChannel = current;
+                ch.family = current;
                 if (count === 1) {
                     current.transmitterFor = ch;
                 } else {
@@ -293,15 +297,26 @@ function resolveVirtualReceivers(channels) {
                 count += 1;
                 if (count > 1 && (count - 1) % 3 !== 0) {
                     ch.secondary = true;
+                    ch.family = block;
+                } else {
+                    block = ch;
                 }
             }
         }
     }
 
     // HM virtual dimmers (HM-LC-Dim1TPBU-FM ch 2/3) are secondaries of channel 1
+    let dimmer = null;
     for (const ch of channels) {
+        if (ch.TYPE === 'DIMMER') {
+            dimmer = ch;
+        }
+
         if (ch.TYPE === 'VIRTUAL_DIMMER') {
             ch.secondary = true;
+            if (dimmer) {
+                ch.family = dimmer;
+            }
         }
     }
 }
@@ -364,12 +379,16 @@ function deviceBlock(ctx, iface, device) {
     const channels = (device.CHILDREN || [])
         .map((address) => list[address])
         .filter(Boolean)
-        .map((ch) => ({
-            ...ch,
-            index: Number.parseInt(String(ch.ADDRESS).split(':')[1], 10),
-            name: ctx.channelName(ch.ADDRESS),
-            description: ctx.description(iface, ch.ADDRESS) || {},
-        }))
+        .map((ch) => {
+            const description = ctx.description(iface, ch.ADDRESS);
+            return {
+                ...ch,
+                index: Number.parseInt(String(ch.ADDRESS).split(':')[1], 10),
+                name: ctx.channelName(ch.ADDRESS),
+                description: description || {},
+                described: Boolean(description),
+            };
+        })
         .sort((a, b) => a.index - b.index);
     for (const ch of channels) {
         ch.role = channelRole(ch.TYPE, ch.description);
@@ -378,8 +397,13 @@ function deviceBlock(ctx, iface, device) {
     resolveVirtualReceivers(channels);
 
     const components = {};
+    /** component key → the channel it comes from and whether it is a role's (not a generic) entity */
+    const origins = {};
+    let current;
+    let inGeneric = false;
     const add = (key, e) => {
         components[key] = e;
+        origins[key] = {ch: current, role: !inGeneric};
     };
 
     const area = ctx.area === false ? undefined : suggestedArea(roomsOf, device.ADDRESS, channels);
@@ -387,6 +411,8 @@ function deviceBlock(ctx, iface, device) {
     const maintenance = channels.find((ch) => ch.index === 0);
 
     for (const ch of channels) {
+        current = ch;
+        inGeneric = false;
         const consumed = new Set();
         const stateCh = ch.stateChannel || ch;
         const sst = (dp) => st(iface, stateCh.ADDRESS, dp);
@@ -416,6 +442,7 @@ function deviceBlock(ctx, iface, device) {
 
         const fallback = ch.index === 0 ? 'Maintenance' : `Channel ${ch.index}`;
         const label = labelOf(ch, deviceName, fallback);
+        ch.label = label;
         const has = (dp) => Boolean(ch.description[dp]);
         const key = (dp) => `${ch.index}_${dp}`;
         const disabled = ch.secondary ? {en: false} : {};
@@ -799,6 +826,7 @@ function deviceBlock(ctx, iface, device) {
         }
 
         // generic layer: everything else in the channel's VALUES description
+        inGeneric = true;
         for (const [dp, d] of Object.entries(ch.description)) {
             if (consumed.has(dp) || NOT_ANNOUNCED.has(dp) || !d || typeof d !== 'object') {
                 continue;
@@ -940,6 +968,8 @@ function deviceBlock(ctx, iface, device) {
         unreach = {iface, channel: maintenance.ADDRESS, datapoint: 'UNREACH', topic};
     }
 
+    const placed = placeUnits(ctx, {id, device, deviceName, channels, components, origins, area, roomsOf});
+
     return {
         id,
         device: compact({
@@ -949,16 +979,234 @@ function deviceBlock(ctx, iface, device) {
             sw: device.FIRMWARE ? String(device.FIRMWARE) : undefined,
             sa: area,
         }),
-        components,
+        components: placed.parent,
+        children: placed.children,
+        own: placed.own,
+        all: components,
+        unknown: new Set(channels.filter((ch) => !ch.described).map((ch) => ch.index)),
+        units: [...placed.units.values()].map((unit) => ({
+            index: unit.head.index,
+            channels: unit.channels.map((ch) => ch.index),
+            function: unit.function,
+            place: placed.places.get(unit.head.index),
+            platforms: unit.keys.map((key) => ({p: components[key].p, en: components[key].en !== false})),
+        })),
         availability,
         unreach,
     };
 }
 
 /**
- * The full discovery message of one device block.
+ * Whether a configuration puts channels into child devices (which need Home Assistant 2026.11).
+ * @param {string} channelDevices the node's model
+ * @param {Object<string, {enabled?: boolean, split?: string, channels?: object}>} devices
+ * @returns {boolean}
+ */
+function usesChildDevices(channelDevices, devices) {
+    if (channelDevices === 'children') {
+        return true;
+    }
+
+    return Object.values(devices || {}).some(
+        (entry) =>
+            entry &&
+            entry.enabled === true &&
+            (entry.split === 'children' ||
+                Object.values(entry.channels || {}).some((channel) => channel && channel.device === 'child')),
+    );
+}
+
+/**
+ * The units of a device as the editor shows them (task 33): per unit its channels, whether it is a
+ * function unit and the entities it yields - from the same code that builds the payload.
+ * @param {DiscoveryContext} ctx devices, description, channelName, generic
+ * @param {string} iface
+ * @param {object} device
+ * @returns {Array<{index: number, channels: number[], function: boolean, platforms: Array<{p: string, en: boolean}>}>}
+ */
+function deviceSummary(ctx, iface, device) {
+    const block = deviceBlock(
+        {...ctx, channelDevices: 'off', overrides: {}, statusTopicFor: () => '', setTopicFor: () => ''},
+        iface,
+        device,
+    );
+    return block ? block.units.map(({place: _place, ...unit}) => unit) : [];
+}
+
+/** the values of the node option `channelDevices` and of a device's `split` (task 33) */
+const MODELS = new Set(['off', 'children', 'devices']);
+/** where a unit goes: on the device, a child device in its payload, a device of its own */
+const PLACES = new Set(['parent', 'child', 'own']);
+
+/**
+ * The channels of a device grouped into units: a channel with the channels of its family (an HmIP
+ * transmitter with its virtual receivers, a dimmer with its virtual dimmers). A unit is a
+ * *function* unit when one of its components is a role's entity (switch, light, cover, event,
+ * climate ...) rather than a generic datapoint; the maintenance channel `:0` never is.
+ * @param {object[]} channels sorted by index, after resolveVirtualReceivers()
+ * @param {Object<string, {ch: object, role: boolean}>} origins component key → its channel
+ * @returns {Map<number, {head: object, channels: object[], keys: string[], function: boolean}>}
+ */
+function deviceUnits(channels, origins) {
+    const units = new Map();
+    for (const ch of channels) {
+        const head = ch.family || ch;
+        if (!units.has(head.index)) {
+            units.set(head.index, {head, channels: [], keys: [], function: false});
+        }
+
+        units.get(head.index).channels.push(ch);
+    }
+
+    for (const [key, origin] of Object.entries(origins)) {
+        const unit = units.get((origin.ch.family || origin.ch).index);
+        unit.keys.push(key);
+        if (origin.role && unit.head.index !== 0) {
+            unit.function = true;
+        }
+    }
+
+    // a channel whose description is not there yet may well be a function: counted as one, so a
+    // device does not fall back to one device while its metadata is incomplete
+    for (const unit of units.values()) {
+        unit.unknown = unit.head.index !== 0 && unit.channels.some((ch) => ch.described === false);
+    }
+
+    return units;
+}
+
+/**
+ * Where each unit of a device goes (task 33): `drop` (not published), `parent`, `child` or `own`.
+ * A channel's own setting wins, then the device's `split`, then the node's `channelDevices`; a
+ * model other than `off` moves the function units, and only on a device with two or more of them
+ * (a plug or a contact stays one device). The maintenance channel stays on the device.
  * @param {DiscoveryContext} ctx
- * @param {{id: string, device: object, components: object, availability: object[]}} block
+ * @param {string} deviceAddress
+ * @param {Map<number, object>} units
+ * @returns {Map<number, 'drop' | 'parent' | 'child' | 'own'>}
+ */
+function placement(ctx, deviceAddress, units) {
+    const config = (ctx.overrides && ctx.overrides[deviceAddress]) || {};
+    const model = MODELS.has(config.split) ? config.split : MODELS.has(ctx.channelDevices) ? ctx.channelDevices : 'off';
+    const functions = [...units.values()].filter((unit) => unit.function || unit.unknown).length;
+    const places = new Map();
+    for (const [index, unit] of units) {
+        const own = (config.channels && config.channels[index]) || {};
+        if (own.publish === false) {
+            places.set(index, 'drop');
+        } else if (index === 0) {
+            places.set(index, 'parent');
+        } else if (PLACES.has(own.device)) {
+            places.set(index, own.device);
+        } else if (model !== 'off' && functions >= 2 && unit.function) {
+            places.set(index, model === 'children' ? 'child' : 'own');
+        } else {
+            places.set(index, 'parent');
+        }
+    }
+
+    return places;
+}
+
+/** a unit's channel whose name is a name of its own (not the CCU's default `<device> <address>:<n>`) */
+function namedChannel(unit) {
+    return [unit.head, ...unit.channels.filter((ch) => ch !== unit.head && !ch.secondary)].find(
+        (ch) => ch.label && ch.label !== `Channel ${ch.index}` && !/^\d+$/.test(ch.label),
+    );
+}
+
+/**
+ * The name of an entity on a child or an own device: Home Assistant puts the device's name in
+ * front, so the channel's part goes - the channel's main entity has no name of its own (`null`,
+ * Home Assistant names it after the device), the others keep their datapoint or role label.
+ * Secondary channels of a family keep their channel's label.
+ */
+function shortName(name, ch) {
+    if (ch.secondary || typeof name !== 'string' || !ch.label) {
+        return name;
+    }
+
+    if (name === ch.label) {
+        return null;
+    }
+
+    if (name.startsWith(ch.label + ' ')) {
+        const rest = name.slice(ch.label.length + 1);
+        return rest[0].toUpperCase() + rest.slice(1);
+    }
+
+    return name;
+}
+
+/**
+ * Splits the components of a device into the device's own, its child devices (`cdevs`, Home
+ * Assistant 2026.11) and devices of their own, by the units' placement. With the model `off` and
+ * no channel settings every component stays on the device, in its order - the payload is the one
+ * of before.
+ */
+function placeUnits(ctx, {id, device, deviceName, channels, components, origins, area, roomsOf}) {
+    const units = deviceUnits(channels, origins);
+    const places = placement(ctx, device.ADDRESS, units);
+    const placeOf = (key) => places.get((origins[key].ch.family || origins[key].ch).index);
+    const parent = {};
+    for (const key of Object.keys(components)) {
+        if (placeOf(key) === 'parent') {
+            parent[key] = components[key];
+        }
+    }
+
+    const moved = (unit) => {
+        const out = {};
+        for (const key of Object.keys(components)) {
+            if (unit.keys.includes(key)) {
+                out[key] = {...components[key], name: shortName(components[key].name, origins[key].ch)};
+            }
+        }
+
+        return out;
+    };
+
+    const children = [];
+    const own = [];
+    for (const [index, unit] of units) {
+        const place = places.get(index);
+        if ((place !== 'child' && place !== 'own') || unit.keys.length === 0) {
+            continue;
+        }
+
+        const named = namedChannel(unit);
+        if (place === 'child') {
+            children.push({
+                id: `${id}_${index}`,
+                name: named ? named.label : `Channel ${index}`,
+                components: moved(unit),
+            });
+            continue;
+        }
+
+        const rest = unit.channels.filter((ch) => ch !== unit.head);
+        const ownArea = ctx.area === false ? undefined : suggestedArea(roomsOf, unit.head.ADDRESS, rest) || area;
+        own.push({
+            id: `${id}_${index}`,
+            device: compact({
+                name: named ? named.name || named.label : `${deviceName} Channel ${index}`,
+                mf: 'eQ-3',
+                mdl: device.TYPE,
+                sw: device.FIRMWARE ? String(device.FIRMWARE) : undefined,
+                sa: ownArea,
+                via_device: id,
+            }),
+            components: moved(unit),
+        });
+    }
+
+    return {parent, children, own, units, places};
+}
+
+/**
+ * The full discovery message of one device block (with its child devices, if any).
+ * @param {DiscoveryContext} ctx
+ * @param {{id: string, device: object, components: object, availability: object[], children?: object[]}} block
  * @returns {{topic: string, payload: object}}
  */
 function devicePayload(ctx, block) {
@@ -970,8 +1218,30 @@ function devicePayload(ctx, block) {
         ...(block.availability.length > 1 && {avty_mode: 'all'}),
         qos: 0,
         cmps: block.components,
+        ...(block.children &&
+            block.children.length > 0 && {
+                cdevs: block.children.map((child) => ({ids: [child.id], name: child.name, cmps: child.components})),
+            }),
     };
     return {topic: discoveryTopic(ctx.prefix, block.id), payload};
+}
+
+/**
+ * The discovery messages of a device's channels that are devices of their own (`devices`): the
+ * device's model, firmware and availability, `via_device` the device.
+ * @param {DiscoveryContext} ctx
+ * @param {object} block
+ * @returns {Array<{topic: string, payload: object}>}
+ */
+function ownPayloads(ctx, block) {
+    return (block.own || []).map((own) =>
+        devicePayload(ctx, {
+            id: own.id,
+            device: own.device,
+            components: own.components,
+            availability: block.availability,
+        }),
+    );
 }
 
 /**
@@ -984,39 +1254,145 @@ function removalMessage(prefix, address) {
     return {topic: discoveryTopic(prefix, discoveryId(address)), payload: ''};
 }
 
+/** component key → platform of a discovery payload, its children's included */
+function keysOf(payload) {
+    const keys = {};
+    const take = (cmps) => {
+        for (const [key, component] of Object.entries(cmps || {})) {
+            if (component && Object.keys(component).length > 1) {
+                keys[key] = component.p;
+            }
+        }
+    };
+
+    take(payload.cmps);
+    for (const child of payload.cdevs || []) {
+        take(child.cmps);
+    }
+
+    return keys;
+}
+
+/** the channel index a component key starts with (`<index>_<datapoint>`) */
+function channelOfKey(key) {
+    return Number.parseInt(String(key).split('_')[0], 10);
+}
+
 /**
  * Discovery messages for the selected devices.
+ *
+ * Removal (task 33): Home Assistant keeps a component that is left out of a device's payload, it
+ * removes one that is sent with only its platform (`{p}`). `ctx.previous` holds, per device, what
+ * the last run published (topic → component key → platform); a key published there and missing now
+ * - a channel no longer published, or moved to a device of its own - is sent as such a stub once,
+ * and a topic of the last run that has no payload now is cleared. Without a record for the device's
+ * topic (the first run) every component of the device counts as published there. Components of
+ * channels whose description is not known (yet) are neither removed nor forgotten.
  * @param {DiscoveryContext} ctx
- * @returns {{messages: Array<{topic: string, payload: object}>, availability: Availability[], missing: string[], empty: string[]}}
- *          availability: the UNREACH datapoints the configs use as availability (B-38);
- *          missing: selected addresses not found in the metadata; empty: devices without entities
+ * @returns {{messages: Array<{topic: string, payload: object}>, clear: Array<{topic: string, payload: string}>,
+ *            published: Object<string, Object<string, Object<string, string>>>,
+ *            availability: Availability[], missing: string[], empty: string[]}}
+ *          messages: the device payloads (devices of their own after their device); clear: topics to
+ *          empty first; published: the record for the next run; availability: the UNREACH
+ *          datapoints the configs use as availability (B-38); missing: selected addresses not
+ *          found in the metadata; empty: devices without entities
  */
 function discoveryMessages(ctx) {
     const messages = [];
+    const clear = [];
+    const published = {};
     const availability = [];
     const missing = [];
     const empty = [];
+    const previous = ctx.previous || {};
     for (const address of ctx.selected || []) {
         const iface = ifaceOf(ctx.devices, address);
         const device = iface && ctx.devices[iface][address];
         if (!device || device.PARENT) {
             missing.push(address);
+            if (previous[address]) {
+                published[address] = previous[address];
+            }
+
             continue;
         }
 
         const block = deviceBlock(ctx, iface, device);
         if (!block) {
             empty.push(address);
+            if (previous[address]) {
+                published[address] = previous[address];
+            }
+
             continue;
         }
 
-        messages.push(devicePayload(ctx, block));
-        if (block.unreach) {
+        const before = previous[address] || {};
+        const parentTopic = discoveryTopic(ctx.prefix, block.id);
+        const all = {};
+        for (const [key, component] of Object.entries(block.all)) {
+            all[key] = component.p;
+        }
+
+        const record = {};
+        const out = [];
+        const parent = devicePayload(ctx, block);
+        const candidates = [parent, ...ownPayloads(ctx, block)];
+        for (const message of candidates) {
+            const now = keysOf(message.payload);
+            const last = before[message.topic] || (!previous[address] && message.topic === parentTopic ? all : {});
+            const stubs = {};
+            const kept = {...now};
+            for (const [key, platform] of Object.entries(last)) {
+                if (key in now) {
+                    continue;
+                }
+
+                if (block.unknown.has(channelOfKey(key))) {
+                    kept[key] = platform;
+                } else if (platform) {
+                    stubs[key] = {p: platform};
+                }
+            }
+
+            if (Object.keys(now).length === 0 && Object.keys(kept).length === 0) {
+                // nothing left on this topic: clear it when the last run published it
+                if (Object.keys(last).length > 0) {
+                    clear.push({topic: message.topic, payload: ''});
+                }
+
+                continue;
+            }
+
+            if (Object.keys(stubs).length > 0) {
+                message.payload.cmps = {...message.payload.cmps, ...stubs};
+            }
+
+            record[message.topic] = kept;
+            out.push(message);
+        }
+
+        // topics of the last run this one has no payload for (a channel back on its device)
+        for (const [topic, keys] of Object.entries(before)) {
+            if (record[topic] || candidates.some((m) => m.topic === topic)) {
+                continue;
+            }
+
+            if (Object.keys(keys).some((key) => block.unknown.has(channelOfKey(key)))) {
+                record[topic] = keys;
+            } else {
+                clear.push({topic, payload: ''});
+            }
+        }
+
+        published[address] = record;
+        messages.push(...out);
+        if (block.unreach && out.length > 0) {
             availability.push(block.unreach);
         }
     }
 
-    return {messages, availability, missing, empty};
+    return {messages, clear, published, availability, missing, empty};
 }
 
 module.exports = {
@@ -1031,6 +1407,11 @@ module.exports = {
     suggestedArea,
     deviceBlock,
     devicePayload,
+    ownPayloads,
+    deviceUnits,
+    placement,
+    usesChildDevices,
+    deviceSummary,
     removalMessage,
     discoveryMessages,
 };

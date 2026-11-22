@@ -93,6 +93,32 @@ device with switch, light, cover, climate, binary_sensor, event, lock and sensor
 optionally be included as a disabled-by-default entity. Unticking a device removes it from Home Assistant on the
 next deploy.
 
+Homematic channels can be Home Assistant devices too. The node's option _Channels_ offers three models:
+
+- **one device** (the default): one Home Assistant device per Homematic device, as before;
+- **child devices**: each channel becomes a child device of its device. This needs **Home Assistant 2026.11 or
+  newer** (an older one refuses the whole device configuration, its log says `not a valid option at 'cdevs'`; the
+  node logs a reminder at start). The entities move in place - entity IDs, history and settings stay - and the way
+  back works at any time. A child device is in its device's area until you assign another one in Home Assistant,
+  which takes no suggested area for an MQTT child device;
+- **own devices**: each channel becomes a device of its own, in its channel's room, linked to the Homematic device.
+  Switching to or from this model removes the entities and creates them again under the new device: Home Assistant
+  usually restores their entity IDs and areas, but settings of the devices themselves do not carry over, and
+  automations that target a device by its device ID have to be adjusted.
+
+A channel here is a function: the channel of an HmIP switch, dimmer or blind actuator counts together with its three
+virtual channels, a key or an input counts as one. The maintenance channel (reachability, battery, signal) stays on
+the device, and a device with a single function (a plug, a contact) is not split. The main entity of a channel takes
+its device's name, the others the name of their datapoint.
+
+In the device table an arrow opens a device's channels: per device a setting overrides the node's option, per channel
+_publish_ switches it off for Home Assistant (its MQTT topics stay) and a select puts it on the device, into a child
+device or into a device of its own. Channels left as they are follow their device, the device follows the node. The
+filter also matches rooms and functions, and the bulk action applies to the listed devices or to their matching
+channels - e.g. every channel in the room "Kitchen" as a device of its own; what is stored are the single values. A
+channel that is no longer published or moves elsewhere is removed from Home Assistant on the next deploy; the node
+remembers what it published in `ccu_homeassistant_<node id>.json` in the Node-RED user directory.
+
 A device's availability in Home Assistant follows the `UNREACH` datapoint of its maintenance channel. The node
 publishes its current value (retained) right after the discovery configs and every change after that, so a device
 is available without ever having been unreachable. Any message on the node's input republishes both; the example

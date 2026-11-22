@@ -1,4 +1,179 @@
 <script type="text/javascript">
+    /* task 33: the per-device and per-channel Home Assistant settings of the editor. Pure functions
+       on the stored `devices` entries, kept apart from the DOM so the unit tests can run them:
+       a value equal to the default is not stored, so an untouched channel inherits (the device's
+       split, then the node's model). */
+    const haModel = {
+        /** the node option and a device's split */
+        MODELS: ['off', 'children', 'devices'],
+        /** where a channel goes */
+        PLACES: ['parent', 'child', 'own'],
+
+        /** a deep copy of the stored entries the editor works on */
+        copy(devices) {
+            return JSON.parse(JSON.stringify(devices || {}));
+        },
+
+        /** the entry of a device in the working copy, created on demand */
+        entry(model, address) {
+            if (!model[address]) {
+                model[address] = {enabled: false};
+            }
+
+            return model[address];
+        },
+
+        /** sets (or with '' clears) a device's split */
+        setSplit(model, address, split) {
+            const entry = haModel.entry(model, address);
+            if (haModel.MODELS.includes(split)) {
+                entry.split = split;
+            } else {
+                delete entry.split;
+            }
+        },
+
+        /** changes a channel's settings; `publish: true` and `device: ''` are the defaults and go */
+        setChannel(model, address, index, patch) {
+            const entry = haModel.entry(model, address);
+            const channels = entry.channels || {};
+            const channel = {...channels[index], ...patch};
+            if (channel.publish !== false) {
+                delete channel.publish;
+            }
+
+            if (!haModel.PLACES.includes(channel.device)) {
+                delete channel.device;
+            }
+
+            if (Object.keys(channel).length > 0) {
+                channels[index] = channel;
+            } else {
+                delete channels[index];
+            }
+
+            if (Object.keys(channels).length > 0) {
+                entry.channels = channels;
+            } else {
+                delete entry.channels;
+            }
+        },
+
+        /** a channel's settings as the editor shows them */
+        channel(model, address, index) {
+            const channels = (model[address] && model[address].channels) || {};
+            return {publish: (channels[index] || {}).publish !== false, device: (channels[index] || {}).device || ''};
+        },
+
+        /** whether the filter text matches a device (name, address, type, interface) */
+        matchesDevice(needle, address, device) {
+            return (
+                !needle || [device.name, address, device.type, device.iface].join(' ').toLowerCase().includes(needle)
+            );
+        },
+
+        /** whether the filter text matches a unit's channels (names, addresses, types, rooms, functions) */
+        matchesChannels(needle, channels) {
+            if (!needle) {
+                return true;
+            }
+
+            return channels.some((ch) =>
+                [ch.name, ch.address, ch.type, ...(ch.rooms || []), ...(ch.functions || [])]
+                    .join(' ')
+                    .toLowerCase()
+                    .includes(needle),
+            );
+        },
+
+        /**
+         * The `devices` config to store: the ticked ones enabled, a device ticked before and not now
+         * `enabled: false` (Home Assistant forgets it), devices not listed this time as they were.
+         * Split and channel settings go with the entry either way.
+         */
+        serialize(model, ticked, listed, previous) {
+            const devices = {};
+            for (const address of listed) {
+                const settings = {};
+                const entry = model[address] || {};
+                if (entry.split) {
+                    settings.split = entry.split;
+                }
+
+                if (entry.channels && Object.keys(entry.channels).length > 0) {
+                    settings.channels = entry.channels;
+                }
+
+                if (ticked.includes(address)) {
+                    devices[address] = {enabled: true, ...settings};
+                } else if (previous[address]) {
+                    devices[address] = {enabled: false, ...settings};
+                }
+            }
+
+            for (const address of Object.keys(previous)) {
+                if (!(address in devices) && !listed.includes(address)) {
+                    devices[address] = previous[address];
+                }
+            }
+
+            return devices;
+        },
+
+        /** what a unit publishes, e.g. "switch, 2 sensors, +5 disabled" */
+        preview(platforms) {
+            if (!platforms) {
+                return 'not known yet';
+            }
+
+            if (platforms.length === 0) {
+                return 'nothing';
+            }
+
+            const counts = {};
+            let disabled = 0;
+            for (const {p, en} of platforms) {
+                if (en) {
+                    counts[p] = (counts[p] || 0) + 1;
+                } else {
+                    disabled += 1;
+                }
+            }
+
+            const parts = Object.keys(counts).map((p) => (counts[p] > 1 ? counts[p] + ' × ' + p : p));
+            if (disabled > 0) {
+                parts.push('+' + disabled + ' disabled');
+            }
+
+            return parts.join(', ');
+        },
+
+        /**
+         * The rows of a device's channel table: one per unit (an HmIP transmitter with its virtual
+         * receivers is one), from the units the runtime reports; without them one per channel.
+         */
+        units(device) {
+            const byIndex = {};
+            for (const ch of device.channels || []) {
+                byIndex[Number(String(ch.address).split(':')[1])] = ch;
+            }
+
+            if (Array.isArray(device.units) && device.units.length > 0) {
+                return device.units.map((unit) => ({
+                    index: unit.index,
+                    function: unit.function,
+                    platforms: unit.platforms,
+                    channels: unit.channels.map((i) => byIndex[i]).filter(Boolean),
+                }));
+            }
+
+            return Object.keys(byIndex)
+                .map(Number)
+                .sort((a, b) => a - b)
+                .map((index) => ({index, function: false, platforms: undefined, channels: [byIndex[index]]}));
+        },
+    };
+
     RED.nodes.registerType('ccu-homeassistant', {
         category: 'ccu',
         defaults: {
@@ -8,6 +183,7 @@
             prefix: {value: 'homeassistant'},
             generic: {value: true},
             area: {value: true},
+            channelDevices: {value: 'off'},
             devices: {value: {}},
         },
         inputs: 1,
@@ -16,6 +192,7 @@
         color: '#c2d5e4',
         paletteLabel: 'home assistant',
         align: 'right',
+        haModel,
         label() {
             return this.name || 'home assistant';
         },
@@ -27,6 +204,16 @@
             if (!this.devices) {
                 this.devices = {};
             }
+
+            if (!this.channelDevices) {
+                $('#node-input-channelDevices').val('off');
+            }
+
+            // the working copy of the device and channel settings, stored by oneditsave
+            this._haModel = haModel.copy(this.devices);
+            this._haListed = [];
+            const model = this._haModel;
+            let data = {};
 
             const $ccuConfig = $('#node-input-ccuConfig');
             const $mqttNode = $('#node-input-mqttNode');
@@ -40,6 +227,42 @@
                     .text(String(text === undefined || text === null ? '' : text))
                     .html();
             }
+
+            function select(cls, options, value, title) {
+                return (
+                    '<select class="' +
+                    cls +
+                    '" title="' +
+                    escape(title) +
+                    '">' +
+                    options
+                        .map(
+                            ([v, text]) =>
+                                '<option value="' +
+                                v +
+                                '"' +
+                                (v === value ? ' selected' : '') +
+                                '>' +
+                                escape(text) +
+                                '</option>',
+                        )
+                        .join('') +
+                    '</select>'
+                );
+            }
+
+            const SPLIT = [
+                ['', 'as the node'],
+                ['off', 'one device'],
+                ['children', 'child devices'],
+                ['devices', 'own devices'],
+            ];
+            const PLACE = [
+                ['', 'as the device'],
+                ['parent', 'on the device'],
+                ['child', 'child device'],
+                ['own', 'own device'],
+            ];
 
             // the ccu-mqtt nodes of the flows whose topics this node reuses
             function loadMqttNodes() {
@@ -67,22 +290,107 @@
                 }
             }
 
-            function applyFilter() {
-                const needle = String($filter.val() || '').toLowerCase();
-                $devices.find('tr.ha-device-row').each(function () {
-                    const $row = $(this);
-                    const haystack = $row.data('search');
-                    $row.toggle(!needle || haystack.indexOf(needle) !== -1);
+            function needle() {
+                return String($filter.val() || '')
+                    .trim()
+                    .toLowerCase();
+            }
+
+            /** the channel rows of a device, built when it is opened */
+            function channelRows(addr) {
+                const dev = data[addr];
+                return haModel.units(dev).map((unit) => {
+                    const head = unit.channels[0] || {address: addr + ':' + unit.index};
+                    const settings = haModel.channel(model, addr, unit.index);
+                    const others = unit.channels.slice(1).map((ch) => String(ch.address).split(':')[1]);
+                    const rooms = [...new Set(unit.channels.flatMap((ch) => ch.rooms || []))];
+                    const maintenance = unit.index === 0;
+                    const $row = $(
+                        '<tr class="ha-channel-row" data-addr="' +
+                            escape(addr) +
+                            '" data-index="' +
+                            unit.index +
+                            '">' +
+                            '<td></td>' +
+                            '<td class="ha-small ha-right">' +
+                            unit.index +
+                            (others.length > 0 ? '<br>+' + escape(others.join(',')) : '') +
+                            '</td>' +
+                            '<td class="ha-text" title="' +
+                            escape([head.name || head.address, head.type, ...rooms].join(' · ')) +
+                            '">' +
+                            escape(head.name || head.address) +
+                            '<div class="ha-small">' +
+                            escape([head.type, ...rooms].join(' · ')) +
+                            '</div>' +
+                            '</td>' +
+                            '<td class="ha-text ha-small" title="' +
+                            escape(haModel.preview(unit.platforms)) +
+                            '">' +
+                            escape(haModel.preview(unit.platforms)) +
+                            '</td>' +
+                            '<td class="ha-enabled"><input type="checkbox" class="ha-publish" title="publish to Home Assistant"' +
+                            (settings.publish ? ' checked' : '') +
+                            '></td>' +
+                            '<td>' +
+                            (maintenance
+                                ? '<span class="ha-small" title="the maintenance channel stays on the device">—</span>'
+                                : select('ha-place', PLACE, settings.device, 'where the channel goes')) +
+                            '</td>' +
+                            '</tr>',
+                    );
+                    $row.data('unit', unit);
+                    return $row;
                 });
             }
 
-            function renderDevices(data) {
-                $devices.empty();
+            function applyFilter() {
+                const text = needle();
+                $devices.find('tr.ha-device-row').each(function () {
+                    const $row = $(this);
+                    const addr = $row.data('addr');
+                    const dev = data[addr];
+                    const deviceHit = haModel.matchesDevice(text, addr, dev);
+                    let channelHit = false;
+                    $devices.find('tr.ha-channel-row[data-addr="' + addr + '"]').each(function () {
+                        const unit = $(this).data('unit');
+                        const hit = deviceHit || haModel.matchesChannels(text, unit.channels);
+                        channelHit = channelHit || hit;
+                        $(this).toggle(hit && $row.hasClass('ha-open'));
+                    });
+                    if (!channelHit && !deviceHit) {
+                        channelHit = haModel.units(dev).some((unit) => haModel.matchesChannels(text, unit.channels));
+                    }
+
+                    $row.toggle(deviceHit || channelHit);
+                });
+            }
+
+            function toggleDevice($row) {
+                const addr = $row.data('addr');
+                const open = !$row.hasClass('ha-open');
+                $row.toggleClass('ha-open', open);
+                $row.find('.ha-toggle').text(open ? '▾' : '▸');
+                if (open && !$row.data('built')) {
+                    $row.after(channelRows(addr));
+                    $row.data('built', true);
+                }
+
+                applyFilter();
+            }
+
+            const COLUMNS =
+                '<colgroup><col class="ha-col-check"><col class="ha-col-index"><col><col class="ha-col-preview">' +
+                '<col class="ha-col-check"><col class="ha-col-select"></colgroup>';
+
+            function renderDevices() {
+                $devices.empty().append(COLUMNS);
                 const addresses = Object.keys(data).sort((a, b) => {
                     const na = data[a].name || a;
                     const nb = data[b].name || b;
                     return na.localeCompare(nb);
                 });
+                that._haListed = addresses;
                 if (addresses.length === 0) {
                     $message.text('No devices known yet — is the CCU connection deployed and initialized?').show();
                     return;
@@ -90,33 +398,29 @@
 
                 addresses.forEach((addr) => {
                     const dev = data[addr];
-                    const entry = that.devices[addr];
+                    const entry = model[addr];
                     const checked = Boolean(entry && entry.enabled === true);
-                    const search = [dev.name, addr, dev.type, dev.iface].join(' ').toLowerCase();
                     const $row = $(
                         '<tr class="ha-device-row">' +
-                            '<td class="ha-enabled"><input type="checkbox" class="ha-device" data-addr="' +
-                            escape(addr) +
-                            '"' +
+                            '<td class="ha-enabled"><input type="checkbox" class="ha-device"' +
                             (checked ? ' checked' : '') +
                             '></td>' +
-                            '<td class="ha-text" title="' +
-                            escape(dev.name) +
+                            '<td class="ha-toggle" title="channels">▸</td>' +
+                            '<td class="ha-text" colspan="3" title="' +
+                            escape([dev.name || addr, addr, dev.type, dev.iface].join(' · ')) +
                             '">' +
                             escape(dev.name || addr) +
+                            '<div class="ha-small">' +
+                            escape([addr, dev.type, dev.iface].join(' · ')) +
+                            '</div>' +
                             '</td>' +
-                            '<td class="ha-text ha-small">' +
-                            escape(addr) +
-                            '</td>' +
-                            '<td class="ha-text ha-small">' +
-                            escape(dev.type) +
-                            '</td>' +
-                            '<td class="ha-text ha-small">' +
-                            escape(dev.iface) +
+                            '<td>' +
+                            select('ha-split', SPLIT, (entry && entry.split) || '', 'channels as devices') +
                             '</td>' +
                             '</tr>',
                     );
-                    $row.data('search', search);
+                    $row.attr('data-addr', addr);
+                    $row.data('addr', addr);
                     $devices.append($row);
                 });
                 applyFilter();
@@ -138,9 +442,11 @@
 
                 loading = true;
                 $spinner.show();
-                $.getJSON('ccu?config=' + config + '&type=devices')
-                    .done((data) => {
-                        renderDevices(data || {});
+                const generic = $('#node-input-generic').is(':checked');
+                $.getJSON('ccu?config=' + config + '&type=devices&generic=' + generic)
+                    .done((answer) => {
+                        data = answer || {};
+                        renderDevices();
                     })
                     .fail(() => {
                         $devices.empty();
@@ -152,16 +458,78 @@
                     });
             }
 
+            $devices.on('click', 'td.ha-toggle', function () {
+                toggleDevice($(this).closest('tr'));
+            });
+            $devices.on('change', 'input.ha-device', function () {
+                haModel.entry(model, $(this).closest('tr').data('addr')).enabled = $(this).is(':checked');
+            });
+            $devices.on('change', 'select.ha-split', function () {
+                haModel.setSplit(model, $(this).closest('tr').data('addr'), $(this).val());
+            });
+            $devices.on('change', 'input.ha-publish', function () {
+                const $row = $(this).closest('tr');
+                haModel.setChannel(model, $row.attr('data-addr'), Number($row.attr('data-index')), {publish: $(this).is(':checked')});
+            });
+            $devices.on('change', 'select.ha-place', function () {
+                const $row = $(this).closest('tr');
+                haModel.setChannel(model, $row.attr('data-addr'), Number($row.attr('data-index')), {device: $(this).val()});
+            });
+
+            // bulk actions on what the filter lists: the ticked devices, their matching channels
+            $('#ha-bulk-apply').on('click', () => {
+                const [kind, value] = String($('#ha-bulk').val() || '').split(':');
+                if (!kind) {
+                    return;
+                }
+
+                const text = needle();
+                $devices.find('tr.ha-device-row:visible').each(function () {
+                    const $row = $(this);
+                    const addr = $row.data('addr');
+                    if (!$row.find('input.ha-device').is(':checked')) {
+                        return;
+                    }
+
+                    if (kind === 'split') {
+                        haModel.setSplit(model, addr, value);
+                        $row.find('select.ha-split').val(value);
+                        return;
+                    }
+
+                    const deviceHit = haModel.matchesDevice(text, addr, data[addr]);
+                    for (const unit of haModel.units(data[addr])) {
+                        if (unit.index === 0 && kind === 'place') {
+                            continue;
+                        }
+
+                        if (deviceHit || haModel.matchesChannels(text, unit.channels)) {
+                            haModel.setChannel(
+                                model,
+                                addr,
+                                unit.index,
+                                kind === 'publish' ? {publish: value === 'yes'} : {device: value},
+                            );
+                            const $channel = $devices.find(
+                                'tr.ha-channel-row[data-addr="' + addr + '"][data-index="' + unit.index + '"]',
+                            );
+                            $channel.find('input.ha-publish').prop('checked', haModel.channel(model, addr, unit.index).publish);
+                            $channel.find('select.ha-place').val(haModel.channel(model, addr, unit.index).device);
+                        }
+                    }
+                });
+            });
+
             $ccuConfig.on('change', () => {
                 loadMqttNodes();
                 loadDevices();
             });
             $filter.on('input keyup', applyFilter);
             $('#ha-enable-all').on('click', () => {
-                $devices.find('tr.ha-device-row:visible input.ha-device').prop('checked', true);
+                $devices.find('tr.ha-device-row:visible input.ha-device').prop('checked', true).trigger('change');
             });
             $('#ha-disable-all').on('click', () => {
-                $devices.find('tr.ha-device-row:visible input.ha-device').prop('checked', false);
+                $devices.find('tr.ha-device-row:visible input.ha-device').prop('checked', false).trigger('change');
             });
 
             loadMqttNodes();
@@ -169,24 +537,10 @@
         },
         oneditsave() {
             const previous = this.devices || {};
-            const devices = {};
-            $('#ha-devices input.ha-device').each(function () {
-                const addr = $(this).data('addr');
-                if ($(this).is(':checked')) {
-                    devices[addr] = {enabled: true};
-                } else if (previous[addr]) {
-                    // was known before → publish a removal so Home Assistant forgets it
-                    devices[addr] = {enabled: false};
-                }
-            });
-            // keep entries of devices that were not listed this time (interface
-            // temporarily down) instead of dropping them
-            Object.keys(previous).forEach((addr) => {
-                if (!(addr in devices)) {
-                    devices[addr] = previous[addr];
-                }
-            });
-            this.devices = devices;
+            const model = this._haModel || haModel.copy(previous);
+            const listed = this._haListed || [];
+            const ticked = listed.filter((addr) => model[addr] && model[addr].enabled === true);
+            this.devices = haModel.serialize(model, ticked, listed, previous);
         },
     });
 </script>
@@ -209,21 +563,40 @@
             padding: 1px 4px;
             border-bottom: 1px solid #eee;
         }
+        #ha-devices {
+            table-layout: fixed;
+        }
         #ha-devices td.ha-text {
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
-            max-width: 220px;
+        }
+        #ha-devices td.ha-text div.ha-small {
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        #ha-devices col.ha-col-check {
+            width: 22px;
+        }
+        #ha-devices col.ha-col-index {
+            width: 34px;
+        }
+        #ha-devices col.ha-col-preview {
+            width: 28%;
+        }
+        #ha-devices col.ha-col-select {
+            width: 118px;
         }
         #ha-devices td.ha-small {
             font-size: 10px;
-            color: #666;
+            color: var(--red-ui-secondary-text-color, #666);
             max-width: 120px;
         }
         #ha-devices td.ha-enabled {
             width: 20px;
         }
-        #ha-devices input.ha-device {
+        #ha-devices input.ha-device,
+        #ha-devices input.ha-publish {
             width: auto !important;
             margin: 0 !important;
         }
@@ -235,6 +608,38 @@
         }
         #ha-toolbar input {
             flex: 1;
+            width: auto !important;
+        }
+        #ha-devices td.ha-toggle {
+            width: 14px;
+            cursor: pointer;
+            user-select: none;
+        }
+        #ha-devices td.ha-right {
+            text-align: right;
+            vertical-align: top;
+        }
+        #ha-devices tr.ha-channel-row td {
+            background: var(--red-ui-secondary-background, #f7f7f7);
+        }
+        #ha-devices select {
+            width: 112px !important;
+            height: 22px;
+            padding: 0 2px;
+            font-size: 11px;
+        }
+        #ha-devices div.ha-small {
+            font-size: 10px;
+            color: var(--red-ui-secondary-text-color, #666);
+        }
+        #ha-bulk-bar {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+            margin-bottom: 6px;
+            font-size: 12px;
+        }
+        #ha-bulk-bar select {
             width: auto !important;
         }
         #ha-message {
@@ -279,14 +684,43 @@
     </div>
 
     <div class="form-row">
+        <label for="node-input-channelDevices"><i class="fa fa-sitemap"></i> Channels</label>
+        <select id="node-input-channelDevices" style="width: 70%">
+            <option value="off">one Home Assistant device per Homematic device</option>
+            <option value="children">child devices of the device (Home Assistant 2026.11 or newer)</option>
+            <option value="devices">devices of their own, each in its channel's room</option>
+        </select>
+    </div>
+    <div class="form-row">
         <b>Devices published to Home Assistant</b>
     </div>
     <div class="form-row">
         <div id="ha-toolbar">
-            <input type="text" id="ha-filter" placeholder="filter by name, address, type">
+            <input type="text" id="ha-filter" placeholder="filter by name, address, type, room, function">
             <button type="button" class="red-ui-button red-ui-button-small" id="ha-enable-all">check all</button>
             <button type="button" class="red-ui-button red-ui-button-small" id="ha-disable-all">uncheck all</button>
             <img id="ha-spinner" src="red/images/spin.svg" style="display: none; height: 16px;">
+        </div>
+        <div id="ha-bulk-bar">
+            <span>Listed and ticked:</span>
+            <select id="ha-bulk">
+                <option value="">…</option>
+                <optgroup label="devices">
+                    <option value="split:">channels as the node says</option>
+                    <option value="split:off">one device</option>
+                    <option value="split:children">channels as child devices</option>
+                    <option value="split:devices">channels as own devices</option>
+                </optgroup>
+                <optgroup label="matching channels">
+                    <option value="publish:yes">publish</option>
+                    <option value="publish:no">do not publish</option>
+                    <option value="place:">as the device says</option>
+                    <option value="place:parent">on the device</option>
+                    <option value="place:child">child device</option>
+                    <option value="place:own">own device</option>
+                </optgroup>
+            </select>
+            <button type="button" class="red-ui-button red-ui-button-small" id="ha-bulk-apply">apply</button>
         </div>
         <div id="ha-message"></div>
         <div style="max-height: 320px; overflow-y: auto;">

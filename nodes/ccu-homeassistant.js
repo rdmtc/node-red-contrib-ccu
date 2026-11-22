@@ -2,7 +2,8 @@ const path = require('path');
 
 const statusHelper = require(path.join(__dirname, '/lib/status.js'));
 const {topicReplace} = require('./lib/topic.js');
-const {discoveryMessages, removalMessage} = require('./lib/hadiscovery.js');
+const {discoveryMessages, removalMessage, usesChildDevices} = require('./lib/hadiscovery.js');
+const {readText, writeJsonIfChanged} = require('./lib/cachefile.js');
 
 const pkg = require(path.join(__dirname, '..', 'package.json'));
 
@@ -38,6 +39,12 @@ module.exports = function (RED) {
             this.prefix = String(config.prefix || 'homeassistant').replace(/\/+$/, '');
             this.generic = config.generic !== false;
             this.area = config.area !== false;
+            // task 33: Homematic channels as Home Assistant devices - `off` (one device per
+            // Homematic device, as before), `children` (child devices) or `devices` (devices of
+            // their own); a device's `split` and a channel's `device` override it
+            this.channelDevices = ['children', 'devices'].includes(config.channelDevices)
+                ? config.channelDevices
+                : 'off';
             this.devices = config.devices || {};
             this.selected = Object.keys(this.devices).filter(
                 (a) => this.devices[a] && this.devices[a].enabled === true,
@@ -46,6 +53,19 @@ module.exports = function (RED) {
                 (a) => this.devices[a] && this.devices[a].enabled === false,
             );
             this.selectedSet = new Set(this.selected);
+
+            // what the last run published, per device and topic (component key → platform): a
+            // component missing now is removed from Home Assistant with a stub, a topic missing
+            // now is cleared - kept across restarts beside the connection's cache files
+            const userDir = RED.settings && RED.settings.userDir;
+            this.publishedFile = userDir
+                ? path.join(userDir, 'ccu_homeassistant_' + String(this.id).replace(/[^\w.-]/g, '_') + '.json')
+                : null;
+            this.published = this.loadPublished();
+
+            if (usesChildDevices(this.channelDevices, this.devices)) {
+                this.log('Homematic channels as child devices need Home Assistant 2026.11 or newer');
+            }
 
             this.ccu.register(this);
 
@@ -108,6 +128,32 @@ module.exports = function (RED) {
         showStatus(status) {
             this.ownStatus = status;
             this.status(status);
+        }
+
+        /** the record of the last run, or an empty one */
+        loadPublished() {
+            if (!this.publishedFile) {
+                return {};
+            }
+
+            try {
+                const data = JSON.parse(readText(this.publishedFile));
+                return data && typeof data.devices === 'object' && data.devices ? data.devices : {};
+            } catch {
+                return {};
+            }
+        }
+
+        savePublished() {
+            if (!this.publishedFile) {
+                return;
+            }
+
+            try {
+                writeJsonIfChanged(this.publishedFile, {devices: this.published});
+            } catch (error) {
+                this.warn('could not write ' + this.publishedFile + ': ' + error.message);
+            }
         }
 
         /** the referenced ccu-mqtt node, or null with a red status */
@@ -231,9 +277,32 @@ module.exports = function (RED) {
                 area: this.area,
                 devices: ccu.metadata.devices,
                 selected: this.selected,
+                channelDevices: this.channelDevices,
+                overrides: this.devices,
+                previous: this.published,
                 description: (iface, address) => {
                     const device = ccu.metadata.devices[iface] && ccu.metadata.devices[iface][address];
-                    return device && ccu.getParamsetDescription(iface, device, 'VALUES');
+                    if (!device) {
+                        return undefined;
+                    }
+
+                    // undefined while the description is not there yet (the call queues its fetch):
+                    // the components of such a channel are neither published nor removed. A
+                    // description that will never come (no VALUES paramset, a refused fetch) is
+                    // an empty one, as in ready()
+                    const key = ccu.paramsetName(iface, device, 'VALUES');
+                    const known = ccu.paramsetDescriptions[key] !== undefined;
+                    if (
+                        !known &&
+                        (!key ||
+                            !(device.PARAMSETS || []).includes('VALUES') ||
+                            (ccu.paramsetFailed && ccu.paramsetFailed.has(iface + '/' + device.ADDRESS + '/VALUES')))
+                    ) {
+                        return {};
+                    }
+
+                    const description = ccu.getParamsetDescription(iface, device, 'VALUES');
+                    return known ? description : undefined;
                 },
                 channelName: (address) => ccu.channelNames[address],
                 rooms: (address) => ccu.channelRooms && ccu.channelRooms[address],
@@ -243,16 +312,39 @@ module.exports = function (RED) {
                     topicReplace(mqtt.topicInputSetValue, this.topicMessage(iface, address, dp)),
             };
 
-            const {messages, availability, missing, empty} = discoveryMessages(ctx);
+            const {messages, clear, published, availability, missing, empty} = discoveryMessages(ctx);
 
+            // removals first: an entity that moves to another topic must be gone from the old one
+            // before Home Assistant reads the new one
             for (const address of this.removed) {
-                const {topic, payload} = removalMessage(this.prefix, address);
+                const topics = new Set([removalMessage(this.prefix, address).topic]);
+                for (const topic of Object.keys(this.published[address] || {})) {
+                    topics.add(topic);
+                }
+
+                for (const topic of topics) {
+                    this.send({topic, payload: '', retain: true});
+                }
+            }
+
+            for (const {topic, payload} of clear) {
                 this.send({topic, payload, retain: true});
             }
 
             for (const {topic, payload} of messages) {
                 this.send({topic, payload, retain: true});
             }
+
+            // devices neither ticked nor unticked keep their record
+            const record = {};
+            for (const [address, topics] of Object.entries(this.published)) {
+                if (!this.selectedSet.has(address) && !this.removed.includes(address)) {
+                    record[address] = topics;
+                }
+            }
+
+            this.published = {...record, ...published};
+            this.savePublished();
 
             this.publishAvailability(availability);
 

@@ -224,6 +224,31 @@ describe('device table refresh and the re-init watchdog (task 9)', function () {
         (await until(() => nc.paramsetDescriptions[psKey], 3000)).should.be.true();
     });
 
+    it('the Home Assistant editor table: devices with their channels, rooms, functions and units (task 33)', async () => {
+        await start();
+        const psKey = () => nc.paramsetName(IFACE, nc.metadata.devices[IFACE]['DEV0000001:1'], 'VALUES');
+        (
+            await until(() => nc.metadata.devices[IFACE] && nc.metadata.devices[IFACE]['DEV0000001:1'], 3000)
+        ).should.be.true();
+        (await until(() => nc.paramsetDescriptions[psKey()], 5000)).should.be.true();
+        nc.channelRooms = {'DEV0000001:1': ['Küche']};
+        nc.channelFunctions = {'DEV0000001:1': ['Licht']};
+        nc.channelNames = {DEV0000001: 'Schalter', 'DEV0000001:1': 'Schalter Licht'};
+        const {text} = await helper.request().get('/ccu?config=nc&type=devices').expect(200);
+        const dev = JSON.parse(text).DEV0000001;
+        dev.should.containDeep({name: 'Schalter', type: 'HmIP-T9', iface: IFACE});
+        dev.channels.should.deepEqual([
+            {
+                address: 'DEV0000001:1',
+                name: 'Schalter Licht',
+                type: 'SWITCH_VIRTUAL_RECEIVER',
+                rooms: ['Küche'],
+                functions: ['Licht'],
+            },
+        ]);
+        dev.units.should.deepEqual([{index: 1, channels: [1], function: true, platforms: [{p: 'switch', en: true}]}]);
+    });
+
     it('a channel reported with another TYPE replaces the entry, leaves the old type list, gets a new description', async () => {
         await start();
         (await until(() => hmip.descriptions.length >= 2 && nc.paramsetQueue.length === 0, 5000)).should.be.true();

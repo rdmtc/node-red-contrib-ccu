@@ -7,9 +7,35 @@
     <p>Connect the output to the same <b>mqtt out</b> node as the ccu-mqtt node. The node sends
     <code>msg.topic</code>, <code>msg.payload</code> and <code>msg.retain</code>.</p>
     <h3>Device selection</h3>
-    <p>Only checked devices are announced to Home Assistant (one HA device per Homematic device).
-    Unchecking a previously checked device publishes an empty config on the next deploy, which
+    <p>Only checked devices are announced to Home Assistant. Unchecking a previously checked device publishes an empty config on the next deploy, which
     removes the device from Home Assistant.</p>
+    <h3>Channels as devices</h3>
+    <p>The option <i>Channels</i> decides how Home Assistant sees a Homematic device with several channels:</p>
+    <ul>
+        <li><b>one device</b> (the default): one Home Assistant device per Homematic device, as before;</li>
+        <li><b>child devices</b>: each channel becomes a child device of the device (Home Assistant 2026.11 or
+        newer). The entities move in place: their IDs, history and settings stay, and switching back is
+        possible at any time. A child device is in the area of its device until you give it another one in Home
+        Assistant (Home Assistant takes no suggested area for an MQTT child device). An older Home Assistant
+        refuses the whole device configuration ("not a valid option at 'cdevs'" in its log);</li>
+        <li><b>own devices</b>: each channel becomes a device of its own, in the room of its channel, linked to the
+        Homematic device. Switching to or from it removes the entities and creates them again under the new
+        device: Home Assistant usually restores their entity IDs and areas, but the settings of the devices
+        themselves do not carry over, and automations that target a device by its device ID must be adjusted.</li>
+    </ul>
+    <p>A channel here is a function: an HmIP switch, dimmer or blind actuator's channel with its three virtual
+    channels counts as one, a key or an input as one. The maintenance channel (<code>:0</code>: reachability,
+    battery, signal) always stays on the device, and a device with a single function (a plug, a contact) is not
+    split. The main entity of a channel takes the name of its device, the others the name of their datapoint.</p>
+    <p>In the device table the arrow opens a device's channels. Per device a setting overrides the node's option;
+    per channel <i>publish</i> switches it off for Home Assistant (its MQTT topics stay) and the select puts it
+    on the device, into a child device or into a device of its own, whatever the device and node say. A channel
+    left as it is follows its device, the device the node. The bulk action under the filter applies to every
+    listed, ticked device, or to its channels that match the filter (e.g. all channels in the room "Kitchen":
+    own device); the single values are stored.</p>
+    <p>A channel that is no longer published, or moves to another device, is removed from Home Assistant on the
+    next deploy. The node remembers what it published in <code>ccu_homeassistant_&lt;node id&gt;.json</code> in
+    the Node-RED user directory.</p>
     <h3>Entities</h3>
     <p>Switches, dimmers (light), blinds/shutters (cover), thermostats (climate), contacts/motion/
     smoke/water (binary_sensor), keys (event), KeyMatic (lock), energy/weather (sensor). With the
@@ -21,7 +47,8 @@
     the input to get both again after every Home Assistant restart; its <code>offline</code> on that
     topic is ignored.</p>
     <h3>Requirements</h3>
-    <p>Home Assistant ≥ 2024.11 (device-based discovery).</p>
+    <p>Home Assistant ≥ 2024.11 (device-based discovery); for channels as child devices Home Assistant
+    ≥ 2026.11.</p>
     <h3>Availability</h3>
     <p>Device availability is derived from the UNREACH datapoint of the maintenance channel
     (<code>…:0/UNREACH</code>). Home Assistant shows every entity of a device as "unavailable" until
