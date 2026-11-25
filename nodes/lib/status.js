@@ -63,3 +63,34 @@ module.exports = (that, data) => {
         that.currentStatus = 'red';
     }
 };
+
+/**
+ * task 32: the status of a node of system variables or programs (sysvar, program, poll): on a CCU
+ * the ReGaHSS's, on openccu-lite the Logic interface's - or why there is none (the addon is not
+ * installed, the connection does not use lite-rpc).
+ * @param {object} that the node; `that.ccu.sysvarSource()` decides
+ * @param {object} data what the connection pushes
+ */
+module.exports.sysvar = (that, data) => {
+    const source = that.ccu && typeof that.ccu.sysvarSource === 'function' ? that.ccu.sysvarSource() : {};
+    if (source.iface) {
+        that.iface = source.iface;
+    }
+
+    if (source.error) {
+        if (that.currentStatus !== 'error:' + source.error) {
+            that.status({fill: 'red', shape: 'ring', text: source.error});
+            that.currentStatus = 'error:' + source.error;
+        }
+
+        return;
+    }
+
+    if (source.waiting) {
+        that.status(WAITING);
+        that.currentStatus = 'waiting';
+        return;
+    }
+
+    module.exports(that, data);
+};

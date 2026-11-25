@@ -19,6 +19,7 @@ const {Rega} = require('homematic-rega'); // ES module - require(esm) needs Node
 const metaProvider = require('./lib/metaprovider.js');
 const {InitRetry, retryDelay, RETRY_INTERVAL} = require('./lib/initretry.js');
 const lite = require('./lib/lite.js');
+const logic = require('./lib/logic.js');
 const {Pairings} = require('./lib/pairing.js');
 const {
     writeJsonAtomic,
@@ -775,6 +776,13 @@ module.exports = function (RED) {
             // and, per interface, why it cannot be reached (the nodes show it)
             this.liteScopes = undefined;
             this.ifaceError = {};
+            // task 32: Logic (lite-addon-logic), the interface of the system variables and programs on
+            // openccu-lite - its name once lite-rpc listed it, whether the list was read, the objects by
+            // their value channel, and the writes waiting for the first picture
+            this.logicIface = null;
+            this.liteListed = false;
+            this.logicObjects = {};
+            this.logicWaiters = [];
             this.metaMode = false;
             this.meta = null;
             // #167: minutes between re-reads of channel names, rooms and
@@ -1883,7 +1891,7 @@ module.exports = function (RED) {
                     ') - names, rooms and functions come from its metadata api',
             );
             this.logger.info(
-                'this system has no ReGaHSS: system variables, programs and HM-Script are not available (sysvar, program, poll and script nodes stay idle)',
+                'this system has no ReGaHSS: system variables and programs come from the Logic addon through lite-rpc where it is installed, HM-Script is not available (the script node stays idle)',
             );
             if (!this.regaEnabled) {
                 // B-46: the checkbox has nothing to switch here - the names are the metadata api's
@@ -2066,6 +2074,7 @@ module.exports = function (RED) {
                     ' functions',
             );
             this.saveRegadata();
+            this.relabelLogic();
         }
 
         /**
@@ -2265,12 +2274,11 @@ module.exports = function (RED) {
          * @returns {Promise}
          */
         programActive(name, active) {
-            return new Promise((resolve, reject) => {
-                if (this.metaMode) {
-                    reject(this.regaMissingError('programs'));
-                    return;
-                }
+            if (this.metaMode) {
+                return this.logicProgramCall(name, 'ACTIVE', Boolean(active));
+            }
 
+            return new Promise((resolve, reject) => {
                 const program = this.program[name];
                 if (program) {
                     const script = `dom.GetObject(${program.id}).Active(${active});`;
@@ -2297,12 +2305,11 @@ module.exports = function (RED) {
          * @returns {Promise}
          */
         programExecute(name) {
-            return new Promise((resolve, reject) => {
-                if (this.metaMode) {
-                    reject(this.regaMissingError('programs'));
-                    return;
-                }
+            if (this.metaMode) {
+                return this.logicProgramCall(name, 'RUN_THEN', true);
+            }
 
+            return new Promise((resolve, reject) => {
                 const program = this.program[name];
                 if (program) {
                     const d = new Date();
@@ -2336,12 +2343,11 @@ module.exports = function (RED) {
          * @returns {Promise}
          */
         setVariable(name, value) {
-            return new Promise((resolve, reject) => {
-                if (this.metaMode) {
-                    reject(this.regaMissingError('system variables'));
-                    return;
-                }
+            if (this.metaMode) {
+                return this.setLogicVariable(name, value);
+            }
 
+            return new Promise((resolve, reject) => {
                 if (!this.hasRegaVariables) {
                     this.logger.debug('variables not yet known. defer setVariable ' + name);
                     clearTimeout(this.setVariableQueueTimeout[name]);
@@ -2550,29 +2556,57 @@ module.exports = function (RED) {
                     cache: isNew,
                 });
 
-                Object.keys(this.sysvarCallbacks).forEach((key) => {
-                    const {filter, callback} = this.sysvarCallbacks[key];
-                    let match = !filter.name || filter.name === sysvar.name;
-                    if (this.sysvar[sysvar.name].cache && !filter.cache) {
-                        match = false;
-                    } else if (filter.change && !this.sysvar[sysvar.name].change) {
-                        if (!(this.sysvar[sysvar.name].cache && filter.cache)) {
-                            match = false;
-                        }
-                    }
-
-                    //this.logger.trace('match', match, JSON.stringify(filter), 'name:' + sysvar.name + ' cache:' + this.sysvar[sysvar.name].cache + ' change:' + this.sysvar[sysvar.name].change);
-                    if (match) {
-                        callback(RED.util.cloneMessage(this.sysvar[sysvar.name]));
-                    }
-                });
+                this.dispatchSysvar(sysvar.name);
             }
         }
 
         /**
-         * Poll ReGaHSS variables and call subscription callbacks
-         * @returns {Promise}
+         * A system variable's state to the sysvar subscriptions whose filter takes it: its name, a
+         * value from the start (cache) only where the filter asks for one, a value that did not
+         * change only where the filter does not ask for changes alone.
+         * @param {string} name
          */
+        dispatchSysvar(name) {
+            const sysvar = this.sysvar[name];
+            if (!sysvar) {
+                return;
+            }
+
+            Object.keys(this.sysvarCallbacks).forEach((key) => {
+                const {filter, callback} = this.sysvarCallbacks[key];
+                let match = !filter.name || filter.name === name;
+                if (sysvar.cache && !filter.cache) {
+                    match = false;
+                } else if (filter.change && !sysvar.change) {
+                    if (!(sysvar.cache && filter.cache)) {
+                        match = false;
+                    }
+                }
+
+                if (match) {
+                    callback(RED.util.cloneMessage(sysvar));
+                }
+            });
+        }
+
+        /**
+         * A program's state to the program subscriptions of its name (or of every program).
+         * @param {string} name
+         */
+        dispatchProgram(name) {
+            const program = this.program[name];
+            if (!program) {
+                return;
+            }
+
+            Object.keys(this.programCallbacks).forEach((key) => {
+                const {filter, callback} = this.programCallbacks[key];
+                if (!filter.name || filter.name === name) {
+                    callback(program);
+                }
+            });
+        }
+
         /**
          * Re-read the ReGa metadata that only ever got fetched once, in the
          * constructor: channel names, rooms and functions. A room or function
@@ -2695,12 +2729,7 @@ module.exports = function (RED) {
                                     ts: prg.ts,
                                     tsPrevious: this.program[prg.name].ts,
                                 };
-                                Object.keys(this.programCallbacks).forEach((key) => {
-                                    const {filter, callback} = this.programCallbacks[key];
-                                    if (!filter.name || filter.name === prg.name) {
-                                        callback(this.program[prg.name]);
-                                    }
-                                });
+                                this.dispatchProgram(prg.name);
                             }
                         });
                         resolve();
@@ -2882,7 +2911,9 @@ module.exports = function (RED) {
                         this.meta.attach(box);
                     }
                 },
-                initId: (iface) => this.liteInitId(iface),
+                // task 32: the client follows every interface the system lists; the stream's calls of an
+                // interface this connection does not use (unticked) get an id no handler takes
+                initId: (iface) => (this.liteWants(iface) ? this.liteInitId(iface) : 'nr_ignored'),
                 logger: this.logger,
                 createClient: this.liteCreateClient,
                 onCallback: (method, err, parameters, callback) => {
@@ -2907,7 +2938,20 @@ module.exports = function (RED) {
                     }
                 },
                 onInterface: (iface, state) => {
-                    if (!ifaces.includes(iface) || this.closing) {
+                    if (this.closing) {
+                        return;
+                    }
+
+                    if (state === 'removed' && iface === this.logicIface) {
+                        this.logicGone();
+                        return;
+                    }
+
+                    if (state !== 'removed' && !this.liteWants(iface)) {
+                        return;
+                    }
+
+                    if (!this.liteIfaces.includes(iface)) {
                         return;
                     }
 
@@ -2928,12 +2972,13 @@ module.exports = function (RED) {
                     }
 
                     this.logger.debug('lite-rpc client', state);
+                    const followed = this.liteIfaces.slice();
                     if (state === 'ready') {
-                        ifaces.forEach((iface) => this.setIfaceStatus(iface, running(iface), !running(iface)));
+                        followed.forEach((iface) => this.setIfaceStatus(iface, running(iface), !running(iface)));
                     } else if (state === 'degraded' || state === 'offline' || state === 'connecting') {
-                        ifaces.forEach((iface) => this.setIfaceStatus(iface, false, true));
+                        followed.forEach((iface) => this.setIfaceStatus(iface, false, true));
                     } else if (state === 'closed') {
-                        ifaces.forEach((iface) => this.setIfaceStatus(iface, false));
+                        followed.forEach((iface) => this.setIfaceStatus(iface, false));
                     }
                 },
                 onValues: (values) => this.applyLiteValues(values),
@@ -2949,7 +2994,9 @@ module.exports = function (RED) {
                         return;
                     }
 
-                    const up = ifaces.filter((iface) => running(iface));
+                    // task 32: the addon interfaces the system lists (Logic), followed without a checkbox
+                    this.liteAddonsListed();
+                    const up = this.liteIfaces.filter((iface) => running(iface));
                     this.logger.info('lite-rpc connected: ' + (up.join(', ') || 'no interface running'));
                     if (!this.lite.may('rpc:operate')) {
                         // B-44: events and device lists, but every command refused
@@ -3005,6 +3052,7 @@ module.exports = function (RED) {
                             this.ifaceStatus[iface] = null;
                             this.setIfaceStatus(iface, false);
                         });
+                        this.logicSettled();
                         return;
                     }
 
@@ -3026,7 +3074,7 @@ module.exports = function (RED) {
             let count = 0;
             values.forEach((entry, ref) => {
                 const [iface, channel, datapoint] = String(ref).split('.');
-                if (!this.liteIfaces.includes(iface) || !channel || !datapoint) {
+                if (!channel || !datapoint || !this.liteWants(iface)) {
                     return;
                 }
 
@@ -3041,10 +3089,15 @@ module.exports = function (RED) {
                 });
                 this.values[message.datapointName] = message;
                 count += 1;
+                if (iface === this.logicIface) {
+                    this.logicValue(iface, channel, datapoint, entry.value, {ts: ts || now(), picture: true});
+                }
+
                 if (!datapoint.startsWith('PRESS_')) {
                     this.callCallbacks(message);
                 }
             });
+            this.logicPictureDone();
             this.logger.debug('lite-rpc: ' + count + ' values from the state store');
             this.cachedValuesReceived = true;
             this.saveValues();
@@ -3058,6 +3111,504 @@ module.exports = function (RED) {
                 this.lite.close();
                 this.lite = null;
             }
+        }
+
+        /**
+         * task 32: whether this connection uses an interface the system's lite-rpc carries - one whose
+         * checkbox put it on lite-rpc, or an addon's interface (Logic), which needs no checkbox: it is
+         * taken the first time the stream or the system's list names it. An interface this package
+         * knows by name (CUxD, CCU-Jack, an unticked one) keeps what its checkbox says.
+         * @param {string} iface
+         * @returns {boolean}
+         */
+        liteWants(iface) {
+            if (typeof iface !== 'string' || iface === '') {
+                return false;
+            }
+
+            if (this.liteIfaces.includes(iface)) {
+                return true;
+            }
+
+            if (this.ifaceTypes[iface] || iface === META_IFACE || !this.lite || this.closing) {
+                return false;
+            }
+
+            return this.liteAddonIface(iface);
+        }
+
+        /**
+         * task 32: an addon's interface the system lists, followed through lite-rpc from now on: its
+         * devices, datapoints and events are those of any interface (the value and event nodes can
+         * address them), and Logic's are the system variables and programs as well.
+         * @param {string} iface
+         * @returns {boolean} whether it is followed
+         */
+        liteAddonIface(iface) {
+            if (!/^[\w.-]+$/.test(iface)) {
+                this.logger.warn('lite-rpc: the interface "' + iface + '" has a name this package cannot follow');
+                return false;
+            }
+
+            const info =
+                (this.lite &&
+                    this.lite.box &&
+                    Array.isArray(this.lite.box.interfaces) &&
+                    this.lite.box.interfaces.find((entry) => entry.name === iface)) ||
+                {};
+            this.ifaceTypes[iface] = {
+                conf: 'addon',
+                addonIface: true,
+                addon: info.addon || '',
+                protocol: 'lite-rpc',
+                init: false,
+                ping: false,
+                enabled: true,
+            };
+            this.liteIfaces.push(iface);
+            this.lite.follow(iface);
+            if (!this.enabledIfaces.includes(iface)) {
+                this.enabledIfaces.push(iface);
+            }
+
+            this.ifaceStatus[iface] = null;
+            const isLogic = logic.isLogicIface(iface, info);
+            if (isLogic) {
+                this.logicIface = iface;
+            }
+
+            this.logger.info(
+                'lite-rpc: the interface ' +
+                    iface +
+                    (info.addon ? ' of the addon ' + info.addon : '') +
+                    ' is followed as well' +
+                    (isLogic ? ' - the system variables and programs' : ''),
+            );
+            this.pushStatus();
+            return true;
+        }
+
+        /**
+         * task 32: the system's list of interfaces, read by the client at connect: every addon
+         * interface in it is followed. Then it is known whether Logic is installed.
+         */
+        liteAddonsListed() {
+            const list = this.lite && this.lite.box && this.lite.box.interfaces;
+            if (Array.isArray(list)) {
+                list.forEach((entry) => this.liteWants(entry && entry.name));
+            }
+
+            this.liteListed = true;
+            if (!this.logicIface) {
+                this.logger.info(
+                    'openccu-lite: the Logic addon is not installed - the sysvar and program nodes have nothing to reach until it is',
+                );
+            }
+
+            this.logicSettled();
+            this.pushStatus();
+        }
+
+        /**
+         * task 32: the Logic interface was removed (the addon uninstalled): its variables and programs
+         * are gone, the nodes say so.
+         */
+        logicGone() {
+            const iface = this.logicIface;
+            this.logger.warn('lite-rpc: the interface ' + iface + ' was removed - the Logic addon is gone');
+            Object.keys(this.logicObjects).forEach((channel) => this.forgetLogicObject(channel));
+            this.setIfaceStatus(iface, false);
+            this.logicIface = null;
+            this.pushStatus();
+        }
+
+        /** task 32: whether Logic is installed is known now (or cannot be known): waiting writes go on */
+        logicSettled() {
+            const waiters = this.logicWaiters;
+            this.logicWaiters = [];
+            waiters.forEach((resolve) => resolve());
+        }
+
+        /**
+         * task 32: resolves once it is known whether Logic is installed and its picture is loaded, or
+         * after `timeout` - a write in the first seconds after a deploy waits for it, as the CCU path
+         * waits for the first poll of the ReGa.
+         * @param {number} [timeout] ms
+         * @returns {Promise<void>}
+         */
+        whenLogicKnown(timeout = 30000) {
+            if (this.liteListed || !this.lite) {
+                return Promise.resolve();
+            }
+
+            return new Promise((resolve) => {
+                const timer = setTimeout(resolve, timeout);
+                this.logicWaiters.push(() => {
+                    clearTimeout(timer);
+                    resolve();
+                });
+            });
+        }
+
+        /**
+         * task 32: why system variables and programs cannot be reached on this openccu-lite system, or
+         * null when they can (or it is not known yet).
+         * @param {string} feature for the message, e.g. "system variables"
+         * @returns {Error|null}
+         */
+        logicUnavailable(feature) {
+            if (this.logicIface) {
+                return null;
+            }
+
+            if (!this.lite) {
+                return new Error(
+                    feature +
+                        " are reached through the system's lite-rpc (the Logic addon's interface), which this connection does not use - see the log for why",
+                );
+            }
+
+            if (this.liteListed) {
+                return new Error(feature + ' are not available: the Logic addon is not installed on this system');
+            }
+
+            return null;
+        }
+
+        /**
+         * task 32: what the sysvar, program and poll nodes show: the ReGaHSS's state on a CCU; on
+         * openccu-lite the Logic interface's, or why there is none.
+         * @returns {{iface: string, error?: string, waiting?: boolean}}
+         */
+        sysvarSource() {
+            if (!this.metaMode) {
+                return {iface: 'ReGaHSS'};
+            }
+
+            if (this.logicIface) {
+                return {iface: this.logicIface};
+            }
+
+            if (!this.lite) {
+                return {iface: logic.LOGIC_IFACE, error: 'needs lite-rpc'};
+            }
+
+            if (this.liteListed) {
+                return {iface: logic.LOGIC_IFACE, error: 'Logic addon not installed'};
+            }
+
+            return {iface: logic.LOGIC_IFACE, waiting: true};
+        }
+
+        /**
+         * task 32: the description of a datapoint of a Logic channel, where it was fetched.
+         * @param {string} channel
+         * @param {string} datapoint
+         * @returns {object|undefined}
+         */
+        logicDescription(channel, datapoint) {
+            const devices = this.metadata.devices[this.logicIface];
+            const description = devices && devices[channel];
+            if (!description) {
+                return undefined;
+            }
+
+            const psKey = this.paramsetName(this.logicIface, description, 'VALUES');
+            const paramset = psKey && this.paramsetDescriptions[psKey];
+            return paramset ? paramset[datapoint] : undefined;
+        }
+
+        /**
+         * task 32: a datapoint of Logic's interface - a variable's VALUE, a program's ACTIVE or
+         * LAST_RUN - into the tables the sysvar and program nodes read (this.sysvar, this.program).
+         * @param {string} iface
+         * @param {string} channel
+         * @param {string} datapoint
+         * @param {*} value
+         * @param {{ts: number, picture?: boolean}} options picture: from the state store at connect
+         */
+        logicValue(iface, channel, datapoint, value, {ts, picture = false}) {
+            const ref = logic.parseAddress(channel);
+            if (!ref) {
+                return;
+            }
+
+            if (ref.kind === 'variable') {
+                if (datapoint === 'VALUE') {
+                    this.updateLogicVariable(ref, value, ts, picture);
+                }
+            } else if (datapoint === 'ACTIVE') {
+                this.updateLogicProgram(ref, {active: Boolean(value)}, ts, picture);
+            } else if (datapoint === 'LAST_RUN') {
+                this.updateLogicProgram(ref, {ran: true}, ts, picture);
+            }
+        }
+
+        /**
+         * task 32: the entry of a Logic object under its current name in `table` (this.sysvar or
+         * this.program): a rename moves it, a name another object holds is not taken over.
+         * @param {object} table
+         * @param {object} ref from logic.parseAddress()
+         * @returns {{entry: object|undefined, name: string}}
+         */
+        logicEntry(table, ref) {
+            const name = logic.nameOf(this.channelNames, ref);
+            const entry = this.logicObjects[ref.channel];
+            if (entry && entry.name !== name) {
+                if (table[entry.name] === entry) {
+                    delete table[entry.name];
+                }
+
+                entry.name = name;
+            }
+
+            if (entry) {
+                table[name] = entry;
+            }
+
+            return {entry, name};
+        }
+
+        /**
+         * task 32: a system variable's value. A write is an event at every write, so a value that did
+         * not change is an update (change false), as the CCU's poll reported a new timestamp.
+         * @param {object} ref
+         * @param {*} value
+         * @param {number} ts
+         * @param {boolean} picture
+         */
+        updateLogicVariable(ref, value, ts, picture) {
+            const {entry, name} = this.logicEntry(this.sysvar, ref);
+            const shape = logic.variableShape(this.logicDescription(ref.channel, 'VALUE'), value);
+            if (entry && picture && entry.ts >= ts) {
+                // the picture again (a resync): nothing new
+                return;
+            }
+
+            const isNew = !entry;
+            const sysvar = entry || {
+                topic: '',
+                ccu: this.host,
+                iface: this.logicIface,
+                type: 'SYSVAR',
+                name,
+                info: '',
+                key: ref.key,
+                address: ref.channel,
+            };
+            Object.assign(sysvar, {
+                payload: value,
+                value,
+                valueType: shape.valueType,
+                enum: shape.enum,
+                unit: shape.unit,
+                valueEnum: shape.enum[Number(value)],
+                valuePrevious: isNew ? undefined : sysvar.value,
+                valueEnumPrevious: isNew ? undefined : sysvar.valueEnum,
+                ts,
+                tsPrevious: isNew ? undefined : sysvar.ts,
+                lc: isNew || sysvar.value !== value ? ts : sysvar.lc,
+                lcPrevious: isNew ? undefined : sysvar.lc,
+                change: isNew ? false : sysvar.value !== value,
+                // a value from the start is the cache; the first event of a variable made later is an event
+                cache: isNew && picture,
+            });
+            if (shape.min !== undefined) {
+                sysvar.min = shape.min;
+            }
+
+            if (shape.max !== undefined) {
+                sysvar.max = shape.max;
+            }
+
+            if (isNew) {
+                this.logicObjects[ref.channel] = sysvar;
+                this.sysvar[name] = sysvar;
+            }
+
+            this.dispatchSysvar(name);
+        }
+
+        /**
+         * task 32: a program's state: ACTIVE, and LAST_RUN as the time it last ran (the CCU's
+         * ProgramLastExecuteTime, `ts`). The state store's picture is said once per program, after
+         * both datapoints are in (logicPictureDone).
+         * @param {object} ref
+         * @param {{active?: boolean, ran?: boolean}} change
+         * @param {number} ts
+         * @param {boolean} picture
+         */
+        updateLogicProgram(ref, change, ts, picture) {
+            const {entry, name} = this.logicEntry(this.program, ref);
+            const program = entry || {
+                ccu: this.host,
+                iface: this.logicIface,
+                type: 'PROGRAM',
+                name,
+                key: ref.key,
+                address: ref.channel,
+            };
+            const previous = {active: program.active, ts: program.ts};
+            if (change.active !== undefined) {
+                program.active = change.active;
+                program.payload = change.active;
+                program.value = change.active;
+            }
+
+            if (change.ran) {
+                program.ts = ts;
+            }
+
+            if (!entry) {
+                this.logicObjects[ref.channel] = program;
+                this.program[name] = program;
+                program.pictured = picture;
+            }
+
+            if (picture) {
+                program.pictured = true;
+                return;
+            }
+
+            if (previous.active === program.active && previous.ts === program.ts) {
+                return;
+            }
+
+            program.activePrevious = previous.active;
+            program.tsPrevious = previous.ts;
+            this.dispatchProgram(name);
+        }
+
+        /**
+         * task 32: the state store's picture is in: each program once to its nodes, as the CCU's
+         * first poll does.
+         */
+        logicPictureDone() {
+            Object.keys(this.program).forEach((name) => {
+                const program = this.program[name];
+                if (program.pictured) {
+                    delete program.pictured;
+                    this.dispatchProgram(name);
+                }
+            });
+        }
+
+        /**
+         * task 32: the names changed - a variable or program that was renamed (or whose name came
+         * after its value) is found by its new name; a node waiting for it gets the value it would
+         * have got at the start.
+         */
+        relabelLogic() {
+            Object.keys(this.logicObjects).forEach((channel) => {
+                const entry = this.logicObjects[channel];
+                const ref = logic.parseAddress(channel);
+                const before = entry.name;
+                const {name} = this.logicEntry(entry.type === 'SYSVAR' ? this.sysvar : this.program, ref);
+                if (name === before) {
+                    return;
+                }
+
+                this.logger.debug(
+                    'Logic',
+                    channel,
+                    'is',
+                    JSON.stringify(name),
+                    'now (was',
+                    JSON.stringify(before) + ')',
+                );
+                if (entry.type === 'SYSVAR') {
+                    const {cache, change} = entry;
+                    entry.cache = true;
+                    entry.change = false;
+                    this.dispatchSysvar(name);
+                    entry.cache = cache;
+                    entry.change = change;
+                } else {
+                    this.dispatchProgram(name);
+                }
+            });
+        }
+
+        /**
+         * task 32: a variable or program deleted in Logic (its device, or its value channel).
+         * @param {string} address
+         */
+        forgetLogicObject(address) {
+            const channel = String(address).includes(':') ? address : address + ':1';
+            const entry = this.logicObjects[channel];
+            if (!entry) {
+                return;
+            }
+
+            delete this.logicObjects[channel];
+            const table = entry.type === 'SYSVAR' ? this.sysvar : this.program;
+            if (table[entry.name] === entry) {
+                delete table[entry.name];
+            }
+        }
+
+        /**
+         * task 32: a write to a system variable on openccu-lite - setValue of VALUE on Logic's
+         * interface, cast as the CCU path casts it; the addon refuses what the variable does not take.
+         * @param {string} name
+         * @param {*} value
+         * @returns {Promise<object>} the variable
+         */
+        setLogicVariable(name, value) {
+            return this.whenLogicKnown().then(() => {
+                const unavailable = this.logicUnavailable('system variables');
+                if (unavailable) {
+                    throw unavailable;
+                }
+
+                const sysvar = this.sysvar[name];
+                if (!sysvar || sysvar.iface !== this.logicIface) {
+                    throw new Error('setVariable ' + name + ' unknown');
+                }
+
+                const shape = logic.variableShape(this.logicDescription(sysvar.address, 'VALUE'), sysvar.value);
+                const cast = logic.castVariable(value, shape);
+                this.logger.debug('setVariable', name, sysvar.address, JSON.stringify(cast));
+                return this.methodCall(this.logicIface, 'setValue', [sysvar.address, 'VALUE', cast]).then(() => sysvar);
+            });
+        }
+
+        /**
+         * task 32: a program on openccu-lite: ACTIVE, or RUN_THEN - what the CCU's ProgramExecute()
+         * does, the first "Then" without the conditions (the addon's interface calls it the CCU's
+         * "Start"); RUN would evaluate the conditions first.
+         * @param {string} name
+         * @param {string} datapoint ACTIVE | RUN_THEN
+         * @param {boolean} value
+         * @returns {Promise<object>} the program
+         */
+        logicProgramCall(name, datapoint, value) {
+            return this.whenLogicKnown().then(() => {
+                const unavailable = this.logicUnavailable('programs');
+                if (unavailable) {
+                    throw unavailable;
+                }
+
+                const program = this.program[name];
+                if (!program || program.iface !== this.logicIface) {
+                    throw new Error(
+                        (datapoint === 'ACTIVE' ? 'programActive ' : 'programExecute ') + name + ' not found',
+                    );
+                }
+
+                return this.methodCall(this.logicIface, 'setValue', [program.address, datapoint, value]).then(() => {
+                    if (datapoint === 'ACTIVE') {
+                        program.activePrevious = program.active;
+                        program.active = value;
+                        program.payload = value;
+                        program.value = value;
+                    } else {
+                        program.ts = now();
+                    }
+
+                    return program;
+                });
+            });
         }
 
         /**
@@ -3328,7 +3879,10 @@ module.exports = function (RED) {
          */
         rereadDevices() {
             const ifaces = Object.keys(this.ifaceTypes).filter(
-                (iface) => this.ifaceTypes[iface].enabled && this.ifaceTypes[iface].init && iface !== 'CUxD',
+                (iface) =>
+                    this.ifaceTypes[iface].enabled &&
+                    (this.ifaceTypes[iface].init || this.ifaceTypes[iface].addonIface) &&
+                    iface !== 'CUxD',
             );
             this.logger.info('re-reading device data:', ifaces.join(', '));
             return Promise.all(
@@ -4012,6 +4566,9 @@ module.exports = function (RED) {
          */
         deleteDevice(iface, device) {
             this.logger.debug('deleteDevice', iface, device);
+            if (iface === this.logicIface) {
+                this.forgetLogicObject(device);
+            }
             const known = this.metadata.devices[iface] && this.metadata.devices[iface][device];
             if (this.metadata.devices[iface]) {
                 delete this.metadata.devices[iface][device];
@@ -4220,7 +4777,7 @@ module.exports = function (RED) {
                 return idInit;
             }
 
-            const match = idInit.match(/^nr_[\da-zA-Z]{6}_([a-zA-Z-]+)$/);
+            const match = idInit.match(/^nr_[\da-zA-Z]{6}_([\w.-]+)$/);
             return match && this.ifaceTypes[match[1]] ? match[1] : null;
         }
 
@@ -4723,6 +5280,11 @@ module.exports = function (RED) {
             if (channel.includes('CENTRAL') && datapoint === 'PONG') {
                 this.logger.debug('    < ' + iface + ' PONG ' + payload);
                 return;
+            }
+
+            if (iface === this.logicIface) {
+                // task 32: a variable's or a program's datapoint is the sysvar or program nodes' event too
+                this.logicValue(iface, channel, datapoint, payload, {ts: now()});
             }
 
             //this.logger.trace('publishEvent', JSON.stringify(params));

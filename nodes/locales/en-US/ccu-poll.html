@@ -1,5 +1,7 @@
 <script type="text/html" data-help-name="ccu-poll">
     <p>Triggers an immediate polling of Sysvars from ReGaHSS.</p>
+    <p><b>openccu-lite:</b> the <i>Logic</i> addon's variables and programs arrive as events; there is nothing to
+    poll, a message does nothing.</p>
     <p>This node is intended to receive changes of variables with lower latency. You can create a CCU Program that
     reacts to variable changes by pressing a virtual button, this virtual button presses can then be received by a
     <i>value</i> or <i>rpc event</i> node that triggers an update of the variables through the <i>ccu poll</i>

@@ -1,5 +1,12 @@
 <script type="text/html" data-help-name="ccu-sysvar">
     <p>Set and read ReGaHSS system variables.</p>
+    <p><b>openccu-lite:</b> the system has no ReGaHSS; the system variables come from the <i>Logic</i> addon,
+    which offers them as devices of its interface <code>Logic</code> through the system's lite-rpc. The node finds a
+    variable by its name, as on a CCU, and gets an event at every write (<i>Emit changed values only</i> leaves out a write of
+    the same value). The connection needs lite-rpc (a token with <code>rpc:read</code> and <code>rpc:operate</code>,
+    or RedMatic on the system itself); without the addon the node shows <i>Logic addon not installed</i>.
+    <code>msg.iface</code> is <code>Logic</code>, <code>msg.key</code> the variable's key and
+    <code>msg.address</code> its channel (<code>var-&lt;key&gt;:1</code>).</p>
         <h3>Inputs</h3>
     <dl class="message-properties">
         <dt>payload

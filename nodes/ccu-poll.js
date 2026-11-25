@@ -18,8 +18,9 @@ module.exports = function (RED) {
 
             this.on('input', (message, send, done) => {
                 if (this.ccu.metaMode) {
-                    // openccu-lite has no ReGaHSS - nothing to poll (B-17)
-                    done(this.ccu.regaMissingError('system variables and programs'));
+                    // openccu-lite has no ReGaHSS (B-17); the Logic addon's variables and programs
+                    // arrive as events, there is nothing to poll (task 32)
+                    done(this.ccu.logicUnavailable('system variables and programs') || undefined);
                     return;
                 }
 
@@ -30,7 +31,7 @@ module.exports = function (RED) {
         }
 
         setStatus(data) {
-            statusHelper(this, data);
+            statusHelper.sysvar(this, data);
         }
     }
 

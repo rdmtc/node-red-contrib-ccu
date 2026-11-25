@@ -277,7 +277,8 @@ class LiteConnection {
      * @param {string} options.token the credential
      * @param {boolean} [options.insecure] accept any certificate
      * @param {string} [options.fingerprint256] accept exactly this certificate (pinned at pairing; wins over insecure)
-     * @param {string[]} options.interfaces the interfaces to follow (the enabled ones lite-rpc carries)
+     * @param {string[]} options.interfaces the interfaces the connection uses (the enabled ones lite-rpc carries;
+     *     addon interfaces are added with follow()); the client itself follows all the system lists
      * @param {function(string): string} options.initId the init id the connection's callback table expects per interface
      * @param {function(string, *, Array, Function)} options.onCallback (method, err, params, answer): a callback server's call
      * @param {function(string, string)} options.onInterface (iface, state): up | down | restarted | added | removed
@@ -310,6 +311,16 @@ class LiteConnection {
      */
     has(iface) {
         return this.interfaces.includes(iface);
+    }
+
+    /**
+     * task 32: an interface the connection uses from now on (an addon's, named by the system).
+     * @param {string} iface
+     */
+    follow(iface) {
+        if (!this.interfaces.includes(iface)) {
+            this.interfaces.push(iface);
+        }
     }
 
     /**
@@ -364,7 +375,9 @@ class LiteConnection {
             url: this.options.url,
             auth: {token: this.options.token},
             transport: nodeTransport(trustOf(this.options)),
-            interfaces: this.interfaces,
+            // task 32: no interface filter - the client follows every interface the system lists, so
+            // an addon's interface (Logic) is seen, also one installed later (a filter would hide its
+            // `interface added`); the connection takes what it uses (initId)
             values: true,
             meta: Boolean(this.options.meta),
             devices: true,

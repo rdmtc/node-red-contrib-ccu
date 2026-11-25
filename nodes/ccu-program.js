@@ -71,7 +71,7 @@ module.exports = function (RED) {
         }
 
         setStatus(data) {
-            statusHelper(this, data);
+            statusHelper.sysvar(this, data);
         }
     }
 

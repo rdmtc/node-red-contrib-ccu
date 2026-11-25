@@ -1,5 +1,7 @@
 <script type="text/html" data-help-name="ccu-poll">
     <p>Führt einen sofortigen Poll von ReGaHSS Systemvariablen durch.</p>
+    <p><b>openccu-lite:</b> die Variablen und Programme des Addons <i>Logic</i> kommen als Ereignisse; es gibt nichts
+    zu pollen, eine Nachricht bewirkt nichts.</p>
     <p>Dieser Node ist dazu vorgesehen die Änderung von Systemvariablen mit möglichst geringer Verzögerung zu empfangen.
       Hierzu kann man ein Programm auf der CCU anlegen dass bei Änderung von Variablen einen virtuellen Taster betätigt.
       In Node-RED wird dann ein <i>rpc event</i> oder <i>value</i> Node so konfiguriert dass er diese

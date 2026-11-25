@@ -1,5 +1,10 @@
 <script type="text/html" data-help-name="ccu-program">
     <p>Führt ein ReGaHSS Programm aus.</p>
+    <p><b>openccu-lite:</b> die Programme kommen vom Addon <i>Logic</i> über die lite-rpc des Systems (Schnittstelle
+    <code>Logic</code>). Ein boolean schaltet <code>ACTIVE</code> des Programms; alles andere startet es wie auf der
+    CCU - das erste <i>Dann</i>, ohne die Bedingungen zu prüfen (<code>RUN_THEN</code>). Der Ausgang folgt
+    <code>ACTIVE</code> und jedem Lauf des Programms. Ohne das Addon zeigt der Node <i>Logic addon not
+    installed</i>.</p>
     <h3>Inputs</h3>
     <dl class="message-properties">
         <dt>payload
