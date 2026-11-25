@@ -5,6 +5,17 @@ Notable changes to node-red-contrib-ccu. Format follows
 user-visible symptom and the cause, not the commit list (the release notes
 append commits automatically).
 
+## 4.14.1 (2026-11-25)
+
+### Fixed
+
+- **openccu-lite: a Logic system variable without its texts, list or unit
+  after the start.** At connect the values come before the descriptions of
+  the variables, so a variable's message and the editor's list had an empty
+  `enum`, no `valueEnum` and no `unit` until the variable was written the
+  next time. The variable now takes them as soon as its description is
+  there. Writing was not affected.
+
 ## 4.14.0 (2026-11-25)
 
 ### Added
