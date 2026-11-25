@@ -1572,6 +1572,10 @@ module.exports = function (RED) {
                 all ? Object.keys(all).length : 0,
                 '(' + Object.keys(this.paramsetDescriptions).length + ' in memory for the device types present)',
             );
+            if (loaded > 0) {
+                this.refreshLogicShapesSoon();
+            }
+
             return loaded;
         }
 
@@ -3319,6 +3323,47 @@ module.exports = function (RED) {
         }
 
         /**
+         * task 32: a variable's shape (type, list, unit, limits) comes from its VALUE description,
+         * which may be fetched after the value came in (the start's picture): once descriptions
+         * arrive, the entries that were made without one take it. Once per burst.
+         */
+        refreshLogicShapesSoon() {
+            if (this.logicShapeTimer || !this.logicIface) {
+                return;
+            }
+
+            this.logicShapeTimer = setImmediate(() => {
+                this.logicShapeTimer = null;
+                Object.keys(this.logicObjects).forEach((channel) => {
+                    const entry = this.logicObjects[channel];
+                    if (entry.type !== 'SYSVAR') {
+                        return;
+                    }
+
+                    const description = this.logicDescription(channel, 'VALUE');
+                    if (!description) {
+                        return;
+                    }
+
+                    const shape = logic.variableShape(description, entry.value);
+                    Object.assign(entry, {
+                        valueType: shape.valueType,
+                        enum: shape.enum,
+                        unit: shape.unit,
+                        valueEnum: shape.enum[Number(entry.value)],
+                    });
+                    if (shape.min !== undefined) {
+                        entry.min = shape.min;
+                    }
+
+                    if (shape.max !== undefined) {
+                        entry.max = shape.max;
+                    }
+                });
+            });
+        }
+
+        /**
          * task 32: a datapoint of Logic's interface - a variable's VALUE, a program's ACTIVE or
          * LAST_RUN - into the tables the sysvar and program nodes read (this.sysvar, this.program).
          * @param {string} iface
@@ -4413,6 +4458,10 @@ module.exports = function (RED) {
                             this.newParamsetDescription = true;
                             this.paramsetDescriptions[name] = res;
                             this.paramsetNew[name] = res;
+                            if (iface === this.logicIface) {
+                                this.refreshLogicShapesSoon();
+                            }
+
                             this.paramsetFileMissing.delete(name);
                             // saved once the queue is through (or at stop): every save rewrites the
                             // whole file, 14 MB and more - one every 30 descriptions was a dozen

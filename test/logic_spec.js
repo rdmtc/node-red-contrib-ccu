@@ -312,6 +312,11 @@ describe('openccu-lite: sysvar and program nodes on the Logic addon (task 32)', 
 
         // the shape follows the description once fetched
         (await until(() => nc.logicDescription('var-modus:1', 'VALUE') !== undefined, 10000)).should.be.true();
+        // the entry takes it, also when its value came before the description
+        (await until(() => nc.sysvar.Modus.enum.length === 3, 5000)).should.be.true();
+        nc.sysvar.Modus.valueEnum.should.equal('tag');
+        (await until(() => nc.sysvar.Solltemperatur.unit === '°C', 5000)).should.be.true();
+        nc.sysvar.Solltemperatur.should.have.properties({min: 5, max: 30});
 
         // the value at start, for the node with "emit value on start"
         (await until(() => received.sv.length > 0, 5000)).should.be.true();
