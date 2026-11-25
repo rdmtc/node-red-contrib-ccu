@@ -55,8 +55,18 @@ CCU-Jack keep their own connections.
   (`rpc:read` for events and reads, `rpc:operate` for `setValue`, `rpc:configure` for paramsets and links,
   `rpc:admin` for the rest). A token without `rpc:read` (one made for the names alone) keeps the direct connection
   with callbacks under _auto_, and the log says what lite-rpc would need.
-- **System variables, programs and HM-Script do not exist there.** The `ccu-sysvar`, `ccu-program`, `ccu-script` and
-  `ccu-poll` nodes stay in the flows and answer every message with an error.
+- **System variables and programs come from the Logic addon** (4.14.0). Logic offers them as devices of an interface
+  of its own, `Logic`, which lite-rpc carries like the radio interfaces; the connection follows every interface the
+  system lists, an addon's without a checkbox. The `ccu-sysvar` and `ccu-program` nodes find a variable or a program
+  by its name, as on a CCU, so a flow written for a CCU keeps working once the variables and programs were imported
+  into Logic: a variable is read, written (a list entry or a logic value also by its text) and reported at every
+  write (_Emit changed values only_ leaves out a write of the same value); a program is switched by `true`/`false`
+  and started by anything else - the first _Then_ without the conditions, as the CCU's _Start_ does. The editor lists
+  them, and `ccu-get-value`, `ccu-switch` and `ccu-mqtt` find them too. Messages keep the CCU's shape, with
+  `iface: "Logic"`, `key` and `address` (the Logic channel) in place of the ReGa `id`. This needs lite-rpc (RedMatic
+  on the system, or a paired connection); without the addon the nodes show _Logic addon not installed_ and a write
+  is refused with that reason. `ccu-poll` has nothing to poll there (the values are events). **HM-Script does not
+  exist there**: the `ccu-script` node stays in the flows and answers every message with an error.
 
 ## Topics
 

@@ -5,6 +5,31 @@ Notable changes to node-red-contrib-ccu. Format follows
 user-visible symptom and the cause, not the commit list (the release notes
 append commits automatically).
 
+## 4.14.0 (2026-11-25)
+
+### Added
+
+- **openccu-lite: system variables and programs from the Logic addon.** On
+  openccu-lite the `ccu-sysvar` and `ccu-program` nodes stayed
+  _disconnected_ and answered every message with an error, because the system
+  has no ReGaHSS. The Logic addon now offers the variables and programs as
+  devices of its interface `Logic` through the system's lite-rpc, and the nodes
+  use it: a variable or program is found by its name, as on a CCU, so flows
+  written for a CCU keep working after the switch once the variables and
+  programs were imported into Logic. Values arrive at every write (with
+  _Emit changed values only_, changes only), writes take a list entry or a
+  logic value also by its text, a program is switched by `true`/`false` and
+  started (the first _Then_, as the CCU's _Start_) by anything else. The
+  editor lists the variables and programs; `ccu-get-value`, `ccu-switch` and
+  `ccu-mqtt` find them as well. Without the addon the nodes show _Logic addon
+  not installed_, and the addon installed while Node-RED runs is taken
+  without a deploy.
+- **openccu-lite: every interface the system lists.** The connection
+  followed only the radio interfaces it knows; an addon's interface (such as
+  Logic's) was never seen. It now follows every interface lite-rpc lists, an
+  addon's without a checkbox; its devices and datapoints can be used with the
+  value, event and rpc nodes like those of any interface.
+
 ## 4.13.0 (2026-11-22)
 
 ### Added
