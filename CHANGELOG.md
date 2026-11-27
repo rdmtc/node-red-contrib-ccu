@@ -5,6 +5,23 @@ Notable changes to node-red-contrib-ccu. Format follows
 user-visible symptom and the cause, not the commit list (the release notes
 append commits automatically).
 
+## Unreleased
+
+### Changed
+
+- **A much smaller values cache file.** `ccu_values_<host>.json` in the
+  Node-RED user directory kept the whole message of every datapoint (names,
+  types, rooms, functions, the description's limits), about 730 bytes each -
+  2.5 MB for 3500 datapoints on a large system. It now keeps only the value,
+  its timestamps and the previous value; the message around it is built from
+  the device, name and description caches at start, the same message as
+  before. The file shrinks to about a fifth, and a cached value carries the
+  current names, rooms and functions instead of those of its last event, so
+  a renamed channel no longer shows its old name in cached values. The file of
+  earlier versions is read, the next write is the short one. After going back
+  to an earlier version, the cached values of its first start carry no names
+  until it has read the values from the system again.
+
 ## 4.14.1 (2026-11-25)
 
 ### Fixed
