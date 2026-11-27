@@ -8,7 +8,7 @@ const base62 = require('./lib/base62.js').toBase62;
 const {castValue, castSysvar} = require('./lib/cast.js');
 const {combinedParameterValue} = require('./lib/combined.js');
 const {isPartyWrite, mergePartyValues, PARTY_DATAPOINTS} = require('./lib/party.js');
-const {createMessage} = require('./lib/message.js');
+const {createMessage, savedValue, restoreMessage} = require('./lib/message.js');
 const {topicReplace} = require('./lib/topic.js');
 const {isLocalCcu} = require('./lib/localccu.js');
 const {resolveTransport} = require('./lib/transport.js');
@@ -1303,6 +1303,19 @@ module.exports = function (RED) {
         }
 
         /**
+         * task 36: the values cache file now - per datapoint only what the restore needs
+         * (savedValue), the rest is the metadata's
+         */
+        writeValues() {
+            const values = {};
+            for (const datapointName of Object.keys(this.values)) {
+                values[datapointName] = savedValue(this.values[datapointName]);
+            }
+
+            this.writeCache(this.valuesFile, 'values', {format: 2, values});
+        }
+
+        /**
          * The values cache file. At stop and after a prune (`now`: datapoints of deleted devices
          * must leave the file) it is written at once; otherwise at most every `valuesSaveInterval`
          * minutes, counted from the file's last write (the one at the previous stop too), so a
@@ -1315,7 +1328,7 @@ module.exports = function (RED) {
             clearTimeout(this.valuesSaveTimer);
             this.valuesSaveTimer = null;
             if (now) {
-                this.writeCache(this.valuesFile, 'values', {values: this.values});
+                this.writeValues();
                 return Promise.resolve();
             }
 
@@ -1325,7 +1338,7 @@ module.exports = function (RED) {
 
             const due = lastWritten(this.valuesFile) + this.valuesSaveInterval * 60000 - Date.now();
             if (due <= 0) {
-                this.writeCache(this.valuesFile, 'values', {values: this.values});
+                this.writeValues();
             } else {
                 this.valuesSaveTimer = setTimeout(() => this.saveValues(), Math.min(due, 2147483647));
                 if (typeof this.valuesSaveTimer.unref === 'function') {
@@ -1415,13 +1428,15 @@ module.exports = function (RED) {
                     const {values} = JSON.parse(fs.readFileSync(this.valuesFile));
                     this.logger.info('values loaded from', this.valuesFile);
 
+                    // task 36: the file keeps a value and its timestamps; the message around it
+                    // (names, types, rooms, functions) is built from the device table, the names
+                    // and the descriptions loaded before. An entry of the old format (the whole
+                    // message) is read too, the next write is the short one.
                     for (const datapointName in values) {
-                        this.values[datapointName] = {
-                            ...values[datapointName],
-                            cache: true,
-                            change: false,
-                            uncertain: true,
-                        };
+                        const message = restoreMessage(this, datapointName, values[datapointName]);
+                        if (message) {
+                            this.values[datapointName] = message;
+                        }
                     }
 
                     resolve();
@@ -4510,6 +4525,24 @@ module.exports = function (RED) {
 
                 this.paramsQueueShift();
             }
+        }
+
+        /**
+         * getParamsetDescription without asking the interface for a missing one (task 36: the
+         * values cache's messages are built at start, before any interface is connected)
+         * @param iface
+         * @param device
+         * @param paramset
+         * @param parameter
+         * @returns {*}
+         */
+        peekParamsetDescription(iface, device, paramset, parameter) {
+            const descriptions = this.paramsetDescriptions[this.paramsetName(iface, device, paramset)];
+            if (!descriptions) {
+                return {};
+            }
+
+            return parameter ? descriptions[parameter] : descriptions;
         }
 
         /**
