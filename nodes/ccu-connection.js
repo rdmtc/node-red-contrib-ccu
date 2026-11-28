@@ -792,6 +792,8 @@ module.exports = function (RED) {
             this.liteListed = false;
             this.logicObjects = {};
             this.logicWaiters = [];
+            // B-52: the state store's picture was taken - Logic objects announced after it are read
+            this.litePictured = false;
             this.metaMode = false;
             this.meta = null;
             // #167: minutes between re-reads of channel names, rooms and
@@ -3126,6 +3128,7 @@ module.exports = function (RED) {
                 }
             });
             this.logicPictureDone();
+            this.litePictured = true;
             this.logger.debug('lite-rpc: ' + count + ' values from the state store');
             this.cachedValuesReceived = true;
             this.saveValues();
@@ -3411,6 +3414,56 @@ module.exports = function (RED) {
             } else if (datapoint === 'LAST_RUN') {
                 this.updateLogicProgram(ref, {ran: true}, ts, picture);
             }
+        }
+
+        /**
+         * B-52: Logic announced variables or programs (newDevices): one made after the start has no
+         * value event until it is written, so it would be missing from the editor's lists and from
+         * its nodes until then. Its datapoints are read once, as the start's picture would have
+         * given them. The objects of the connect itself come with the picture and are skipped.
+         * @param {Array<object>} devices the descriptions of the newDevices call
+         */
+        logicAnnounced(devices) {
+            if (!this.litePictured || !this.logicIface || !Array.isArray(devices)) {
+                return;
+            }
+
+            const iface = this.logicIface;
+            devices.forEach((device) => {
+                const ref = logic.parseAddress(device && device.ADDRESS);
+                if (!ref || this.logicObjects[ref.channel]) {
+                    return;
+                }
+
+                this.methodCall(iface, 'getParamset', [ref.channel, 'VALUES'], {quiet: true})
+                    .then((values) => {
+                        if (iface !== this.logicIface || this.logicObjects[ref.channel]) {
+                            // an event came first, or the addon went
+                            return;
+                        }
+
+                        const paramset = values && typeof values === 'object' ? values : {};
+                        const ts = now();
+                        if (ref.kind === 'variable') {
+                            this.logicValue(iface, ref.channel, 'VALUE', paramset.VALUE, {ts, picture: true});
+                        } else {
+                            this.updateLogicProgram(ref, {active: Boolean(paramset.ACTIVE)}, ts, true);
+                            this.logicPictureDone();
+                        }
+
+                        this.logger.debug(
+                            'Logic',
+                            ref.channel,
+                            'announced:',
+                            JSON.stringify(this.logicObjects[ref.channel] && this.logicObjects[ref.channel].name),
+                        );
+                    })
+                    .catch((error) => {
+                        this.logger.warn(
+                            'Logic: ' + ref.channel + ' announced but not readable: ' + (error.message || error),
+                        );
+                    });
+            });
         }
 
         /**
@@ -5008,6 +5061,10 @@ module.exports = function (RED) {
 
                     if (changed) {
                         this.saveMetadata();
+                    }
+
+                    if (iface && iface === this.logicIface) {
+                        this.logicAnnounced(devices);
                     }
 
                     // B-37: a restart that kept the subscription gets a fresh init, no ping

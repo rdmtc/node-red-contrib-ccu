@@ -423,6 +423,62 @@ describe('openccu-lite: sysvar and program nodes on the Logic addon (task 32)', 
         nc.sysvar.Niederschlag.address.should.equal('var-regen:1');
     });
 
+    it('B-52: a variable or program made while running is listed at once, the name may come later', async () => {
+        await startFake(true);
+        const {nc} = await start();
+        (await until(() => nc.sysvar.Regen && nc.litePictured, 15000)).should.be.true();
+
+        // Logic makes a variable and a program: newDevices, no value event; the name follows
+        fake.opts.devices.Logic = [
+            ...LOGIC_DEVICES,
+            ...logicDevice('var', 'taupunkt-bad', 'LOGIC-VARIABLE'),
+            ...logicDevice('prg', 'lueften', 'LOGIC-PROGRAM'),
+        ];
+        fake.opts.values['Logic.var-taupunkt-bad:1.VALUE'] = {value: 11.4};
+        fake.opts.values['Logic.prg-lueften:1.ACTIVE'] = {value: true};
+        fake.push('newDevices', {
+            interface: 'Logic',
+            devices: [
+                ...logicDevice('var', 'taupunkt-bad', 'LOGIC-VARIABLE'),
+                ...logicDevice('prg', 'lueften', 'LOGIC-PROGRAM'),
+            ],
+        });
+
+        // listed under its key until the name is there
+        (await until(() => nc.sysvar['taupunkt-bad'] && nc.program.lueften, 5000)).should.be.true();
+        nc.sysvar['taupunkt-bad'].should.have.properties({value: 11.4, address: 'var-taupunkt-bad:1', cache: true});
+        nc.program.lueften.active.should.be.true();
+
+        fake.metaEvent({
+            revision: 4,
+            kind: 'object.updated',
+            ref: 'Logic.var-taupunkt-bad:1',
+            value: {name: 'Taupunkt Bad'},
+        });
+        fake.metaEvent({revision: 5, kind: 'object.updated', ref: 'Logic.prg-lueften:1', value: {name: 'Lüften'}});
+        (await until(() => nc.sysvar['Taupunkt Bad'] && nc.program['Lüften'], 5000)).should.be.true();
+        should(nc.sysvar['taupunkt-bad']).be.undefined();
+
+        const sysvars = await helper.request().get('/ccu?type=sysvar&config=nc').expect(200);
+        Object.keys(JSON.parse(sysvars.text)).should.containEql('Taupunkt Bad');
+        const programs = await helper.request().get('/ccu?type=program&config=nc').expect(200);
+        Object.keys(JSON.parse(programs.text)).should.containEql('Lüften');
+
+        // renamed afterwards: the list follows
+        fake.metaEvent({
+            revision: 6,
+            kind: 'object.updated',
+            ref: 'Logic.var-taupunkt-bad:1',
+            value: {name: 'Taupunkt Badezimmer'},
+        });
+        (await until(() => nc.sysvar['Taupunkt Badezimmer'] && !nc.sysvar['Taupunkt Bad'], 5000)).should.be.true();
+
+        // the objects of the connect are not read again
+        fake.calls
+            .filter((call) => call.method === 'getParamset' && call.params[0] === 'var-regen:1')
+            .length.should.equal(0);
+    });
+
     it('without the addon: the nodes say so, a write is refused; installed while running, it is taken', async () => {
         await startFake(false);
         const {nc} = await start();

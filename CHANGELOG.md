@@ -5,6 +5,19 @@ Notable changes to node-red-contrib-ccu. Format follows
 user-visible symptom and the cause, not the commit list (the release notes
 append commits automatically).
 
+## Unreleased
+
+### Fixed
+
+- **openccu-lite: a system variable or program made in the Logic addon while
+  Node-RED runs was missing** from the sysvar and program nodes' lists, and
+  their nodes did not find it, until its value was first written (a computed
+  value: until its inputs changed) or Node-RED was restarted. The connection
+  took a Logic object only from a value event, and Logic announces a new one
+  without. Now its values are read as soon as Logic announces it, so it is
+  listed at once - first under its key if the name is not there yet, then
+  under its name, and after a rename under the new one.
+
 ## 4.16.0 (2026-11-28)
 
 ### Added
