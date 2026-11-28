@@ -9,11 +9,34 @@ append commits automatically).
 
 ### Added
 
+- **display: the HmIP-WRCD.** The display node has the new type `HmIP-WRCD`
+  for the wall-mount remote with e-paper display: five lines of 16
+  characters, per line an icon, the alignment, text colour and background,
+  and a sound with repetitions and interval - written in one command to the
+  device's channel 3. A line set to _Don't touch_ stays as it is, and
+  `msg.lineX`, `msg.iconX`, `msg.colorX`, `msg.backgroundX` and `msg.alignX`
+  set a line from the message. Umlauts are translated for the display. Not
+  yet tried on a device (#144, @BayerSe).
+- **signal: channels of the type `OPTICAL_SIGNAL_RECEIVER`** (the LEDs of an
+  HmIPW-WRC6) take the same command as the HmIP-BSL: colour, brightness,
+  behaviour, duration and ramp.
 - **Device data for the HmIP-BSL 2.0.2, HmIP-RGBW, HmIP-DRG-DALI, HmIP-WRCD
   and HmIPW-WRC6.** The shipped `paramsets.json` now describes these devices,
   so their datapoints are in the editor's lists before the system has been
   asked for them. The descriptions come from
   [pydevccu](https://github.com/SukramJ/pydevccu)'s dumps of real devices.
+
+### Fixed
+
+- **signal: the LED of an HmIP-BSL with firmware 2.x stayed dark.** From
+  firmware 2 on the device has the datapoint `COLOR_BEHAVIOUR` beside colour
+  and brightness, and its default is `OFF`; the signal node did not send it.
+  The node now sends it to every channel that has it, and has the new
+  setting _Behaviour_ (steady light, blinking, flashing or billowing, each
+  slow, medium or fast; `msg.config.colorBehaviour` as a number or a name). A
+  flow of before sends the steady light. An HmIP-BSL with firmware 1.x gets
+  exactly what it got before. Not yet tried on a device
+  (#177, @TinkyWonky; the workaround that showed the way is @andesse's).
 
 ## 4.15.0 (2026-11-27)
 
