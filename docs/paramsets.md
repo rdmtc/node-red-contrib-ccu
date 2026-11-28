@@ -156,6 +156,28 @@ Optional later phase: rftypes→description converter for full BidCos coverage
 (medium effort, low demand — BidCos is EOL hardware and the runtime
 self-heals).
 
+### 3a. Device types no system at hand has: pydevccu's dumps (2026-11-28)
+
+A device type neither the maintainer's systems nor a reporter's dump has can
+come from [pydevccu](https://github.com/SukramJ/pydevccu) (MIT): its
+`device_descriptions/<type>.json` is the `listDevices` result and its
+`paramset_descriptions/<type>.json` the `getParamsetDescription` results of
+a real device. `tools/paramsets-from-pydevccu.js` writes them as a dump with
+the keys of `paramsets.json`, which the join tool merges as any other:
+
+```
+node tools/paramsets-from-pydevccu.js --dir <pydevccu checkout>/pydevccu \
+     --out ccu_paramsets_dump.json HmIP-BSL HmIP-RGBW HmIP-DRG-DALI HmIP-WRCD HmIPW-WRC6
+node tools/paramsets-join.js ccu_paramsets_dump.json
+```
+
+Added this way from pydevccu 0.2.6: HmIP-BSL 2.0.2, HmIP-RGBW 1.0.52,
+HmIP-DRG-DALI 1.4.8, HmIP-WRCD 1.4.6 and HmIPW-WRC6 1.0.8 (73 keys). The
+HmIP-BSL 2.0.2 still reports its LED channels as `DIMMER_VIRTUAL_RECEIVER`,
+now with `COLOR_BEHAVIOUR`; `OPTICAL_SIGNAL_RECEIVER` (the same datapoints)
+is the HmIPW-WRC6's channel type. That corrects the #177 row below, which
+was written from the firmware's device files.
+
 ## 4. Per-issue findings
 
 | Issue | Device | In paramsets.json? | Firmware/live says | Verdict |

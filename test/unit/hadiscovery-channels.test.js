@@ -85,13 +85,21 @@ function where(payload) {
    ccu-homeassistant node published it before task 33 (sha256 of the JSON of messages,
    availability, missing and empty) - the default model must not change a byte. */
 const BEFORE = 'c12a5136a5905ed3d5c4b5c7dbfca4a00df8ba8b80e30cfca65d07d050f4c918';
+/** the device types paramsets.json gained after that (4.16.0), checked on their own below */
+const ADDED_LATER = [
+    'HmIP-RF/HmIP-BSL/2.0.2/2',
+    'HmIP-RF/HmIP-DRG-DALI/1.4.8/2',
+    'HmIP-RF/HmIP-RGBW/1.0.52/1',
+    'HmIP-RF/HmIP-WRCD/1.4.6/3',
+    'HmIP-RF/HmIPW-WRC6/1.0.8/1',
+];
 
 test('off (the default): the payloads of before, byte for byte, for every known device type', () => {
     for (const model of [undefined, 'off', 'bogus']) {
         const out = {};
         for (const [name, options] of Object.entries(VARIANTS)) {
             out[name] = {};
-            for (const {group, fx} of allKnownFixtures()) {
+            for (const {group, fx} of allKnownFixtures(ADDED_LATER)) {
                 const rooms = (a) => (a.endsWith(':1') ? ['Küche'] : a.endsWith(':2') ? ['Flur', 'Küche'] : []);
                 const r = discoveryMessages(ctxFor(fx, {...options, rooms, channelDevices: model}));
                 out[name][group] = {
@@ -106,6 +114,19 @@ test('off (the default): the payloads of before, byte for byte, for every known 
 
         const hash = crypto.createHash('sha256').update(JSON.stringify(out)).digest('hex');
         assert.equal(hash, BEFORE, `model ${model}: the payloads changed`);
+    }
+});
+
+test('the device types added later publish in every model and variant', () => {
+    const added = allKnownFixtures().filter(({group}) => ADDED_LATER.includes(group));
+    assert.deepEqual(added.map(({group}) => group).sort(), ADDED_LATER);
+    for (const model of ['off', 'children', 'devices']) {
+        for (const options of Object.values(VARIANTS)) {
+            for (const {group, fx} of added) {
+                const r = discoveryMessages(ctxFor(fx, {...options, channelDevices: model}));
+                assert.ok(r.messages.length > 0, `${group} ${model}: nothing published`);
+            }
+        }
     }
 });
 

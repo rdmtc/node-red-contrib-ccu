@@ -26,8 +26,12 @@ function fixture(iface, address, type, firmware, version, channelTypes, names = 
     return {devices, description, channelName: (a) => names[a]};
 }
 
-/** every device type paramsets.json knows, as a synthetic device with one channel per channel type */
-function allKnownFixtures() {
+/**
+ * every device type paramsets.json knows, as a synthetic device with one channel per channel type
+ * @param {string[]} [without] groups (`iface/type/firmware/version`) to leave out, before the
+ *     addresses are numbered - so a golden result does not move when the file gains a type
+ */
+function allKnownFixtures(without = []) {
     const groups = new Map();
     for (const key of Object.keys(paramsets)) {
         const [iface, type, firmware, version, chType, paramset] = key.split('/');
@@ -36,6 +40,10 @@ function allKnownFixtures() {
         }
 
         const gkey = [iface, type, firmware, version].join('/');
+        if (without.includes(gkey)) {
+            continue;
+        }
+
         if (!groups.has(gkey)) {
             groups.set(gkey, {iface, type, firmware, version: Number(version), channelTypes: []});
         }

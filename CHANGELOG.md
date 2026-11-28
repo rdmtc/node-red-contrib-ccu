@@ -5,6 +5,16 @@ Notable changes to node-red-contrib-ccu. Format follows
 user-visible symptom and the cause, not the commit list (the release notes
 append commits automatically).
 
+## Unreleased
+
+### Added
+
+- **Device data for the HmIP-BSL 2.0.2, HmIP-RGBW, HmIP-DRG-DALI, HmIP-WRCD
+  and HmIPW-WRC6.** The shipped `paramsets.json` now describes these devices,
+  so their datapoints are in the editor's lists before the system has been
+  asked for them. The descriptions come from
+  [pydevccu](https://github.com/SukramJ/pydevccu)'s dumps of real devices.
+
 ## 4.15.0 (2026-11-27)
 
 ### Changed
