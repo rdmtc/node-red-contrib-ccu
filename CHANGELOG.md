@@ -9,10 +9,10 @@ append commits automatically).
 
 ### Changed
 
-- **sysvar: the default topic is `hm/status/sysvar/${Name}`** (was
-  `ReGaHSS/${Name}`). It applies to newly placed sysvar nodes; nodes already
-  in a flow keep the topic they were saved with. The program node keeps
-  `ReGaHSS/${Name}`.
+- **sysvar and program: new default topics** `hm/status/sysvar/${Name}` and
+  `hm/status/program/${Name}` (both were `ReGaHSS/${Name}`). They apply to
+  newly placed nodes; nodes already in a flow keep the topic they were saved
+  with.
 
 ### Fixed
 
