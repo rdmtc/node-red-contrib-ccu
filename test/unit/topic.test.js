@@ -68,3 +68,19 @@ test('parseTopicAddress: too few slash segments, an empty or missing topic give 
     assert.deepEqual(parseTopicAddress(''), {iface: '', channel: undefined, datapoint: undefined});
     assert.deepEqual(parseTopicAddress(undefined), {iface: '', channel: undefined, datapoint: undefined});
 });
+
+/* the editor's default topics, as the README's table states them */
+
+test('default topics: sysvar hm/status/sysvar/${Name}, program ReGaHSS/${Name}', () => {
+    const fs = require('node:fs');
+    const path = require('node:path');
+    const defaultTopic = (node) => {
+        const html = fs.readFileSync(path.join(__dirname, '../../nodes', node + '.html'), 'utf8');
+        return /topic:\s*\{value:\s*'([^']*)'\}/.exec(html)[1];
+    };
+
+    assert.equal(defaultTopic('ccu-sysvar'), 'hm/status/sysvar/${Name}');
+    assert.equal(defaultTopic('ccu-program'), 'ReGaHSS/${Name}');
+    const readme = fs.readFileSync(path.join(__dirname, '../../README.md'), 'utf8');
+    assert.match(readme, /\| sysvar +\| `hm\/status\/sysvar\/\$\{Name\}` +\|/);
+});

@@ -7,6 +7,13 @@ append commits automatically).
 
 ## Unreleased
 
+### Changed
+
+- **sysvar: the default topic is `hm/status/sysvar/${Name}`** (was
+  `ReGaHSS/${Name}`). It applies to newly placed sysvar nodes; nodes already
+  in a flow keep the topic they were saved with. The program node keeps
+  `ReGaHSS/${Name}`.
+
 ### Fixed
 
 - **openccu-lite: a system variable or program made in the Logic addon while

@@ -34,11 +34,16 @@
 	"lc": 1525197999611,
 	"enum": ["absent", "present"],
 	"id": 950,
-	"topic": "ReGaHSS/Presence"
+	"topic": "hm/status/sysvar/Presence"
 }
             </code></pre>
         </li>
     </ol>
+
+    <h3>Topic</h3>
+    <p><code>msg.topic</code> is built from the <i>Topic</i> field; <code>${Name}</code> stands for the variable's name.
+    A newly placed node has <code>hm/status/sysvar/${Name}</code>; a node placed before keeps the topic it has
+    (<code>ReGaHSS/${Name}</code> until 4.16.0).</p>
 
     <h3>Dynamic configuration</h3>
     <p><code>msg.config</code> is an object whose properties override this node's configuration for that one message. The stored configuration is never modified.</p>
