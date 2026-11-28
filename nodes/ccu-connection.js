@@ -461,10 +461,16 @@ module.exports = function (RED) {
                     const devices = config.metadata.devices[request.query.iface];
                     if (devices) {
                         Object.keys(devices).forEach((addr) => {
-                            if (
-                                (addr.endsWith(':3') && devices[addr].PARENT_TYPE.match(/HM-Dis-EP-WM55/)) ||
+                            if (devices[addr].TYPE === 'ACOUSTIC_DISPLAY_RECEIVER') {
+                                // the HmIP-WRCD's display and sound channel (#144)
+                                object[addr] = {
+                                    name: config.channelNames[addr],
+                                    type: 'HmIP-WRCD',
+                                };
+                            } else if (
+                                (addr.endsWith(':3') && String(devices[addr].PARENT_TYPE).match(/HM-Dis-EP-WM55/)) ||
                                 ((addr.endsWith(':1') || addr.endsWith(':2')) &&
-                                    devices[addr].PARENT_TYPE.match(/HM-Dis-WM55/))
+                                    String(devices[addr].PARENT_TYPE).match(/HM-Dis-WM55/))
                             ) {
                                 object[addr] = {
                                     name: config.channelNames[addr],

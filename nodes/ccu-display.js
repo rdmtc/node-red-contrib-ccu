@@ -2,6 +2,7 @@ const path = require('path');
 
 const statusHelper = require(path.join(__dirname, '/lib/status.js'));
 const {effectiveConfig} = require(path.join(__dirname, '/lib/dynconfig.js'));
+const {wrcdCommand, LINES: WRCD_LINES} = require(path.join(__dirname, '/lib/wrcd.js'));
 
 /** Everything a message may override through msg.config (B-2, #80 #185). */
 const DYNAMIC_KEYS = [
@@ -13,7 +14,43 @@ const DYNAMIC_KEYS = [
     'pause',
     'signal',
     ...[1, 2, 3, 4, 5, 6].flatMap((i) => ['line' + i, 'color' + i, 'icon' + i, 'disable' + i]),
+    // HmIP-WRCD (#144)
+    'wrcdSound',
+    'wrcdRepeat',
+    'wrcdInterval',
+    ...[1, 2, 3, 4, 5].flatMap((i) => ['wrcdIcon' + i, 'wrcdAlign' + i, 'wrcdColor' + i, 'wrcdBackground' + i]),
 ];
+
+/**
+ * The HmIP-WRCD's command of one message: the lines that are not left as they are, and the sound.
+ * `msg.lineX`, `msg.iconX`, `msg.colorX`, `msg.alignX` and `msg.backgroundX` win over the configuration.
+ * @param {object} effective the node's effective configuration
+ * @param {object} message
+ * @returns {string} the COMBINED_PARAMETER text, empty when there is nothing to send
+ */
+function wrcdPayload(effective, message) {
+    const pick = (name, key) => (message[name] === undefined ? effective[key] : message[name]);
+    const lines = {};
+    for (let i = 1; i <= WRCD_LINES; i++) {
+        if (message['disable' + i] || effective['disable' + i]) {
+            continue;
+        }
+
+        lines[i] = {
+            text: pick('line' + i, 'line' + i),
+            icon: pick('icon' + i, 'wrcdIcon' + i),
+            align: pick('align' + i, 'wrcdAlign' + i),
+            color: pick('color' + i, 'wrcdColor' + i),
+            background: pick('background' + i, 'wrcdBackground' + i),
+        };
+    }
+
+    return wrcdCommand(lines, {
+        sound: effective.wrcdSound,
+        repeat: effective.wrcdRepeat,
+        interval: effective.wrcdInterval,
+    });
+}
 
 module.exports = function (RED) {
     class CcuDisplay {
@@ -159,6 +196,25 @@ module.exports = function (RED) {
                 // msg.line1 & co. keep working as before; msg.config
                 // additionally reaches the channel and the EP-WM55 settings
                 const {config: effective} = effectiveConfig(config, message, DYNAMIC_KEYS);
+
+                if (effective.channelType === 'HmIP-WRCD') {
+                    const command = wrcdPayload(effective, message);
+                    if (!command) {
+                        done(new Error('nothing to send: every line is left as it is and no sound is chosen'));
+                        return;
+                    }
+
+                    this.ccu
+                        .setValue(effective.iface, effective.channel, 'COMBINED_PARAMETER', command)
+                        .then(() => {
+                            done();
+                        })
+                        .catch((error) => {
+                            done(error);
+                        });
+                    return;
+                }
+
                 let payload = '0x02';
 
                 let countLines = 6; // HM-Dis-WM55

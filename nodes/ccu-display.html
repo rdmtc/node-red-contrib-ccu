@@ -1,4 +1,16 @@
 <script type="text/javascript">
+    // the HmIP-WRCD's icons and sounds, as nodes/lib/wrcd.js has them: the number sent is the index
+    const ccuWrcdIcons = [
+        'NO_ICON', 'LAMP_OFF', 'LAMP_ON', 'PADLOCK_OPEN', 'PADLOCK_CLOSED', 'ERROR', 'EVERYTHING_OKAY', 'INFORMATION',
+        'NEW_MESSAGE', 'SERVICE_MESSAGE', 'SUN', 'MOON', 'WIND', 'CLOUD', 'THUNDERSTORM', 'DRIZZLE', 'CLOUD_AND_MOOON',
+        'RAIN', 'SNOW', 'CLOUD_AND_SUN', 'CLOUD_SUN_AND_RAIN', 'SNOWFLAKE', 'RAINDROP', 'FLAME', 'WINDOW_OPEN',
+        'SHUTTERS', 'ECO', 'PROTECTION_DEACTIVATED', 'EXTERNAL_PROTECTION', 'INTERNAL_PROTECTION', 'BELL', 'CLOCK'
+    ];
+    const ccuWrcdSounds = [
+        'LOW_BATTERY', 'DISARMED', 'INTERNALLY_ARMED', 'EXTERNALLY_ARMED', 'DELAYED_INTERNALLY_ARMED',
+        'DELAYED_EXTERNALLY_ARMED', 'EVENT', 'ERROR'
+    ];
+
     RED.nodes.registerType('ccu-display', {
 
         category: 'ccu',
@@ -35,6 +47,29 @@
             repeat: {value: '0xD0'},
             pause: {value: '0xE0'},
             sound: {value: '0xC0'},
+            wrcdIcon1: {value: '0'},
+            wrcdAlign1: {value: 'CENTER'},
+            wrcdColor1: {value: 'BLACK'},
+            wrcdBackground1: {value: 'WHITE'},
+            wrcdIcon2: {value: '0'},
+            wrcdAlign2: {value: 'CENTER'},
+            wrcdColor2: {value: 'BLACK'},
+            wrcdBackground2: {value: 'WHITE'},
+            wrcdIcon3: {value: '0'},
+            wrcdAlign3: {value: 'CENTER'},
+            wrcdColor3: {value: 'BLACK'},
+            wrcdBackground3: {value: 'WHITE'},
+            wrcdIcon4: {value: '0'},
+            wrcdAlign4: {value: 'CENTER'},
+            wrcdColor4: {value: 'BLACK'},
+            wrcdBackground4: {value: 'WHITE'},
+            wrcdIcon5: {value: '0'},
+            wrcdAlign5: {value: 'CENTER'},
+            wrcdColor5: {value: 'BLACK'},
+            wrcdBackground5: {value: 'WHITE'},
+            wrcdSound: {value: ''},
+            wrcdRepeat: {value: '0'},
+            wrcdInterval: {value: '5'},
             ccuConfig: {value: 'localhost', type: 'ccu-connection', required: true}
         },
         inputs: 1,
@@ -56,10 +91,43 @@
             const $nodeIconX = $('#node-icon-X')[0];
             const $nodeDisableI = $('#node-disable-X')[0];
         
+            const text = key => this._('ccu-display.' + key);
+            const options = list => list.map(([value, label]) => '<option value="' + value + '">' + label + '</option>').join('');
+
+            // the HmIP-WRCD's rows of line i: the icon, then alignment and colours (#144)
+            const wrcdRows = i => {
+                const width = share => 'width: calc(' + share + '% - 3px);';
+                return '<div class="form-row SUBMIT HmIP-WRCD">' +
+                    '<label for="node-input-wrcdIcon' + i + '"><i class="icon-envelope"></i>' + text('icon') + ' ' + i + '</label>' +
+                    '<select id="node-input-wrcdIcon' + i + '" class="ccu-dropdown">' +
+                    options(ccuWrcdIcons.map((name, index) => [index, text('wrcd.icon.' + name)])) +
+                    '</select></div>' +
+                    '<div class="form-row SUBMIT HmIP-WRCD">' +
+                    '<label for="node-input-wrcdAlign' + i + '"><i class="icon-envelope"></i>' + text('wrcd.style') + ' ' + i + '</label>' +
+                    '<select id="node-input-wrcdAlign' + i + '" style="' + width(19) + '" title="' + text('wrcd.align') + '">' +
+                    options([['LEFT', text('wrcd.left')], ['CENTER', text('wrcd.center')], ['RIGHT', text('wrcd.right')]]) +
+                    '</select> ' +
+                    '<select id="node-input-wrcdColor' + i + '" style="' + width(27) + '" title="' + text('wrcd.textColor') + '">' +
+                    options([['BLACK', text('wrcd.textBlack')], ['WHITE', text('wrcd.textWhite')]]) +
+                    '</select> ' +
+                    '<select id="node-input-wrcdBackground' + i + '" style="' + width(24) + '" title="' + text('wrcd.background') + '">' +
+                    options([['WHITE', text('wrcd.onWhite')], ['BLACK', text('wrcd.onBlack')]]) +
+                    '</select></div>';
+            };
+
             // replace X -> number and insert templates
             for (let i = 6; i > 0; i--) {
                 let extraClass = "HM-Dis-EP-WM55";
                 if (i >= 4) extraClass="";
+                let wrcdClass = "";
+                if (i <= 5) {
+                    wrcdClass = " HmIP-WRCD";
+                    $nodeLineX.insertAdjacentHTML('afterend', wrcdRows(i));
+                    for (const [field, fallback] of [['wrcdIcon', '0'], ['wrcdAlign', 'CENTER'], ['wrcdColor', 'BLACK'], ['wrcdBackground', 'WHITE']]) {
+                        const value = this[field + i];
+                        $('#node-input-' + field + i).val(value === undefined || value === '' ? fallback : String(value));
+                    }
+                }
 
                 let nodeIconI = $nodeIconX.innerHTML.replaceAll('X',i);
                 $nodeLineX.insertAdjacentHTML('afterend','<div class="form-row SUBMIT HM-Dis-WM55 '+extraClass+'">'+nodeIconI+'</div>');
@@ -70,19 +138,32 @@
                 $('#node-input-color'+i)[0].value=this['color'+i];
 
                 let nodeLineI = $nodeLineX.innerHTML.replaceAll('X',i);
-                $nodeLineX.insertAdjacentHTML('afterend','<div class="form-row SUBMIT HM-Dis-WM55 '+extraClass+'">'+nodeLineI+'</div>');
-                $('#node-input-line'+i)[0].value=this['line'+i];
+                $nodeLineX.insertAdjacentHTML('afterend','<div class="form-row SUBMIT HM-Dis-WM55 '+extraClass+wrcdClass+'">'+nodeLineI+'</div>');
+                $('#node-input-line'+i)[0].value=this['line'+i] === undefined ? '' : this['line'+i];
 
                 let nodeDisableI = $nodeDisableI.innerHTML.replaceAll('X',i);
-                $nodeLineX.insertAdjacentHTML('afterend','<div class="form-row SUBMIT HM-Dis-WM55 '+extraClass+'">'+nodeDisableI+'</div>');
+                $nodeLineX.insertAdjacentHTML('afterend','<div class="form-row SUBMIT HM-Dis-WM55 '+extraClass+wrcdClass+'">'+nodeDisableI+'</div>');
                 $('#node-input-disable'+i).on("change",function() {
                     let dis = $('#node-input-disable'+i)[0].checked;
                     $('#node-input-icon'+i).prop('disabled', dis);
+                    $('#node-input-wrcdIcon'+i+', #node-input-wrcdAlign'+i+', #node-input-wrcdColor'+i+', #node-input-wrcdBackground'+i).prop('disabled', dis);
                     $('#node-input-color'+i).prop('disabled',dis);
                     $('#node-input-line'+i).prop('disabled', dis);
                 });
 
                 $('#node-input-disable'+i)[0].checked=this['disable'+i];
+                $('#node-input-disable'+i).trigger('change');
+            }
+
+            $('#node-input-wrcdSound').append(options(ccuWrcdSounds.map((name, index) => [index, text('wrcd.sound.' + name)])));
+            $('#node-input-wrcdSound').val(this.wrcdSound === undefined ? '' : String(this.wrcdSound));
+            // a node saved before the HmIP-WRCD was known has none of its settings: show the defaults
+            if (this.wrcdRepeat === undefined) {
+                $('#node-input-wrcdRepeat').val('0');
+            }
+
+            if (this.wrcdInterval === undefined) {
+                $('#node-input-wrcdInterval').val('5');
             }
 
             // remove templates
@@ -257,6 +338,7 @@
         <select id="node-input-channelType" class="ccu-dropdown">
             <option value="HM-Dis-WM55">HM-Dis-WM55</option>
             <option value="HM-Dis-EP-WM55">HM-Dis-EP-WM55</option>
+            <option value="HmIP-WRCD">HmIP-WRCD</option>
         </select>
     </div>
 
@@ -364,6 +446,55 @@
             <option value="0xEF">160 <span data-i18n="ccu-display.seconds"></span></option>
         </select>
     </div>
+    <div class="form-row SUBMIT HmIP-WRCD">
+        <label for="node-input-wrcdSound"><i class="icon-envelope"></i><span data-i18n="ccu-display.sound"></span></label>
+        <select id="node-input-wrcdSound" class="ccu-dropdown">
+            <option value="" data-i18n="ccu-display.off"></option>
+        </select>
+    </div>
+    <div class="form-row SUBMIT HmIP-WRCD">
+        <label for="node-input-wrcdRepeat"><span data-i18n="ccu-display.repeat"></span></label>
+        <select id="node-input-wrcdRepeat" class="ccu-dropdown">
+            <option value="0" data-i18n="ccu-display.wrcd.noRepeat"></option>
+            <option value="1">1</option>
+            <option value="2">2</option>
+            <option value="3">3</option>
+            <option value="4">4</option>
+            <option value="5">5</option>
+            <option value="6">6</option>
+            <option value="7">7</option>
+            <option value="8">8</option>
+            <option value="9">9</option>
+            <option value="10">10</option>
+            <option value="11">11</option>
+            <option value="12">12</option>
+            <option value="13">13</option>
+            <option value="14">14</option>
+            <option value="15" data-i18n="ccu-display.infinity"></option>
+        </select>
+    </div>
+    <div class="form-row SUBMIT HmIP-WRCD">
+        <label for="node-input-wrcdInterval"><i class="icon-bookmark"></i><span data-i18n="ccu-display.wrcd.interval"></span></label>
+        <select id="node-input-wrcdInterval" class="ccu-dropdown">
+            <option value="5">5 s</option>
+            <option value="10">10 s</option>
+            <option value="15">15 s</option>
+            <option value="20">20 s</option>
+            <option value="25">25 s</option>
+            <option value="30">30 s</option>
+            <option value="35">35 s</option>
+            <option value="40">40 s</option>
+            <option value="45">45 s</option>
+            <option value="50">50 s</option>
+            <option value="55">55 s</option>
+            <option value="60">60 s</option>
+            <option value="65">65 s</option>
+            <option value="70">70 s</option>
+            <option value="75">75 s</option>
+            <option value="80">80 s</option>
+        </select>
+    </div>
+    <div class="form-tips SUBMIT HmIP-WRCD" style="margin-bottom: 12px;" data-i18n="ccu-display.wrcd.tip"></div>
     <div class="form-row">
         <label for="node-input-name"><i class="icon-bookmark"></i> Name</label>
         <input type="text" id="node-input-name">

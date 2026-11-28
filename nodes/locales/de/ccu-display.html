@@ -5,6 +5,11 @@
     anstelle der Konfiguration genutzt.</p>
     <p>Mit <code>msg.disbleX</code> kann explizit gesetzt werden, dass keine Daten für die Zeile übertragen werden.</p>
 
+    <h3>HmIP-WRCD</h3>
+    <p>Der Wandtaster mit E-Paper-Display hat fünf Zeilen mit je 16 Zeichen, je Zeile ein Icon, die Ausrichtung, Textfarbe und Hintergrund (schwarz oder weiß), dazu einen Ton mit Wiederholungen und Abstand. Der Node schreibt alles in einem Befehl auf <code>COMBINED_PARAMETER</code> des Kanals 3. Eine Zeile mit „nicht verändern“ bleibt, wie sie ist.</p>
+    <p>Aus der Nachricht: <code>msg.lineX</code> (Text), <code>msg.iconX</code> (Nummer 0 bis 31 oder Name aus <code>DISPLAY_DATA_ICON</code>, z.B. <code>LAMP_ON</code>), <code>msg.colorX</code> und <code>msg.backgroundX</code> (<code>BLACK</code> oder <code>WHITE</code>), <code>msg.alignX</code> (<code>LEFT</code>, <code>CENTER</code>, <code>RIGHT</code>), <code>msg.disableX</code>.</p>
+    <p>Umlaute und ß werden für das Display umgesetzt. Komma, Gleichheitszeichen und geschweifte Klammern gehören zum Befehl selbst und werden als Punkt, Doppelpunkt und runde Klammern gesendet; Zeichen, die das Display nicht kennt, entfallen. Der HmIP-WRCD ist noch nicht an einem Gerät erprobt.</p>
+
     <h3>Dynamische Konfiguration</h3>
     <p><code>msg.config</code> ist ein Objekt, dessen Eigenschaften die Konfiguration dieses Nodes für genau diese Nachricht überschreiben. Die gespeicherte Konfiguration bleibt unverändert.</p>
     <ul>
@@ -19,6 +24,7 @@
         <li><code>color1 ... color6</code></li>
         <li><code>icon1 ... icon6</code></li>
         <li><code>disable1 ... disable6</code></li>
+        <li>HmIP-WRCD: <code>wrcdIcon1 ... wrcdIcon5</code>, <code>wrcdAlign1 ... wrcdAlign5</code>, <code>wrcdColor1 ... wrcdColor5</code>, <code>wrcdBackground1 ... wrcdBackground5</code>, <code>wrcdSound</code> (Nummer 0 bis 7 oder Name aus <code>ACOUSTIC_NOTIFICATION_SELECTION</code>), <code>wrcdRepeat</code> (0 bis 15), <code>wrcdInterval</code> (5 bis 80 Sekunden)</li>
     </ul>
     <p><code>msg.line1</code> usw. funktionieren unverändert weiter.</p>
 </script>
