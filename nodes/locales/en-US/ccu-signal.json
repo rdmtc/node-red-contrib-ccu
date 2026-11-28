@@ -1,5 +1,18 @@
 {
   "ccu-signal": {
-
+    "behaviour": "Behaviour",
+    "behaviourOn": "Steady light",
+    "behaviourBlinkingSlow": "Blinking, slow",
+    "behaviourBlinkingMiddle": "Blinking, medium",
+    "behaviourBlinkingFast": "Blinking, fast",
+    "behaviourFlashSlow": "Flashing, slow",
+    "behaviourFlashMiddle": "Flashing, medium",
+    "behaviourFlashFast": "Flashing, fast",
+    "behaviourBillowSlow": "Billowing, slow",
+    "behaviourBillowMiddle": "Billowing, medium",
+    "behaviourBillowFast": "Billowing, fast",
+    "behaviourOff": "Off",
+    "behaviourOldValue": "As before",
+    "behaviourTip": "The HmIP-BSL has the behaviour from firmware 2.x on. It is not sent to a device with an older firmware."
   }
 }

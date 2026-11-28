@@ -2,6 +2,7 @@ const path = require('path');
 
 const statusHelper = require(path.join(__dirname, '/lib/status.js'));
 const {effectiveConfig} = require(path.join(__dirname, '/lib/dynconfig.js'));
+const {signalCommand} = require(path.join(__dirname, '/lib/signal.js'));
 
 /** Fields that already carry a typed input (`<name>Type`) in the editor. */
 const TYPED_VALUES = ['rampTimeValue', 'durationValue', 'repeat', 'volume', 'soundLevel'];
@@ -21,26 +22,11 @@ const DYNAMIC_KEYS = [
     'repetitions',
     'dimmerLevel',
     'dimmerColor',
+    'colorBehaviour',
     'dimmerList',
     'soundList',
     ...TYPED_VALUES,
 ];
-
-/**
- * Accept both the editor's list shape and a plain array of values, so a
- * flow can send `msg.config.soundList = [1, 2]` instead of building
- * `[{sound: 1}, {sound: 2}]` by hand (#148).
- * @param {*} list
- * @param {string} key 'sound' or 'color'
- * @returns {object[]}
- */
-function normalizeList(list, key) {
-    if (!Array.isArray(list)) {
-        return [];
-    }
-
-    return list.map((item) => (item !== null && typeof item === 'object' ? item : {[key]: item}));
-}
 
 module.exports = function (RED) {
     class CcuSignal {
@@ -88,83 +74,34 @@ module.exports = function (RED) {
             });
         }
 
+        /**
+         * The channel's VALUES description as far as it is known, without asking the interface.
+         * @param {string} iface
+         * @param {string} channel
+         * @returns {object|undefined}
+         */
+        valuesDescription(iface, channel) {
+            const devices = this.ccu.metadata && this.ccu.metadata.devices && this.ccu.metadata.devices[iface];
+            const device = devices && devices[String(channel).split(' ')[0]];
+            const key = device && this.ccu.paramsetName(iface, device, 'VALUES');
+            return key ? this.ccu.paramsetDescriptions[key] : undefined;
+        }
+
         sendCommand(config) {
-            let payload;
             this.debug(config.channelType);
 
-            switch (config.channelType) {
-                case 'SIGNAL_CHIME':
-                    payload = [config.volume / 100, config.repeat, 108000, ...String(config.chime).split(',')];
-                    return this.ccu.setValue(config.iface, config.channel, 'SUBMIT', payload);
-                case 'SIGNAL_LED':
-                    payload = ['1', config.repeat, 108000, ...String(config.led).split(',')];
-                    return this.ccu.setValue(config.iface, config.channel, 'SUBMIT', payload);
-                case 'ALARM_SWITCH_VIRTUAL_RECEIVER':
-                    return this.ccu.methodCall(config.iface, 'putParamset', [
-                        config.channel,
-                        'VALUES',
-                        {
-                            ACOUSTIC_ALARM_SELECTION: config.acousticAlarmSelection,
-                            DURATION_UNIT: config.durationUnit,
-                            DURATION_VALUE: Number.parseInt(config.durationValue, 10) || 0,
-                            OPTICAL_ALARM_SELECTION: config.opticalAlarmSelection,
-                        },
-                    ]);
-                case 'DIMMER_VIRTUAL_RECEIVER': {
-                    const dimmerList = normalizeList(config.dimmerList, 'color');
-                    const parameters = {
-                        LEVEL: config.dimmerLevel / 100,
-                        RAMP_TIME_UNIT: config.rampTimeUnit,
-                        RAMP_TIME_VALUE: Number(config.rampTimeValue),
-                        DURATION_UNIT: config.durationUnit,
-                        DURATION_VALUE: Number.parseInt(config.durationValue, 10) || 0,
-                        REPETITIONS: Number(config.repetitions),
-                        OUTPUT_SELECT_SIZE: dimmerList.length,
-                    };
-                    dimmerList.forEach((item, i) => {
-                        const index = i + 1;
-                        parameters['COLOR_LIST_' + index] = Number(item.color);
-                        parameters['ON_TIME_LIST_' + index] = Number(item.ontime);
-                    });
-                    return this.ccu.methodCall(config.iface, 'putParamset', [config.channel, 'VALUES', parameters]);
-                }
-
-                case 'BSL_DIMMER_VIRTUAL_RECEIVER': {
-                    return this.ccu.methodCall(config.iface, 'putParamset', [
-                        config.channel,
-                        'VALUES',
-                        {
-                            LEVEL: config.dimmerLevel / 100,
-                            RAMP_TIME_UNIT: config.rampTimeUnit,
-                            RAMP_TIME_VALUE: Number(config.rampTimeValue),
-                            DURATION_UNIT: config.durationUnit,
-                            DURATION_VALUE: Number.parseInt(config.durationValue, 10) || 0,
-                            COLOR: Number(config.dimmerColor),
-                        },
-                    ]);
-                }
-
-                case 'ACOUSTIC_SIGNAL_VIRTUAL_RECEIVER': {
-                    const soundList = normalizeList(config.soundList, 'sound');
-                    const parameters = {
-                        LEVEL: config.soundLevel / 100,
-                        RAMP_TIME_UNIT: config.rampTimeUnit,
-                        RAMP_TIME_VALUE: Number(config.rampTimeValue),
-                        DURATION_UNIT: config.durationUnit,
-                        DURATION_VALUE: Number.parseInt(config.durationValue, 10) || 0,
-                        REPETITIONS: Number(config.repetitions),
-                        OUTPUT_SELECT_SIZE: soundList.length,
-                    };
-                    soundList.forEach((item, i) => {
-                        const index = i + 1;
-                        parameters['SOUNDFILE_LIST_' + index] = Number(item.sound);
-                    });
-                    return this.ccu.methodCall(config.iface, 'putParamset', [config.channel, 'VALUES', parameters]);
-                }
-
-                default:
-                    return Promise.reject(new Error(`channelType ${config.channelType} unknown`));
+            let command;
+            try {
+                command = signalCommand(config, this.valuesDescription(config.iface, config.channel));
+            } catch (error) {
+                return Promise.reject(error);
             }
+
+            if (command.paramset) {
+                return this.ccu.methodCall(config.iface, 'putParamset', [config.channel, 'VALUES', command.paramset]);
+            }
+
+            return this.ccu.setValue(config.iface, config.channel, command.datapoint, command.value);
         }
 
         setStatus(data) {

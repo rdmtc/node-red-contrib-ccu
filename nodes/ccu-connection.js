@@ -424,9 +424,12 @@ module.exports = function (RED) {
                     if (devices) {
                         Object.keys(devices).forEach((addr) => {
                             if (
-                                ['SIGNAL_CHIME', 'SIGNAL_LED', 'ALARM_SWITCH_VIRTUAL_RECEIVER'].includes(
-                                    devices[addr].TYPE,
-                                )
+                                [
+                                    'SIGNAL_CHIME',
+                                    'SIGNAL_LED',
+                                    'ALARM_SWITCH_VIRTUAL_RECEIVER',
+                                    'OPTICAL_SIGNAL_RECEIVER',
+                                ].includes(devices[addr].TYPE)
                             ) {
                                 object[addr] = {
                                     name: config.channelNames[addr],

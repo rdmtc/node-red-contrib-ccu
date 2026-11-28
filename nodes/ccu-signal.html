@@ -90,6 +90,7 @@
             rampTimeValueType: {value: 'num'},
             repetitions: {value: 0},
             dimmerColor: {value: 0},
+            colorBehaviour: {value: 1},
             dimmerLevel: {value: 100},
             dimmerList: {value: []},
             soundLevel: {value: 50},
@@ -389,10 +390,15 @@
                 this.dimmerList.forEach(item => {
                     $('#node-input-dimmer-container').editableList('addItem', item);
                 });
-            } else if (this.channelType === 'BSL_DIMMER_VIRTUAL_RECEIVER') {
+            } else if (this.channelType === 'BSL_DIMMER_VIRTUAL_RECEIVER' || this.channelType === 'OPTICAL_SIGNAL_RECEIVER') {
                 // ...
             } else {
                 console.error('unknown channelType', this.channelType);
+            }
+
+            // a node saved before the option existed has none: show what it sends, the steady light
+            if (this.colorBehaviour === undefined || this.colorBehaviour === null || this.colorBehaviour === '') {
+                $('#node-input-colorBehaviour').val('1');
             }
 
             $('.SUBMIT').hide();
@@ -495,6 +501,7 @@
             <option value="ACOUSTIC_SIGNAL_VIRTUAL_RECEIVER">ACOUSTIC_SIGNAL (HmIP-MP3P)</option>
             <option value="DIMMER_VIRTUAL_RECEIVER">DIMMER (HmIP-MP3P)</option>
             <option value="BSL_DIMMER_VIRTUAL_RECEIVER">DIMMER (HmIP-BSL)</option>
+            <option value="OPTICAL_SIGNAL_RECEIVER">OPTICAL_SIGNAL (HmIPW-WRC6)</option>
         </select>
     </div>
 
@@ -597,7 +604,7 @@
         <input id="node-input-soundLevelType" type="hidden">
     </div>
 
-    <div class="form-row SUBMIT BSL_DIMMER_VIRTUAL_RECEIVER">
+    <div class="form-row SUBMIT BSL_DIMMER_VIRTUAL_RECEIVER OPTICAL_SIGNAL_RECEIVER">
         <label for="node-input-dimmerColor"><i class=""></i> Farbe </label>
         <select id="node-input-dimmerColor" class="ccu-dropdown">
             <option value="0">Aus</option>
@@ -611,13 +618,33 @@
         </select>
     </div>
 
-    <div class="form-row SUBMIT DIMMER_VIRTUAL_RECEIVER BSL_DIMMER_VIRTUAL_RECEIVER">
+    <div class="form-row SUBMIT BSL_DIMMER_VIRTUAL_RECEIVER OPTICAL_SIGNAL_RECEIVER">
+        <label for="node-input-colorBehaviour"><i class=""></i> <span data-i18n="ccu-signal.behaviour"></span></label>
+        <select id="node-input-colorBehaviour" class="ccu-dropdown">
+            <option value="1" data-i18n="ccu-signal.behaviourOn"></option>
+            <option value="2" data-i18n="ccu-signal.behaviourBlinkingSlow"></option>
+            <option value="3" data-i18n="ccu-signal.behaviourBlinkingMiddle"></option>
+            <option value="4" data-i18n="ccu-signal.behaviourBlinkingFast"></option>
+            <option value="5" data-i18n="ccu-signal.behaviourFlashSlow"></option>
+            <option value="6" data-i18n="ccu-signal.behaviourFlashMiddle"></option>
+            <option value="7" data-i18n="ccu-signal.behaviourFlashFast"></option>
+            <option value="8" data-i18n="ccu-signal.behaviourBillowSlow"></option>
+            <option value="9" data-i18n="ccu-signal.behaviourBillowMiddle"></option>
+            <option value="10" data-i18n="ccu-signal.behaviourBillowFast"></option>
+            <option value="0" data-i18n="ccu-signal.behaviourOff"></option>
+            <option value="11" data-i18n="ccu-signal.behaviourOldValue"></option>
+        </select>
+    </div>
+
+    <div class="form-tips SUBMIT BSL_DIMMER_VIRTUAL_RECEIVER" style="margin-bottom: 12px;" data-i18n="ccu-signal.behaviourTip"></div>
+
+    <div class="form-row SUBMIT DIMMER_VIRTUAL_RECEIVER BSL_DIMMER_VIRTUAL_RECEIVER OPTICAL_SIGNAL_RECEIVER">
         <label for="node-input-dimmerLevel"><i class=""></i> Helligkeit </label>
         <input id="node-input-dimmerLevel" type="number" min="0" max="100">
         <input id="node-input-dimmerLevelType" type="hidden">
     </div>
 
-    <div class="form-row SUBMIT ACOUSTIC_SIGNAL_VIRTUAL_RECEIVER DIMMER_VIRTUAL_RECEIVER BSL_DIMMER_VIRTUAL_RECEIVER">
+    <div class="form-row SUBMIT ACOUSTIC_SIGNAL_VIRTUAL_RECEIVER DIMMER_VIRTUAL_RECEIVER BSL_DIMMER_VIRTUAL_RECEIVER OPTICAL_SIGNAL_RECEIVER">
         <label for="node-input-rampTimeUnit"><i class=""></i> Rampenzeit </label>
         <select id="node-input-rampTimeUnit" style="width: calc(35% - 5px)">
             <option value="S">Sekunden</option>
@@ -628,7 +655,7 @@
         <input id="node-input-rampTimeValueType" type="hidden">
     </div>
 
-    <div class="form-row SUBMIT ALARM_SWITCH_VIRTUAL_RECEIVER ACOUSTIC_SIGNAL_VIRTUAL_RECEIVER DIMMER_VIRTUAL_RECEIVER BSL_DIMMER_VIRTUAL_RECEIVER">
+    <div class="form-row SUBMIT ALARM_SWITCH_VIRTUAL_RECEIVER ACOUSTIC_SIGNAL_VIRTUAL_RECEIVER DIMMER_VIRTUAL_RECEIVER BSL_DIMMER_VIRTUAL_RECEIVER OPTICAL_SIGNAL_RECEIVER">
         <label for="node-input-durationUnit"><i class=""></i> Dauer </label>
         <select id="node-input-durationUnit" style="width: calc(35% - 5px)">
             <option value="S">Sekunden</option>

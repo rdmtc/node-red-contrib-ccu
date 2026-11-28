@@ -1,5 +1,18 @@
 {
   "ccu-signal": {
-
+    "behaviour": "Verhalten",
+    "behaviourOn": "Dauerlicht",
+    "behaviourBlinkingSlow": "Blinken, langsam",
+    "behaviourBlinkingMiddle": "Blinken, mittel",
+    "behaviourBlinkingFast": "Blinken, schnell",
+    "behaviourFlashSlow": "Blitzen, langsam",
+    "behaviourFlashMiddle": "Blitzen, mittel",
+    "behaviourFlashFast": "Blitzen, schnell",
+    "behaviourBillowSlow": "An- und abschwellen, langsam",
+    "behaviourBillowMiddle": "An- und abschwellen, mittel",
+    "behaviourBillowFast": "An- und abschwellen, schnell",
+    "behaviourOff": "Aus",
+    "behaviourOldValue": "Wie zuvor",
+    "behaviourTip": "Das Verhalten kennt der HmIP-BSL ab Firmware 2.x. An ein Gerät mit älterer Firmware wird es nicht gesendet."
   }
 }
